@@ -13,7 +13,6 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE",
     "SECURITY.md"
   ],
   "scripts": {
