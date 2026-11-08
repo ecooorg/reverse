@@ -20,6 +20,3 @@ The Result envelope contains `schemaVersion`, `id`, `target`, `operation`, `stat
 
 Implement `AnalyzerProvider` from `src/providers/registry.ts`, declare concrete capabilities, check availability without side effects, and return structured observations with explicit coverage and limitations. Never report `available: true` unless the executable and required runtime are actually detected. Provider registration is in-process; dynamic plugin loading is a future task.
 
-## Relationship to REA
-
-CREA follows the high-level patterns requested in the project specification: local inspection, provider independence, process safety boundaries, structured evidence, CLI/MCP parity, and separation of measurements from AI hypotheses. This MVP is a clean independent implementation. It does not copy REA source files or claim that REA's Ghidra/Rizin/Frida/GDB integrations were ported. Upstream project: https://github.com/morluto/rea.
