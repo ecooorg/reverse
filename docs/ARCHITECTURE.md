@@ -18,5 +18,5 @@ The Result envelope contains `schemaVersion`, `id`, `target`, `operation`, `stat
 
 ## Extension contract
 
-Implement `AnalyzerProvider` from `src/providers/registry.ts`, declare concrete capabilities, check availability without side effects, and return structured observations with explicit coverage and limitations. Never report `available: true` unless the executable and required runtime are actually detected. Provider registration is in-process; dynamic plugin loading is a future task.
+Implement `AnalyzerProvider` from `src/providers-registry.ts`, declare concrete capabilities, check availability without side effects, and return structured observations with explicit coverage and limitations. Never report `available: true` unless the executable and required runtime are actually detected. Provider registration is in-process; dynamic plugin loading is a future task.
 
