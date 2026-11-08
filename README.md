@@ -2,7 +2,7 @@
 
 CREA is a compact, local-first analysis core for software investigation and optimization experiments. It provides a CLI and a standalone Model Context Protocol (MCP) stdio server. It focuses on deterministic observations, repeatable wall-clock benchmarks, behavior checks, and evidence rather than embedding an AI planner or reimplementing specialist reverse-engineering tools.
 
-> **MVP status:** this is an independently implemented starter release. It is not a port of REA internals. Capabilities marked as extension points are not implemented integrations. Read [CAPABILITIES.md](docs/CAPABILITIES.md) before relying on a result.
+> **MVP status:** this is an independently implemented starter release. Capabilities marked as extension points are not implemented integrations. Read [CAPABILITIES.md](docs/CAPABILITIES.md) before relying on a result.
 
 ## Requirements
 
@@ -90,7 +90,3 @@ The server writes protocol messages to stdout. Do not add logging to stdout; dia
 - [Benchmark methodology](docs/BENCHMARKS.md)
 - [GitHub publishing guide](docs/GITHUB.md)
 - [Roadmap](docs/ROADMAP.md)
-
-## License
-
-MIT. See [LICENSE](LICENSE).
