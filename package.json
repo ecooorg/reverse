@@ -23,7 +23,8 @@
     "test": "npm run build && tsc -p tsconfig.tests.json && node --test dist-tests/*.test.js",
     "start:mcp": "node dist/mcp-server.js",
     "dev": "tsx src/cli-main.ts",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "verify": "npm run build && tsc -p tsconfig.tests.json && node --test dist-tests/capabilities.check.js && node tests/capability-report.mjs dist-tests/capability-report.json"
   },
   "engines": {
     "node": ">=20.11"
