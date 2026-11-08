@@ -24,7 +24,7 @@ npm link
 crea --help
 ```
 
-Run without linking: `node dist/src/cli/main.js --help`.
+Run without linking: `node dist/cli-main.js --help`.
 
 ## Quick start
 
@@ -64,7 +64,7 @@ Example client configuration:
   "mcpServers": {
     "crea": {
       "command": "node",
-      "args": ["/absolute/path/to/crea/dist/src/mcp/server.js"]
+      "args": ["/absolute/path/to/crea/dist/mcp-server.js"]
     }
   }
 }
