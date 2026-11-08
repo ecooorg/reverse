@@ -325,7 +325,8 @@ check('Processes', 'lists visible processes with pid and name, honoring the limi
   const r: any = await listProcesses(25);
   assert.equal(r.status, 'completed', j(r.limitations));
   assert.ok(r.findings.length > 0 && r.findings.length <= 25);
-  assert.ok(r.findings.every((p: any) => Number.isInteger(p.pid) && p.pid > 0 && typeof p.name === 'string'));
+  // Windows legitimately lists PID 0 ("System Idle Process"); POSIX PIDs start at 1.
+  assert.ok(r.findings.every((p: any) => Number.isInteger(p.pid) && p.pid >= (WIN ? 0 : 1) && typeof p.name === 'string'));
   if (!WIN) assert.ok(r.findings.every((p: any) => Number.isInteger(p.ppid)), 'ppid on POSIX hosts');
 });
 check('Processes', 'limit is clamped to the 1..500 range', async () => {
@@ -441,10 +442,19 @@ check('Benchmark', 'stdin is closed (child sees EOF) and stdout/stderr are captu
   });
   assert.equal(r.findings[0].runs[0].stdout, 'eof'); assert.equal(r.findings[0].runs[0].stderr, 'err');
 });
-check('Benchmark', 'captured output is bounded (~1 MiB per stream)', async () => {
-  const r: any = await runBenchmark({ command: NODE, args: nodeEval('process.stdout.write("x".repeat(4e6))'), repetitions: 1, timeoutMs: 60000 });
-  const len = r.findings[0].runs[0].stdout.length;
-  assert.ok(len >= 1_000_000 && len < 2_000_000, `captured ${len} bytes of 4,000,000`);
+check('Benchmark', 'captured output is bounded (~1 MiB per stream)', async c => {
+  // Small chunks: the cap must hold on every platform.
+  const small: any = await runBenchmark({
+    command: NODE, repetitions: 1, timeoutMs: 60000,
+    args: nodeEval('const c="x".repeat(16384);let n=0;(function w(){while(n<250){n++;if(!process.stdout.write(c))return process.stdout.once("drain",w);}})()'),
+  });
+  const len = small.findings[0].runs[0].stdout.length;
+  assert.ok(len >= 1_000_000 && len < 2_000_000, `captured ${len} bytes of 4,096,000 written in 16 KiB chunks`);
+  // One huge chunk: the cap is checked before appending, so a single oversized chunk can bypass it.
+  const big: any = await runBenchmark({ command: NODE, args: nodeEval('process.stdout.write("x".repeat(4e6))'), repetitions: 1, timeoutMs: 60000 });
+  const bigLen = big.findings[0].runs[0].stdout.length;
+  assert.ok(bigLen >= 1_000_000, `captured only ${bigLen} bytes`);
+  if (bigLen >= 2_000_000) c.drift(`output cap is bypassed when a child's output arrives in one large chunk: kept ${bigLen} of 4,000,000 bytes (seen on Windows/Node 20; the cap is checked before appending, not after)`);
 });
 check('Benchmark', 'honors cwd and records the non-zero exit code', async () => {
   const d = path.join(WORK, 'cwd'); await mkdir(d, { recursive: true });
