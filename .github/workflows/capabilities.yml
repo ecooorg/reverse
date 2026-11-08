@@ -1,0 +1,148 @@
+name: Capabilities
+
+# Verifies what CREA can REALLY do (not what the docs say), on Linux, macOS and Windows.
+#   structure     - flat layout, Markdown links, import graph, package.json targets
+#   capabilities  - tests/capabilities.check.ts against the built library, CLI and MCP server
+#   package       - npm pack -> install the tarball in a clean project -> run the installed `crea`
+#   summary       - merges all reports into one capability-by-platform matrix (job summary + annotations)
+#
+# Outcomes per check: verified / limitation (a documented limit is real) / drift (docs vs behaviour,
+# defects) / failed. Only "failed" turns the workflow red; drift appears as warnings.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 1'   # weekly: catches new runner images and Node releases
+
+concurrency:
+  group: capabilities-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  structure:
+    name: structure
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Layout, links and import graph (source tree)
+        run: node tests/check-structure.mjs
+      - run: npm ci
+      - run: npm run build
+      - name: package.json targets (built tree)
+        run: node tests/check-structure.mjs --built
+
+  capabilities:
+    name: capabilities (${{ matrix.os }}, node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: [20, 22, 24]
+    env:
+      CREA_CAPABILITY_REPORT: capability-reports/${{ matrix.os }}-node${{ matrix.node }}.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - name: Build library, CLI and MCP server
+        run: npm run build
+      - name: Build the verification suite
+        run: npx tsc -p tsconfig.tests.json
+      - name: Exercise every capability (library API, CLI, MCP stdio)
+        run: node --test --test-reporter=spec dist-tests/capabilities.check.js
+      - name: Upload capability report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capability-report-${{ matrix.os }}-node${{ matrix.node }}
+          path: capability-reports/*.json
+          if-no-files-found: warn
+
+  package:
+    name: package (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Pack the tarball and inspect its contents
+        run: |
+          mkdir -p .tmp-pack
+          npm pack --pack-destination .tmp-pack --silent
+          npm pack --dry-run --json --ignore-scripts > .tmp-pack/manifest.json
+          node -e '
+            const files = JSON.parse(require("fs").readFileSync(".tmp-pack/manifest.json","utf8"))[0].files.map(f => f.path);
+            const need = ["dist/index.js","dist/index.d.ts","dist/cli-main.js","dist/mcp-server.js","package.json","README.md"];
+            const missing = need.filter(f => !files.includes(f));
+            const leaked = files.filter(f => /^(src|tests|docs|\.github|node_modules)\//.test(f));
+            console.log(files.length + " files in tarball");
+            if (missing.length) { console.log("::error::tarball is missing: " + missing); process.exit(1); }
+            if (leaked.length) console.log("::warning::tarball contains non-runtime files: " + leaked.slice(0,5));
+          '
+      - name: Install the tarball into a clean project
+        run: |
+          mkdir .tmp-consumer && cd .tmp-consumer
+          echo '{"name":"consumer","version":"1.0.0","private":true}' > package.json
+          npm install ../.tmp-pack/*.tgz --silent
+      - name: Installed CLI works
+        working-directory: .tmp-consumer
+        run: |
+          npx --no-install crea --help | grep -q "Usage: crea"
+          npx --no-install crea analyzers | grep -q ghidra
+          npx --no-install crea binary "$(node -p 'process.execPath')" | grep -q '"format"'
+      - name: Installed library imports by package name
+        working-directory: .tmp-consumer
+        run: |
+          node --input-type=module -e '
+            import * as crea from "crea-compact-reverse-engineer-anything";
+            for (const k of ["analyzeBinary","runBenchmark","validateBehavior","EvidenceEngine","listProviders"])
+              if (typeof crea[k] !== "function") { console.error("missing export " + k); process.exit(1); }
+            console.log("exports ok: " + Object.keys(crea).length);
+          '
+      - name: Installed MCP server answers tools/list
+        working-directory: .tmp-consumer
+        run: |
+          echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | node node_modules/crea-compact-reverse-engineer-anything/dist/mcp-server.js | grep -q '"inspect_target"'
+
+  summary:
+    name: capability matrix
+    needs: capabilities
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: capability-report-*
+          path: reports
+          merge-multiple: true
+      - name: Merge reports, annotate drift, fail on broken capabilities
+        run: node tests/capability-report.mjs reports/*.json
