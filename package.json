@@ -1,0 +1,35 @@
+{
+  "name": "crea-compact-reverse-engineer-anything",
+  "version": "0.1.0",
+  "private": false,
+  "description": "A compact local analysis, profiling, benchmarking and evidence core with CLI and MCP interfaces.",
+  "type": "module",
+  "bin": {
+    "crea": "dist/src/cli/main.js"
+  },
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test dist/test/*.test.js",
+    "start:mcp": "node dist/src/mcp/server.js",
+    "dev": "tsx src/cli/main.ts",
+    "prepare": "npm run build"
+  },
+  "engines": {
+    "node": ">=20.11"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "typescript": "^5.8.3",
+    "tsx": "^4.19.3"
+  }
+}
