@@ -7,7 +7,7 @@ Reverse measures wall-clock duration for fresh child-process executions. It reco
 1. Use identical input files and arguments for baseline and candidate.
 2. Record executable version, build identifier, host, OS, architecture, power mode, and background load outside Reverse.
 3. Use at least 5-10 repetitions for exploratory comparisons; increase repetitions for noisy workloads.
-4. Separate cold-start and warmed-up experiments manually; this release does not classify them.
+4. Use `warmupRuns` for warm-up (recorded, excluded from statistics); cold/warm classification is not implemented.
 5. Alternate baseline/candidate runs where practical to reduce drift.
 6. Compare medians and distributions, not a single run.
 7. Repeat on the same hardware and under comparable system load.
@@ -16,3 +16,7 @@ Reverse measures wall-clock duration for fresh child-process executions. It reco
 The median of an even number of runs is the mean of the two middle values.
 
 A negative `changePercent` means the candidate had lower mean wall-clock time. This is an observation, not proof of causal improvement. The current comparator does not calculate confidence intervals or reject noisy samples. Profiling overhead and external system load can materially affect results.
+
+## Statistics and verdicts (0.2.0-beta.3)
+
+Per benchmark: mean, median, min, max, P95 (nearest rank), sample standard deviation, MAD, outliers (modified z-score above 3.5) and a 95% Student-t interval of the mean. Failed runs (error, timeout, non-zero exit) are excluded. `compare_results` reports a verdict from the per-run durations: two-sided Mann-Whitney test (alpha 0.05, tie-corrected normal approximation) and a deterministic bootstrap interval of the median shift that must exclude zero; also the Hodges-Lehmann shift and Cohen's d. Fewer than 5 successful runs on either side gives `insufficient_evidence`; a lower mean alone never gives `improved`. Different environment fingerprints add a comparability warning and make the comparison `partial`.

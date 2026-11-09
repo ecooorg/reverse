@@ -287,7 +287,7 @@ CPU and RAM control must not be presented as full system isolation. Real hard li
 
 ### MCP tools
 
-The existing tools and the implemented 0.2 process tools are listed in [MCP.md](MCP.md). Existing tools must be preserved and backward compatibility must not be broken. Before adding a command, the existing contracts are checked and compatible ones reused, instead of creating duplicate commands.
+The existing tools, the implemented 0.2 process tools and `get_environment_fingerprint` are listed in [MCP.md](MCP.md). Existing tools must be preserved and backward compatibility must not be broken. Before adding a command, the existing contracts are checked and compatible ones reused, instead of creating duplicate commands.
 
 Remaining planned additions for 0.2 (not yet implemented):
 
@@ -296,7 +296,6 @@ Remaining planned additions for 0.2 (not yet implemented):
 | `create_benchmark_suite` | Create a set of measurements |
 | `run_benchmark_suite` | Run the measurements |
 | `compare_benchmarks` | Compare results |
-| `get_environment_fingerprint` | Environment information |
 | `get_research_session` | History of an investigation |
 
 Candidates for later releases, depending on providers: `get_hotspots` and `trace_execution` (require a real profiler or Frida/GDB provider).

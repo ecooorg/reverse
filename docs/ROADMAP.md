@@ -73,7 +73,11 @@ Closes **Advanced Process Inspector**, **Time-Series Performance Profiler** and 
 
 Capability checks added for identity/ownership, cancellation, resource-control reporting and the new MCP tool.
 
-### Patch C — Measurement engine and baselines (0.2)
+### Patch C — Measurement engine and baselines (0.2) — in progress, first part released as 0.2.0-beta.3
+
+**Done in 0.2.0-beta.3:** command-execution gate, allowlisted child environment and tool annotations (F-01); statistics, warm-up runs, failed-run exclusion and the `improved`/`regressed`/`no_significant_change`/`insufficient_evidence` verdict (F-04, most of R-13); environment fingerprint, comparability warning and `get_environment_fingerprint`; `noUnusedParameters`, `.gitattributes`, Node 22+ (F-14, R-16).
+
+**Still open in patch C (not claimed):** per-run CPU time and peak RAM, binary size, cold/warm classification, interleaved A/B runs, environment-noise detection, baseline manager and `create_benchmark_suite` / `run_benchmark_suite` / `compare_benchmarks`, F-12 (identity-checked group kill), F-16 (test split, partly started with `tests/benchmark-stats.test.ts`), F-17 and R-02 (`untrustedContent` wrapper, adversarial fixtures), R-03, R-05, R-06, R-17 and the hyperfine-compatible export of R-12. The checks *Benchmark — reports P95…* stays 🚧 until CPU time and peak RAM exist. Patch C is not done and the roadmap does not mark it so.
 
 Closes **Advanced Benchmark Engine** (all items) and the baseline lifecycle.
 
@@ -222,10 +226,10 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 
 | ID | Task | Patch / status |
 |---|---|---|
-| F-01 | Command-execution gate: command-running MCP tools refuse unless the operator selects `CONTROLLED_EXECUTION`; command allowlist and `cwd` root; environment allowlist for children; MCP tool annotations | **C** (first item) |
+| F-01 | Command-execution gate: command-running MCP tools refuse unless the operator selects `CONTROLLED_EXECUTION`; command allowlist and `cwd` root; environment allowlist for children; MCP tool annotations | closed in 0.2.0-beta.3 |
 | F-02 | Correct median for even counts | closed in 0.2.0-beta.2 |
 | F-03 | Output cap counted in bytes | closed in 0.2.0-beta.2 |
-| F-04 | No `improved`/significance claim from means; exclude failed runs; minimum runs and confidence interval, else `insufficient_evidence` | **C** |
+| F-04 | No `improved`/significance claim from means; exclude failed runs; minimum runs and confidence interval, else `insufficient_evidence` | closed in 0.2.0-beta.3 |
 | F-05 | Validation never matches truncated output | closed in 0.2.0-beta.2; normalization rules in **I** |
 | F-06 | (a)–(c) protocol errors | closed in 0.2.0-beta.2; (d) newer protocol revisions, `title`, `outputSchema`, annotations, SDK contract tests in **D** |
 | F-07 | Page size and `CLK_TCK` read from the OS; one documented CPU-percent convention | **D** |
@@ -235,7 +239,7 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-11 | Streamed hashing, atomic evidence writes, lookup by evidence id, one evidence code path | **D** |
 | F-12 | Process-group kill with identity-checked sweep; real counts on Windows | **C** |
 | F-13 | Mach-O CPU type and fat slice table, PE `e_lfanew` beyond the buffer reported as `partial` | **E** |
-| F-14 | Remaining: `.gitattributes`, `noUnusedParameters` | **C** (rest closed in 0.2.0-beta.2) |
+| F-14 | Remaining: `.gitattributes`, `noUnusedParameters` | closed in 0.2.0-beta.3 |
 | F-15 | Documentation drift and the planned-tools check | closed in 0.2.0-beta.2 |
 | F-16 | Split the test suite into flat `tests/<area>.test.ts` files with pure fixtures; statistics, `CappedBuffer`, MCP error paths, `/proc` parser | **C** (statistics, capture) and **D** (the rest) |
 | F-17 | Threat model: agent as untrusted caller, prompt injection through target data | **C** |
@@ -256,10 +260,10 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | R-10 | Existing parsers and tools as opt-in providers (lief/goblin, objdump/readelf, rz-bin, capa, yara-x, diec, syft, osv-scanner, cargo-auditable, Go build info) | **E** (static), **F** (provider adapters), **H** (profiling) |
 | R-11 | Hardening-flag report (PIE, NX, RELRO, canary, CFG, ASLR) | **E** |
 | R-12 | Profile ingestion in standard formats (perf, pprof, `.cpuprofile`, Speedscope, Firefox Profiler); hyperfine-compatible benchmark export; eBPF via bpftrace | **H** (ingestion), **C** (export shape) |
-| R-13 | Statistics: bootstrap intervals, Mann-Whitney with Hodges-Lehmann shift, effect size, MAD outliers, environment-noise detection, interleaved A/B runs by default, `insufficient_evidence` verdict | **C** |
+| R-13 | Statistics: bootstrap intervals, Mann-Whitney with Hodges-Lehmann shift, effect size, MAD outliers, environment-noise detection, interleaved A/B runs by default, `insufficient_evidence` verdict | **C**: done in 0.2.0-beta.3 except environment-noise detection and interleaved A/B runs (open) |
 | R-14 | Tamper-evident evidence: per-session hash chain, Merkle root, Ed25519 signature, `reverse export` / `reverse verify` | **I** |
 | R-15 | Golden results and the three reference trials as manual CI jobs | **J** |
-| R-16 | Node support window: drop Node 20, `engines` and matrix to 22 and 24 | **C** |
+| R-16 | Node support window: drop Node 20, `engines` and matrix to 22 and 24 | closed in 0.2.0-beta.3 |
 | R-17 | Node built-ins instead of code: `util.parseArgs`, `AbortSignal.timeout`, `fs.glob`, test coverage, `os.availableParallelism` | **C** |
 | R-18 | Distribution: `npx` entry, install scripts that only check Node and print configuration, optional single binary, `server.json` for MCP registries | **L** |
 | R-19 | Windows and macOS metric parity: persistent helpers instead of a fork per sample; `typeperf`/ETW and `libproc` providers | **D** (helpers), **H** (providers) |
@@ -375,6 +379,13 @@ Depends on O and J. Closes G-05, G-06 and the L3 level of G-10.
 ## Release sections
 
 Sequencing principle: do not start with Ghidra and do not try to implement every external analyzer at once. First strengthen Reverse's ability to investigate running programs, detect real performance problems and collect evidence, because the main job of Reverse is to help an AI agent find the causes of excessive resource use and objectively verify optimization results. Linux is the first fully supported profiling environment, with interfaces for Windows and macOS designed in from the start.
+
+## 0.2.0-beta.3 — Patch C, part 1
+
+- [x] Command-running MCP tools refuse unless `REVERSE_MODE=CONTROLLED_EXECUTION` and `REVERSE_COMMAND_ALLOWLIST` are set; optional `REVERSE_CWD_ROOT`; allowlisted child environment; tool annotations (F-01). **Breaking default**, announced here.
+- [x] Benchmark statistics (P95, std-dev, MAD, outliers, 95% interval), `warmupRuns`, failed runs excluded; `compare_results` verdict by Mann-Whitney plus bootstrap, `insufficient_evidence` under 5 runs (F-04, R-13 in part).
+- [x] Environment fingerprint, comparability warning, MCP tool `get_environment_fingerprint`.
+- [x] `noUnusedParameters`, `.gitattributes`, Node 22 and 24 only (F-14, R-16). `improved` in `compare_results` is now `true` only for a statistically supported speedup.
 
 ## 0.2.0-beta.2 — hotfix from audit 1
 

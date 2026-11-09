@@ -8,6 +8,7 @@ Reverse is a local inspection tool, not a sandbox. It runs with the permissions 
 - Process inspection is observational and limited to data exposed by the OS.
 - No target is uploaded to an external service.
 - Benchmark and validation commands are explicitly supplied by the caller and run without a shell (`spawn(command, args)`).
+- Threat model: the AI agent that calls MCP tools is an **untrusted caller**, and data from targets (output, file names, strings) may contain prompt injection. Command-running MCP tools are therefore off unless the operator sets `REVERSE_MODE=CONTROLLED_EXECUTION` with `REVERSE_COMMAND_ALLOWLIST` (optional `REVERSE_CWD_ROOT`); children get an allowlisted environment, so tokens of the parent are not passed on. Still open: sandboxing of executed targets (patch G) and an `untrustedContent` wrapper for target-derived text (patch C, remaining).
 - Command duration is bounded; output capture is capped at exactly 1 MiB (bytes) per stream (excess output is dropped and the run is flagged `stdoutTruncated` / `stderrTruncated`).
 - Reverse does not patch binaries, change target configuration, inject into processes, or kill arbitrary target processes.
 

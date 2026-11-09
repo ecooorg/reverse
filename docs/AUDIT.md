@@ -101,7 +101,9 @@ Tasks G-01…G-10 are tracked in the [approved audit backlog](ROADMAP.md#approve
 | F-13 | unused `magic` removed; Mach-O CPU type, fat slices and PE `e_lfanew` remain open (patch E) |
 | F-14 | stale `dist/` is not part of the hotfix archive; `noUnusedLocals`, `noImplicitReturns` enabled; unused symbols removed. `.gitattributes` and `noUnusedParameters` remain open |
 | F-15 | (a) and (b) closed in 0.2.0-beta.2 with a check that compares the planned-tools table with `tools/list`; (c) closed; (d) closed together with F-06 |
-| F-01, F-04, F-07, F-08, F-10, F-11, F-12, F-16, F-17 | open, scheduled as in section D |
+| F-01, F-04 | Status: closed in 0.2.0-beta.3, patch C |
+| F-14 (rest) | Status: closed in 0.2.0-beta.3, patch C (`noUnusedParameters`, `.gitattributes`) |
+| F-07, F-08, F-10, F-11, F-12, F-16, F-17 | open, scheduled as in section D |
 
 Behavior changes users can notice: MCP tool failures now arrive as `isError` results instead of JSON-RPC errors; a non-JSON line now gets a `-32700` reply; `validate_changes` returns `completed` for a clean mismatch; `.wasm` files are no longer counted by `analyze_source`.
 

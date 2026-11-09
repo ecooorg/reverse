@@ -21,7 +21,7 @@
 
 4. In GitHub, review repository visibility, description, topics (`typescript`, `nodejs`, `mcp`, `benchmarking`, `reverse-engineering`, `performance-analysis`), and security settings.
 5. Replace `YOUR-USERNAME` references in README and documentation with the real owner/repository.
-6. CI is already provided by `.github/workflows/capabilities.yml` (Node.js 20/22/24 on Linux, macOS and Windows) and `.github/workflows/structure.yml`. Add a release workflow, issue templates, and CODEOWNERS before tagging a public release.
+6. CI is already provided by `.github/workflows/capabilities.yml` (Node.js 22/24 on Linux, macOS and Windows) and `.github/workflows/structure.yml`. Add a release workflow, issue templates, and CODEOWNERS before tagging a public release.
 7. Create a version tag only after tests pass: `git tag v0.1.0 && git push origin v0.1.0`.
 
 Never commit private binaries, benchmark data containing sensitive paths, credentials, `.env` files, or local `.reverse` evidence. Review `git diff --cached` before committing.
