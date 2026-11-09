@@ -83,6 +83,8 @@ The server writes protocol messages to stdout. Do not add logging to stdout; dia
 4. Commands execute locally. Reverse does not upload inspected binaries.
 5. Mutating operations are out of scope for this MVP. Benchmark/validation commands do execute user-supplied commands under the current user's permissions.
 6. A timing improvement is not proof of semantic equivalence.
+7. Analogies and AI guesses are hypotheses, kept apart from facts and confirmed only by checks (planned).
+8. The legacy track is for open-source software or software whose developers and rights holders consent; see [SECURITY.md](docs/SECURITY.md).
 
 ## Documentation
 

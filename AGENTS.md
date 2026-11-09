@@ -45,6 +45,8 @@ Never weaken, skip or delete a test or a check to make a run pass. If a check is
 - Never describe a capability as implemented unless code and a passing check prove it. Planned work stays labeled *planned* in docs, help text, tool descriptions and `limitations` arrays.
 - An external engine (Ghidra, Rizin, Frida, GDB, perf, eBPF, ETW, Instruments, Valgrind) is reported as available only when its executable and runtime are actually detected. Never fake output from a tool that is absent.
 - Do not invent measurements, benchmarks, versions, hashes or sources. Every finding carries its source, time, coverage and limitations. Keep the four fact categories apart: measured, statically derived, AI hypothesis, confirmed optimization.
+- Analogies, intuition and AI guesses are hypotheses. Never present one as a measured or static fact, never store one as evidence, and never raise a preservation level because of one. Code without an oracle stays at L0.
+- Legacy-track work (patches M–P) is for open-source software or software with the full consent of its developers and rights holders. Do not add features that bundle third-party binaries or proprietary code, and do not upload targets or corpus lookups.
 - Never claim a speedup from one lower mean, a smaller report or less data sent to the model. Improvements need repeated measurements, comparable environments and passing validation.
 - When docs and behavior disagree, fix whichever is wrong in the same change and add a check so the drift cannot return.
 
