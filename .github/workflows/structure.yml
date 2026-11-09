@@ -64,6 +64,8 @@ jobs:
       - name: Hygiene warnings (never fail the run)
         if: always()
         run: |
+          # The runner's bash uses -e -o pipefail: a grep without a match must not end this step.
+          set +e +o pipefail
           crlf=$(git ls-files --eol | grep -E 'i/crlf' | grep -v 'attr/-text' | awk '{print $NF}' | head -10)
           [ -n "$crlf" ] && echo "::warning title=CRLF in the index::$(echo $crlf | tr '\n' ' ')"
           built=$(git ls-files | grep -E '^(dist|dist-tests|node_modules|capability-reports)/' | head -5)
@@ -78,6 +80,7 @@ jobs:
       - name: Job summary and annotations
         if: always()
         run: |
+          set +e +o pipefail
           {
             echo "### Structure check: ${{ matrix.os }}"
             echo
