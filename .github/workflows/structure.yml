@@ -134,7 +134,7 @@ jobs:
     steps:
       - uses: actions/upload-artifact/merge@v6
         with:
-          name: ci-logs
+          name: ${{ github.workflow }}
           pattern: ci-parts-*
           separate-directories: true
           delete-merged: true
