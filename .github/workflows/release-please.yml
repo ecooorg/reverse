@@ -20,7 +20,7 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
       - if: ${{ steps.release.outputs.release_created == 'true' }}
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ steps.release.outputs.tag_name }}
       - if: ${{ steps.release.outputs.release_created == 'true' }}
