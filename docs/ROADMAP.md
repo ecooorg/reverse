@@ -2,7 +2,7 @@
 
 The design behind each item is described in [ARCHITECTURE.md](ARCHITECTURE.md).
 
-## Delivery plan: eleven large patches to 1.0
+## Delivery plan: eleven large patches to 1.0, plus patch L after it
 
 This plan closes **every** item listed in the release sections below (0.2, 0.3, 0.4 and Later), so that Reverse can analyze a program, reverse-engineer it, find the cause of excessive resource use, apply an optimization and prove the result. Each patch is a large, independently releasable unit: it ends in a merged, tested change set, not in a partially working branch. The patches are ordered by dependency; the release sections further down describe the same work item by item.
 
@@ -15,8 +15,9 @@ The capability verification workflow (`.github/workflows/capabilities.yml`, loca
 3. No ⚠️ drift remains for the area it touches, and no ❌ appears anywhere.
 4. Existing MCP tools and CLI commands keep working (backward compatible); new tools are listed in [MCP.md](MCP.md) and the tool table matches `tools/list`.
 5. [ARCHITECTURE.md](ARCHITECTURE.md) marks the section as implemented instead of planned.
+6. Every row of the [approved audit backlog](#approved-audit-backlog-audit-1-approved-2026-11-09) assigned to the patch is closed, and the matching findings in [AUDIT.md](AUDIT.md) say `Status: closed in <version>`.
 
-Version 1.0 is reached when all eleven patches are done and the capability matrix contains no 🚧 for an in-scope capability.
+Version 1.0 is reached when patches A–K are done and the capability matrix contains no 🚧 for an in-scope capability.
 
 ### Order and dependencies
 
@@ -33,6 +34,7 @@ Version 1.0 is reached when all eleven patches are done and the capability matri
 | I | Validation, integrity and reports | 0.4 | C, D |
 | J | Controlled optimization loop | 1.0 | G, H, I |
 | K | Runtime analyzers and on-demand extensions | 1.0 | F, J |
+| L | Agent integration and distribution | 1.x (after 1.0) | D, J |
 
 B and C can proceed in parallel after A; E can start at the same time. G and H can proceed in parallel once F is done.
 
@@ -176,6 +178,14 @@ Closes the remaining **Later** items.
 
 **Version 1.0 is released when J and K are done.**
 
+### Patch L — Agent integration and distribution (post-1.0, 1.x)
+
+Closes audit tasks R-08 and R-18. It does not block 1.0.
+
+- MCP prompts for the research cycle and MCP resources for evidence records and research sessions (`reverse://evidence/<id>`).
+- `reverse setup`: registers the server in the supported agents after showing the diff, with a dry run and backups; installs the investigation skill file.
+- Distribution: `npx` entry point, install scripts that check Node and print the MCP configuration, an optional single-file binary, `server.json` for MCP registries.
+
 ### Coverage of the roadmap
 
 | Roadmap section | Closed by |
@@ -194,6 +204,57 @@ Closes the remaining **Later** items.
 | Later: function hotspots, disk/network I/O | H |
 | Later: JS/Electron, .NET, WASM, plugin loading, HTTP MCP, extensions | F (plugin loading), K (the rest) |
 | Core readiness criteria and the two trial scenarios | J |
+
+## Approved audit backlog (Audit 1, approved 2026-11-09)
+
+Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **approved project task**. Each belongs to exactly one patch (or is already closed). A patch is not done until its rows here are closed and the matching findings in [AUDIT.md](AUDIT.md) carry `Status: closed in <version>`. The capability suite checks that every ID of the audit appears in this table. New audits append their IDs here in the same way.
+
+### Findings
+
+| ID | Task | Patch / status |
+|---|---|---|
+| F-01 | Command-execution gate: command-running MCP tools refuse unless the operator selects `CONTROLLED_EXECUTION`; command allowlist and `cwd` root; environment allowlist for children; MCP tool annotations | **C** (first item) |
+| F-02 | Correct median for even counts | closed in 0.2.0-beta.2 |
+| F-03 | Output cap counted in bytes | closed in 0.2.0-beta.2 |
+| F-04 | No `improved`/significance claim from means; exclude failed runs; minimum runs and confidence interval, else `insufficient_evidence` | **C** |
+| F-05 | Validation never matches truncated output | closed in 0.2.0-beta.2; normalization rules in **I** |
+| F-06 | (a)–(c) protocol errors | closed in 0.2.0-beta.2; (d) newer protocol revisions, `title`, `outputSchema`, annotations, SDK contract tests in **D** |
+| F-07 | Page size and `CLK_TCK` read from the OS; one documented CPU-percent convention | **D** |
+| F-08 | Single-PID fast path for inspection and sampling; cached `btime`, page size, tick rate | **D** |
+| F-09 | File and size caps, `lstat`, `.wasm` | closed in 0.2.0-beta.2; real parser (AST) in **E** |
+| F-10 | Dependency groups kept per group, `peerDependencies` | **E** |
+| F-11 | Streamed hashing, atomic evidence writes, lookup by evidence id, one evidence code path | **D** |
+| F-12 | Process-group kill with identity-checked sweep; real counts on Windows | **C** |
+| F-13 | Mach-O CPU type and fat slice table, PE `e_lfanew` beyond the buffer reported as `partial` | **E** |
+| F-14 | Remaining: `.gitattributes`, `noUnusedParameters` | **C** (rest closed in 0.2.0-beta.2) |
+| F-15 | Documentation drift and the planned-tools check | closed in 0.2.0-beta.2 |
+| F-16 | Split the test suite into flat `tests/<area>.test.ts` files with pure fixtures; statistics, `CappedBuffer`, MCP error paths, `/proc` parser | **C** (statistics, capture) and **D** (the rest) |
+| F-17 | Threat model: agent as untrusted caller, prompt injection through target data | **C** |
+
+### Recommendations
+
+| ID | Task | Patch |
+|---|---|---|
+| R-01 | Mutation testing (Stryker) on pure modules | **D**, extended to each later patch's pure modules |
+| R-02 | Threat model and prompt-injection hardening (`untrustedContent` wrapper, length caps, adversarial fixtures) | **C** |
+| R-03 | Supply chain: npm provenance, pinned action SHAs, Dependabot, OpenSSF Scorecard, CycloneDX SBOM, `npm audit signatures`, `release-please` | **C** |
+| R-04 | Fuzz and property tests (`fast-check`, devDependency) for parsers | **D** (process parsers), **E** (binary parsers) |
+| R-05 | Static gates: linter and formatter, `knip`, `jscpd`, own-line size gate | **C** |
+| R-06 | Reformat dense files, formatter check in the structure workflow | **C** start; every dense file reformatted before **J** |
+| R-07 | Contract-first MCP: one definition generates `tools/list`, [MCP.md](MCP.md) and schemas; compact/full schema profile; structured error codes; pagination; size budgets | **D** |
+| R-08 | MCP prompts and resources; `reverse setup` for Claude Code, Codex, Cursor, Gemini CLI with dry run and backups; investigation skill file | **L** |
+| R-09 | `reverse doctor` | **D** |
+| R-10 | Existing parsers and tools as opt-in providers (lief/goblin, objdump/readelf, rz-bin, capa, yara-x, diec, syft, osv-scanner, cargo-auditable, Go build info) | **E** (static), **F** (provider adapters), **H** (profiling) |
+| R-11 | Hardening-flag report (PIE, NX, RELRO, canary, CFG, ASLR) | **E** |
+| R-12 | Profile ingestion in standard formats (perf, pprof, `.cpuprofile`, Speedscope, Firefox Profiler); hyperfine-compatible benchmark export; eBPF via bpftrace | **H** (ingestion), **C** (export shape) |
+| R-13 | Statistics: bootstrap intervals, Mann-Whitney with Hodges-Lehmann shift, effect size, MAD outliers, environment-noise detection, interleaved A/B runs by default, `insufficient_evidence` verdict | **C** |
+| R-14 | Tamper-evident evidence: per-session hash chain, Merkle root, Ed25519 signature, `reverse export` / `reverse verify` | **I** |
+| R-15 | Golden results and the three reference trials as manual CI jobs | **J** |
+| R-16 | Node support window: drop Node 20, `engines` and matrix to 22 and 24 | **C** |
+| R-17 | Node built-ins instead of code: `util.parseArgs`, `AbortSignal.timeout`, `fs.glob`, test coverage, `os.availableParallelism` | **C** |
+| R-18 | Distribution: `npx` entry, install scripts that only check Node and print configuration, optional single binary, `server.json` for MCP registries | **L** |
+| R-19 | Windows and macOS metric parity: persistent helpers instead of a fork per sample; `typeperf`/ETW and `libproc` providers | **D** (helpers), **H** (providers) |
+| R-20 | Sandbox for executed targets under `CONTROLLED_EXECUTION` (bwrap/unshare, sandbox-exec, Job Objects/AppContainer or a container provider; no network by default; scratch directory; rlimits) | **G** |
 
 ---
 

@@ -14,6 +14,8 @@ Severity: **High** = wrong results or a safety/honesty violation of [AGENTS.md](
 
 **Verdict.** Patch B is functionally in place and the code matches its documented scope in most places. The structure, honesty rules and the capability gate are strong. However, the audit found **one safety gap, three correctness defects and several doc/behavior drifts** that should be closed before Patches C and D build on top of them. None of them is hidden by the current checks, so each needs a new check (see "Checks to add").
 
+**Approval.** On 2026-11-09 the maintainer approved every finding (F-01…F-17) and every recommendation (R-01…R-20) of this audit. They are tracked as project tasks in the [approved audit backlog](ROADMAP.md#approved-audit-backlog-audit-1-approved-2026-11-09); the "Patch" column below and section D are superseded by that table where they differ.
+
 ### A. Findings — defects and drift
 
 | ID | Sev | Area | Finding | Evidence | Recommended fix | Patch |
