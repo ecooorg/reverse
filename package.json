@@ -35,7 +35,8 @@
   "license": "Reverse",
   "devDependencies": {
     "@types/node": "^26.6.6",
+    "tsx": "^4.19.3",
     "typescript": "^7.0.2",
-    "tsx": "^4.19.3"
+    "typescript-api": "npm:typescript@~5.9.3"
   }
 }
