@@ -51,7 +51,7 @@ Goal: make the existing 0.1.0 trustworthy before building on it. Every ⚠️ dr
 - [x] `inspect_process` searches the full process inventory instead of the first 500 rows; helper-executable timeouts are configurable through `REVERSE_EXEC_TIMEOUT_MS` (PowerShell default raised to 10 s).
 - [x] CLI: `validate` accepts `--arg`; missing positional arguments print a usage line; `--json` is documented as accepted with no effect (output is always JSON).
 - [x] MCP: `tools/call` returns `structuredContent` next to `content[0].text` (arrays are wrapped as `{ "items": [...] }`); `initialize` negotiates the protocol version; one `VERSION` constant feeds the CLI banner and `serverInfo`.
-- [x] The capability workflow is green on all nine environments (three operating systems times Node 20, 22 and 24) and stays a required check for every later patch.
+- [x] The capability workflow is green on all nine environments (three operating systems times Node 22 and 24 since 0.2.0-beta.3 (6 environments)) and stays a required check for every later patch.
 
 Remaining ⚠️ drift after this patch: none. The 🚧 limitations that are left each belong to patches B–K.
 
