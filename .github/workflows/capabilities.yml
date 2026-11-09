@@ -79,34 +79,70 @@ jobs:
           cache: npm
       - name: Toolchain and runner facts
         run: |
+          mkdir -p ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/01-toolchain-and-runner-facts.exit' EXIT
+          {
           echo "node $(node -v), npm $(npm -v), shell $BASH_VERSION"
           node -p "'platform ' + process.platform + ' ' + process.arch + ', cores ' + require('os').availableParallelism() + ', RAM GiB ' + (require('os').totalmem()/2**30).toFixed(1)"
           echo "commit $GITHUB_SHA, event $GITHUB_EVENT_NAME"
+          } > ci-logs/01-toolchain-and-runner-facts.log 2>&1
       # --ignore-scripts: the `prepare` hook would build once here and the next step builds again.
-      - run: npm ci --ignore-scripts
+      - run: |
+          mkdir -p ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/02-npm-ci-ignore-scripts.exit' EXIT
+          {
+          npm ci --ignore-scripts
+          } > ci-logs/02-npm-ci-ignore-scripts.log 2>&1
       - name: Build library, CLI and MCP server
-        run: npm run build
+        run: |
+          mkdir -p ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/03-build-library-cli-and-mcp-server.exit' EXIT
+          {
+          npm run build
+          } > ci-logs/03-build-library-cli-and-mcp-server.log 2>&1
       - name: Package targets (built tree)
         if: runner.os == 'Linux'
-        run: node tests/check-structure.mjs --built
+        run: |
+          mkdir -p ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/04-package-targets-built-tree.exit' EXIT
+          {
+          node tests/check-structure.mjs --built
+          } > ci-logs/04-package-targets-built-tree.log 2>&1
       - name: Build the verification suite
-        run: npx tsc -p tsconfig.tests.json
+        run: |
+          mkdir -p ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/05-build-the-verification-suite.exit' EXIT
+          {
+          npx tsc -p tsconfig.tests.json
+          } > ci-logs/05-build-the-verification-suite.log 2>&1
       - name: Unit tests
         if: runner.os == 'Linux'
-        run: node --test dist-tests/*.test.js
+        run: |
+          mkdir -p ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/06-unit-tests.exit' EXIT
+          {
+          node --test dist-tests/*.test.js
+          } > ci-logs/06-unit-tests.log 2>&1
       - name: Exercise every capability (library API, CLI, MCP stdio)
         # Two reporters: readable spec output in the log and JUnit XML (per-check durations) for the diagnostics below.
         # --test-timeout names a hung check instead of letting the whole job die silently at the job timeout.
         timeout-minutes: 8
         run: |
+          mkdir -p ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/07-exercise-every-capability-library-api-cl.exit' EXIT
+          {
           mkdir -p capability-reports
           node --test --test-timeout=240000 \
             --test-reporter=spec --test-reporter-destination=stdout \
             --test-reporter=junit --test-reporter-destination=capability-reports/junit-${{ matrix.os }}-node${{ matrix.node }}.xml \
             dist-tests/capabilities.check.js
+          } > ci-logs/07-exercise-every-capability-library-api-cl.log 2>&1
       - name: Diagnostics (job summary, slowest checks, failures, host load)
         if: always()
         run: |
+          mkdir -p ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/08-diagnostics-job-summary-slowest-checks-f.exit' EXIT
+          {
           node - <<'DIAG'
           const fs = require('fs'), os = require('os');
           const out = [];
@@ -150,10 +186,15 @@ jobs:
           } else out.push('No capability JSON report was written.');
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, out.join('\n') + '\n');
           DIAG
+          } > ci-logs/08-diagnostics-job-summary-slowest-checks-f.log 2>&1
       - name: Capability report (single run)
         if: always() && github.event_name != 'workflow_dispatch'
         run: |
+          mkdir -p ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/09-capability-report-single-run.exit' EXIT
+          {
           if compgen -G 'capability-reports/*.json' > /dev/null; then node tests/capability-report.mjs capability-reports/*.json; fi
+          } > ci-logs/09-capability-report-single-run.log 2>&1
       - name: Upload capability report and JUnit timings
         if: always()
         uses: actions/upload-artifact@v6
@@ -165,6 +206,34 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
+      - name: Job summary with log tails (ci-quiet)
+        if: always()
+        run: |
+          mkdir -p ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/10-job-summary.exit' EXIT
+          {
+          set +e +o pipefail
+          {
+            echo "### CI logs: capabilities"; echo
+            for f in ci-logs/*.log; do
+              [ -f "$f" ] || continue
+              b=${f%.log}; if [ -f "$b.exit" ]; then mark="❌ exit $(cat "$b.exit")"; open=" open"; else mark="✅"; open=""; fi
+              echo "<details$open><summary>$mark $(basename "$b") ($(wc -l < "$f") lines)</summary>"; echo
+              echo "~~~~text"; tail -n 25 "$f" | cut -c1-300 | tr -d "\r"; echo "~~~~"; echo "</details>"; echo
+            done
+            a=$(grep -h -E "^::(warning|error)" ci-logs/*.log 2>/dev/null | tr -d "\r" | head -30)
+            if [ -n "$a" ]; then echo "#### Annotations found in logs"; echo; echo "$a" | sed -E "s/^::(warning|error)[^:]*::/- \1: /"; echo; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          } > ci-logs/10-job-summary.log 2>&1
+      - name: Upload logs (one artifact, ci-quiet)
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ci-logs-capabilities-${{ matrix.os }}-node${{ matrix.node }}
+          path: |
+            ci-logs/
+          retention-days: 14
+          if-no-files-found: ignore
   package:
     name: package (${{ matrix.os }})
     # Manual runs only. The tarball is plain JavaScript, so with "all" Linux plus Windows (for the
@@ -183,9 +252,17 @@ jobs:
           node-version: 22
           cache: npm
       # `npm pack` runs the `prepare` hook, which builds dist/ exactly once.
-      - run: npm ci --ignore-scripts
+      - run: |
+          mkdir -p ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/01-npm-ci-ignore-scripts.exit' EXIT
+          {
+          npm ci --ignore-scripts
+          } > ci-logs/01-npm-ci-ignore-scripts.log 2>&1
       - name: Pack the tarball and inspect its contents
         run: |
+          mkdir -p ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/02-pack-the-tarball-and-inspect-its-content.exit' EXIT
+          {
           mkdir -p .tmp-pack
           npm pack --pack-destination .tmp-pack --silent
           npm pack --dry-run --json --ignore-scripts > .tmp-pack/manifest.json
@@ -198,31 +275,76 @@ jobs:
             if (missing.length) { console.log("::error::tarball is missing: " + missing); process.exit(1); }
             if (leaked.length) console.log("::warning::tarball contains non-runtime files: " + leaked.slice(0,5));
           '
+          } > ci-logs/02-pack-the-tarball-and-inspect-its-content.log 2>&1
       - name: Install the tarball into a clean project
         run: |
+          mkdir -p ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/03-install-the-tarball-into-a-clean-project.exit' EXIT
+          {
           mkdir .tmp-consumer && cd .tmp-consumer
           echo '{"name":"consumer","version":"1.0.0","private":true}' > package.json
           npm install ../.tmp-pack/*.tgz --silent
+          } > ci-logs/03-install-the-tarball-into-a-clean-project.log 2>&1
       - name: Installed CLI works
         working-directory: .tmp-consumer
         run: |
+          mkdir -p ../ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ../ci-logs/04-installed-cli-works.exit' EXIT
+          {
           npx --no-install reverse --help | grep -q "Usage: reverse"
           npx --no-install reverse analyzers | grep -q ghidra
           npx --no-install reverse binary "$(node -p 'process.execPath')" | grep -q '"format"'
+          } > ../ci-logs/04-installed-cli-works.log 2>&1
       - name: Installed library imports by package name
         working-directory: .tmp-consumer
         run: |
+          mkdir -p ../ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ../ci-logs/05-installed-library-imports-by-package-nam.exit' EXIT
+          {
           node --input-type=module -e '
             import * as reverse from "reverse-compact";
             for (const k of ["analyzeBinary","runBenchmark","validateBehavior","EvidenceEngine","listProviders"])
               if (typeof reverse[k] !== "function") { console.error("missing export " + k); process.exit(1); }
             console.log("exports ok: " + Object.keys(reverse).length);
           '
+          } > ../ci-logs/05-installed-library-imports-by-package-nam.log 2>&1
       - name: Installed MCP server answers tools/list
         working-directory: .tmp-consumer
         run: |
+          mkdir -p ../ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ../ci-logs/06-installed-mcp-server-answers-tools-list.exit' EXIT
+          {
           echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | node node_modules/reverse-compact/dist/mcp-server.js | grep -q '"inspect_target"'
+          } > ../ci-logs/06-installed-mcp-server-answers-tools-list.log 2>&1
 
+      - name: Job summary with log tails (ci-quiet)
+        if: always()
+        run: |
+          mkdir -p ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/07-job-summary.exit' EXIT
+          {
+          set +e +o pipefail
+          {
+            echo "### CI logs: package"; echo
+            for f in ci-logs/*.log; do
+              [ -f "$f" ] || continue
+              b=${f%.log}; if [ -f "$b.exit" ]; then mark="❌ exit $(cat "$b.exit")"; open=" open"; else mark="✅"; open=""; fi
+              echo "<details$open><summary>$mark $(basename "$b") ($(wc -l < "$f") lines)</summary>"; echo
+              echo "~~~~text"; tail -n 25 "$f" | cut -c1-300 | tr -d "\r"; echo "~~~~"; echo "</details>"; echo
+            done
+            a=$(grep -h -E "^::(warning|error)" ci-logs/*.log 2>/dev/null | tr -d "\r" | head -30)
+            if [ -n "$a" ]; then echo "#### Annotations found in logs"; echo; echo "$a" | sed -E "s/^::(warning|error)[^:]*::/- \1: /"; echo; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          } > ci-logs/07-job-summary.log 2>&1
+      - name: Upload logs (one artifact, ci-quiet)
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ci-logs-package-${{ matrix.os }}
+          path: |
+            ci-logs/
+          retention-days: 14
+          if-no-files-found: ignore
   summary:
     name: capability matrix
     needs: capabilities
@@ -237,4 +359,38 @@ jobs:
           path: reports
           merge-multiple: true
       - name: Merge reports, annotate drift, fail on broken capabilities
-        run: node tests/capability-report.mjs reports/*.json
+        run: |
+          mkdir -p ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/01-merge-reports-annotate-drift-fail-on-bro.exit' EXIT
+          {
+          node tests/capability-report.mjs reports/*.json
+          } > ci-logs/01-merge-reports-annotate-drift-fail-on-bro.log 2>&1
+
+      - name: Job summary with log tails (ci-quiet)
+        if: always()
+        run: |
+          mkdir -p ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/02-job-summary.exit' EXIT
+          {
+          set +e +o pipefail
+          {
+            echo "### CI logs: summary"; echo
+            for f in ci-logs/*.log; do
+              [ -f "$f" ] || continue
+              b=${f%.log}; if [ -f "$b.exit" ]; then mark="❌ exit $(cat "$b.exit")"; open=" open"; else mark="✅"; open=""; fi
+              echo "<details$open><summary>$mark $(basename "$b") ($(wc -l < "$f") lines)</summary>"; echo
+              echo "~~~~text"; tail -n 25 "$f" | cut -c1-300 | tr -d "\r"; echo "~~~~"; echo "</details>"; echo
+            done
+            a=$(grep -h -E "^::(warning|error)" ci-logs/*.log 2>/dev/null | tr -d "\r" | head -30)
+            if [ -n "$a" ]; then echo "#### Annotations found in logs"; echo; echo "$a" | sed -E "s/^::(warning|error)[^:]*::/- \1: /"; echo; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          } > ci-logs/02-job-summary.log 2>&1
+      - name: Upload logs (one artifact, ci-quiet)
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ci-logs-summary
+          path: |
+            ci-logs/
+          retention-days: 14
+          if-no-files-found: ignore

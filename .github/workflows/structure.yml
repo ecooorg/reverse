@@ -49,21 +49,32 @@ jobs:
           node-version: 22
       - name: Facts about the checkout
         run: |
+          mkdir -p ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/01-facts-about-the-checkout.exit' EXIT
+          {
           echo "node $(node -v), git $(git --version | cut -d' ' -f3), commit $GITHUB_SHA"
           echo "tracked files: $(git ls-files | wc -l)"
           echo "autocrlf: $(git config --get core.autocrlf || echo unset)"
           git ls-files | awk -F/ 'NF>1 {print $1}' | sort | uniq -c | sed 's/^/  files in top-level folder: /'
+          } > ci-logs/01-facts-about-the-checkout.log 2>&1
       - name: Layout, links and import graph (source tree)
         id: check
         run: |
+          mkdir -p ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/02-layout-links-and-import-graph-source-tre.exit' EXIT
+          {
           set +e
           node tests/check-structure.mjs 2>&1 | tee structure-output.txt
           code=${PIPESTATUS[0]}
           echo "exit=$code" >> "$GITHUB_OUTPUT"
           exit "$code"
+          } > ci-logs/02-layout-links-and-import-graph-source-tre.log 2>&1
       - name: Hygiene warnings (never fail the run)
         if: always()
         run: |
+          mkdir -p ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/03-hygiene-warnings-never-fail-the-run.exit' EXIT
+          {
           # The runner's bash uses -e -o pipefail: a grep without a match must not end this step.
           set +e +o pipefail
           crlf=$(git ls-files --eol | grep -E 'i/crlf' | grep -v 'attr/-text' | awk '{print $NF}' | head -10)
@@ -77,9 +88,13 @@ jobs:
           secrets=$(git ls-files | grep -E '(^|/)(\.env|id_rsa|.*\.pem|.*\.key)$' | head -5)
           [ -n "$secrets" ] && echo "::warning title=Possible secret files are tracked::$(echo $secrets | tr '\n' ' ')"
           exit 0
+          } > ci-logs/03-hygiene-warnings-never-fail-the-run.log 2>&1
       - name: Job summary and annotations
         if: always()
         run: |
+          mkdir -p ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/04-job-summary-and-annotations.exit' EXIT
+          {
           set +e +o pipefail
           {
             echo "### Structure check: ${{ matrix.os }}"
@@ -93,11 +108,34 @@ jobs:
               echo "::error title=Structure (${{ matrix.os }})::${line//$'\r'/}"
             done
           fi
-      - name: Upload checker output
+          } > ci-logs/04-job-summary-and-annotations.log 2>&1
+
+      - name: Job summary with log tails (ci-quiet)
+        if: always()
+        run: |
+          mkdir -p ci-logs
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/05-job-summary.exit' EXIT
+          {
+          set +e +o pipefail
+          {
+            echo "### CI logs: structure"; echo
+            for f in ci-logs/*.log; do
+              [ -f "$f" ] || continue
+              b=${f%.log}; if [ -f "$b.exit" ]; then mark="❌ exit $(cat "$b.exit")"; open=" open"; else mark="✅"; open=""; fi
+              echo "<details$open><summary>$mark $(basename "$b") ($(wc -l < "$f") lines)</summary>"; echo
+              echo "~~~~text"; tail -n 25 "$f" | cut -c1-300 | tr -d "\r"; echo "~~~~"; echo "</details>"; echo
+            done
+            a=$(grep -h -E "^::(warning|error)" ci-logs/*.log 2>/dev/null | tr -d "\r" | head -30)
+            if [ -n "$a" ]; then echo "#### Annotations found in logs"; echo; echo "$a" | sed -E "s/^::(warning|error)[^:]*::/- \1: /"; echo; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          } > ci-logs/05-job-summary.log 2>&1
+      - name: Upload logs (one artifact, ci-quiet)
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: structure-output-${{ matrix.os }}
-          path: structure-output.txt
+          name: ci-logs-structure-${{ matrix.os }}
+          path: |
+            ci-logs/
+            structure-output.txt
           retention-days: 14
           if-no-files-found: ignore
