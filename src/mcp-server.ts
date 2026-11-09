@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import readline from 'node:readline';
 import { VERSION } from './core-version.js';
+import { wrapUntrusted } from './core-untrusted.js';
 import { analyzeBinary } from './analysis-binary.js';import { analyzeSource } from './analysis-source.js';import { analyzeDependencies } from './analysis-dependencies.js';import { listProcesses,inspectProcess,getProcessMetrics,getProcessTree,analyzeMemory,analyzeCpu,analyzeIo } from './process-inspector.js';import { profileProcess,monitorProcess,detectResourceAnomalies } from './profiling-profiler.js';import { runBenchmark,compareBenchmarks } from './benchmark-engine.js';import { validateBehavior } from './benchmark-validation.js';import { EvidenceEngine } from './evidence-engine.js';import { listProviders } from './providers-registry.js';import { getResourceControlStatus } from './process-safety.js';import { checkCommandGate } from './benchmark-gate.js';import { environmentFingerprintResult } from './benchmark-environment.js';
 /** A failure that must be reported as a JSON-RPC protocol error (not as a tool execution error). */
 class ProtocolError extends Error { constructor(readonly code:number,message:string){super(message);} }
@@ -47,7 +48,8 @@ async function handleToolCall(req:any){
   if(req.id!==undefined)activeCalls.set(req.id,controller);
   try{
     const value=await call(name,req.params.arguments??{},controller.signal);
-    send({jsonrpc:'2.0',id:req.id,result:{content:[{type:'text',text:JSON.stringify(value)}],structuredContent:Array.isArray(value)?{items:value}:value,isError:false}});
+    const w=wrapUntrusted(value);
+    send({jsonrpc:'2.0',id:req.id,result:{content:[{type:'text',text:JSON.stringify(w.text)}],structuredContent:w.structured,isError:false}});
   }catch(e){
     // Protocol problems are JSON-RPC errors; a failing tool is a normal result with isError, so the model can read it and react.
     if(e instanceof ProtocolError)sendError(req.id,e.code,e.message);
