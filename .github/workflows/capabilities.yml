@@ -161,7 +161,8 @@ jobs:
           const label = '${{ matrix.os }} / node ${{ matrix.node }}';
           out.push(`### Capability run: ${label}`, '');
           out.push(`Runner: ${os.platform()} ${os.release()} ${process.arch}, ${os.availableParallelism()} cores, ${(os.totalmem()/2**30).toFixed(1)} GiB RAM, free ${(os.freemem()/2**30).toFixed(1)} GiB, load ${os.loadavg().map(x => x.toFixed(2)).join('/')}`, '');
-          const xmlFile = fs.readdirSync('capability-reports').find(f => f.startsWith('junit-'));
+          const files = fs.existsSync('capability-reports') ? fs.readdirSync('capability-reports') : [];
+          const xmlFile = files.find(f => f.startsWith('junit-'));
           if (!xmlFile) { out.push('No JUnit file was written: the suite did not start or crashed before reporting.'); }
           else {
             const xml = fs.readFileSync('capability-reports/' + xmlFile, 'utf8');
@@ -189,7 +190,7 @@ jobs:
             out.push('');
             for (const c of cases) if (c.ms > 60000) console.log(`::warning title=Slow check (${label})::${c.name} took ${(c.ms/1000).toFixed(0)} s`);
           }
-          const rep = fs.readdirSync('capability-reports').find(f => f.endsWith('.json'));
+          const rep = files.find(f => f.endsWith('.json'));
           if (rep) {
             const r = JSON.parse(fs.readFileSync('capability-reports/' + rep, 'utf8'));
             out.push(`Totals: ${JSON.stringify(r.totals)} (Reverse ${r.reverse}, Node ${r.node}, OS release ${r.osRelease})`, '');

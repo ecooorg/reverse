@@ -25,4 +25,4 @@ jobs:
       - name: Generate CycloneDX SBOM
         run: npm sbom --sbom-format cyclonedx > reverse.cdx.json
       - name: Check SBOM is non-empty and names the package
-        run: node -e "const s=require('./reverse.cdx.json'); if(s.bomFormat!=='CycloneDX'||!s.components?.some(c=>c.name==='reverse-compact')) process.exit(1)"
+        run: node -e "const s=require('./reverse.cdx.json'); if(s.bomFormat!=='CycloneDX'||!String(s.metadata?.component?.purl).startsWith('pkg:npm/reverse-compact@')) process.exit(1)"
