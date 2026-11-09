@@ -26,6 +26,7 @@ import { analyzeSource } from '../dist/analysis-source.js';
 import { analyzeDependencies } from '../dist/analysis-dependencies.js';
 import { listProcesses, inspectProcess } from '../dist/process-inspector.js';
 import { profileProcess } from '../dist/profiling-profiler.js';
+import { MAC_PS_FIELDS, parseEtime, parseMacPs, parseWindowsCim } from '../dist/process-parse.js';
 import { getProcessIdentity, verifyProcessIdentity, verifyProcessOwnership } from '../dist/process-inspector.js';
 import { getResourceControlStatus, withProcessResourceLimits } from '../dist/process-safety.js';
 import { runBenchmark, compareBenchmarks } from '../dist/benchmark-engine.js';
@@ -365,6 +366,38 @@ check('Processes', 'collects thread, memory, I/O and child-process metadata wher
   assert.ok(p.threads === undefined || p.threads >= 0);
 });
 
+check('Processes', 'macOS ps output is parsed (fixture): paths with spaces, etime, memory in KiB, no thread column', () => {
+  assert.ok(!MAC_PS_FIELDS.some(f => /thcount|nlwp/.test(f)), 'BSD ps has no thread-count column');
+  assert.equal(MAC_PS_FIELDS.at(-1), 'comm=', 'comm may contain spaces, so it must be the last column');
+  const table = [
+    '    1     0     0   0.0  13024 4294000 12-03:04:05 Mon Nov  2 09:12:01 2026 /sbin/launchd',
+    '  512     1   501  12.5 204800 9000000    01:02:03 Mon Nov  9 06:54:40 2026 /Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    'not a process row',
+  ].join('\n');
+  const args = ['    1 /sbin/launchd', '  512 /Applications/Google Chrome.app/Contents/MacOS/Google Chrome --type=renderer'].join('\n');
+  const rows = parseMacPs(table, args);
+  assert.equal(rows.length, 2);
+  assert.equal(rows[1].pid, 512); assert.equal(rows[1].ppid, 1); assert.equal(rows[1].ownerUid, 501);
+  assert.equal(rows[1].name, 'Google Chrome');
+  assert.match(rows[1].command!, /--type=renderer$/);
+  assert.equal(rows[1].rssBytes, 204800 * 1024); assert.equal(rows[1].vmsBytes, 9000000 * 1024);
+  assert.equal(rows[1].cpuPercent, 12.5); assert.equal(rows[1].uptimeSeconds, 3723);
+  assert.ok(rows[1].identityToken!.startsWith('mac:512:'));
+  assert.ok(rows[1].startedAt && !Number.isNaN(Date.parse(rows[1].startedAt)));
+  assert.equal(rows[0].uptimeSeconds, 1047845); assert.equal(rows[0].threads, undefined);
+  assert.equal(parseEtime('05:07'), 307); assert.equal(parseEtime('garbage'), undefined);
+});
+check('Processes', 'Windows CIM JSON is parsed (fixture): ISO start time, null values, single object, BOM', () => {
+  const one = parseWindowsCim('\uFEFF' + j({ ProcessId: 4321, ParentProcessId: 4, Name: 'node.exe', CommandLine: null, ExecutablePath: 'C:\\node.exe', ThreadCount: 11, WorkingSetSize: 5000, VirtualSize: 0, Started: '2026-11-09T06:54:40.1234567Z' }));
+  assert.equal(one.length, 1);
+  assert.equal(one[0].identityToken, 'windows:2026-11-09T06:54:40.1234567Z');
+  assert.equal(one[0].startedAt, '2026-11-09T06:54:40.123Z');
+  assert.equal(one[0].command, ''); assert.equal(one[0].threads, 11); assert.equal(one[0].vmsBytes, undefined);
+  const many = parseWindowsCim(j([{ ProcessId: 0, ParentProcessId: 0, Name: 'System Idle Process', Started: null }, { ProcessId: 8, ParentProcessId: 0, Name: 'a', Started: 'not a date' }]));
+  assert.equal(many.length, 2);
+  assert.ok(many.every(p => p.startedAt === undefined && p.identityToken === undefined), 'an unreadable start time must not throw');
+  assert.deepEqual(parseWindowsCim(''), []);
+});
 check('Processes', 'exposes stable process identity and verifies ownership where the OS provides it', async () => {
   const identity = await getProcessIdentity(process.pid);
   assert.ok(identity?.identityToken, 'current process has a start-time identity token');
