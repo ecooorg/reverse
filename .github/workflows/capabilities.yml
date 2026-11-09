@@ -121,7 +121,7 @@ jobs:
         working-directory: .tmp-consumer
         run: |
           node --input-type=module -e '
-            import * as reverse from "reverse-engineer-anything";
+            import * as reverse from "reverse-compact";
             for (const k of ["analyzeBinary","runBenchmark","validateBehavior","EvidenceEngine","listProviders"])
               if (typeof reverse[k] !== "function") { console.error("missing export " + k); process.exit(1); }
             console.log("exports ok: " + Object.keys(reverse).length);
@@ -129,7 +129,7 @@ jobs:
       - name: Installed MCP server answers tools/list
         working-directory: .tmp-consumer
         run: |
-          echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | node node_modules/reverse-engineer-anything/dist/mcp-server.js | grep -q '"inspect_target"'
+          echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | node node_modules/reverse-compact/dist/mcp-server.js | grep -q '"inspect_target"'
 
   summary:
     name: capability matrix
