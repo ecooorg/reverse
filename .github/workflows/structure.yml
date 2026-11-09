@@ -116,7 +116,7 @@ jobs:
 
       - name: Upload job logs (merged later, ci-quiet)
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ci-parts-logs-structure-${{ matrix.os }}
           path: |
@@ -132,7 +132,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/upload-artifact/merge@v6
+      - uses: actions/upload-artifact/merge@v7
         with:
           name: ${{ github.workflow }}
           pattern: ci-parts-*
