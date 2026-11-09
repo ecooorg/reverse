@@ -2,7 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { result } from './core-types.js';
-import { inspectProcess, verifyProcessIdentity, verifyProcessOwnership } from './process-inspector.js';
+import { inspectProcess, verifyProcessOwnership } from './process-inspector.js';
 export type ProfileMode='Snapshot'|'Monitor'|'Diagnostic'|'Compare';
 export interface ProfileOptions { durationMs?:number; intervalMs?:number; mode?:ProfileMode; signal?:AbortSignal; expectedIdentityToken?:string; requireOwnership?:boolean; }
 export async function profileProcess(pid:number,durationMs=3000,intervalMs=250,mode:ProfileMode='Monitor',options:Pick<ProfileOptions,'signal'|'expectedIdentityToken'|'requireOwnership'>={}){
@@ -18,9 +18,9 @@ export async function profileProcess(pid:number,durationMs=3000,intervalMs=250,m
  let cancelled=false;
  do {
   if(signal?.aborted){cancelled=true;break;}
-  if(identity&&!(await verifyProcessIdentity(pid,identity))){errors.push('Process identity changed or process exited; sampling stopped to prevent PID-reuse contamination.');break;}
   const r:any=await inspectProcess(pid);const p=r.findings[0];
   if(!p){errors.push(...r.limitations,'Process vanished or is not visible.');break;}
+  if(identity&&p.identityToken!==identity){errors.push('Process identity changed or process exited; sampling stopped to prevent PID-reuse contamination.');break;}
   const cpuDelta=previous&&p.cpuTimeMs!==undefined&&previous.cpuTimeMs!==undefined?(p.cpuTimeMs-previous.cpuTimeMs):undefined;
   const elapsed=previous?Date.parse(new Date().toISOString())-Date.parse(previous.at):undefined;
   const cpuPercent=cpuDelta!==undefined&&elapsed&&elapsed>0?Math.max(0,cpuDelta/elapsed*100/Math.max(1,(await import('node:os')).cpus().length)):p.cpuPercent;

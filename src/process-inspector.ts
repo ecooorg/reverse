@@ -3,6 +3,7 @@ import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { result } from './core-types.js';
 import { execTimeoutMs } from './core-util.js';
+import { MAC_PS_ARGS_FIELDS, MAC_PS_FIELDS, WINDOWS_CIM_SCRIPT, parseMacPs, parseWindowsCim } from './process-parse.js';
 const exec = promisify(execFile);
 export interface ProcessInfo {
   pid:number; ppid?:number; name:string; command?:string; executable?:string; identityToken?:string; ownerUid?:number;
@@ -35,12 +36,14 @@ async function enumerate():Promise<{rows:ProcessInfo[];limitations:string[]}>{
   catch(e){limitations.push(`Process enumeration failed: ${String(e)}`);}
  } else try {
   if(process.platform==='win32'){
-   const {stdout}=await exec('powershell.exe',['-NoProfile','-Command','Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine,ExecutablePath,ThreadCount,WorkingSetSize,VirtualSize,CreationDate | ConvertTo-Json -Compress'],{timeout:execTimeoutMs(15000),maxBuffer:32*1024*1024,windowsHide:true});
-   const data=JSON.parse(stdout||'[]');for(const x of Array.isArray(data)?data:[data]) rows.push({pid:Number(x.ProcessId),ppid:Number(x.ParentProcessId),name:x.Name??'',command:x.CommandLine??'',executable:x.ExecutablePath??undefined,threads:Number(x.ThreadCount)||undefined,rssBytes:Number(x.WorkingSetSize)||undefined,vmsBytes:Number(x.VirtualSize)||undefined,startedAt:x.CreationDate?new Date(x.CreationDate).toISOString():undefined,identityToken:x.CreationDate?`windows:${new Date(x.CreationDate).getTime()}`:undefined});
+   const {stdout}=await exec('powershell.exe',['-NoProfile','-NonInteractive','-Command',WINDOWS_CIM_SCRIPT],{timeout:execTimeoutMs(15000),maxBuffer:32*1024*1024,windowsHide:true});
+   rows=parseWindowsCim(stdout);
   } else {
-   const {stdout}=await exec('ps',['-axo','pid=,ppid=,comm=,%cpu=,rss=,etime=,thcount=,uid=,lstart=,args='],{timeout:execTimeoutMs(10000),maxBuffer:32*1024*1024});
-   const parsed: (ProcessInfo|null)[]=stdout.trim().split(/\r?\n/).map((line):ProcessInfo|null=>{const m=line.trim().match(/^(\d+)\s+(\d+)\s+(\S+)\s+([\d.]+)\s+(\d+)\s+(\S+)\s+(\d+)\s+(\d+)\s+(.{24})\s+(.*)$/);return m?{pid:+m[1],ppid:+m[2],name:m[3],command:m[10]||m[3],cpuPercent:+m[4],rssBytes:+m[5]*1024,threads:+m[7],ownerUid:+m[8],identityToken:`mac:${m[1]}:${m[9].trim()}`}:null;});rows=parsed.filter((x):x is ProcessInfo=>x!==null);
+   const opts={timeout:execTimeoutMs(10000),maxBuffer:32*1024*1024};
+   const [table,argv]=await Promise.all([exec('ps',['-axo',MAC_PS_FIELDS.join(',')],opts),exec('ps',['-axo',MAC_PS_ARGS_FIELDS.join(',')],opts)]);
+   rows=parseMacPs(table.stdout,argv.stdout);
   }
+ if(!rows.length)throw new Error('helper output contained no parseable process rows');
  }catch(e){limitations.push(`Process enumeration failed: ${e instanceof Error?e.message:String(e)}`);}
  const byParent=new Map<number,number[]>();for(const p of rows){if(p.ppid!==undefined){const a=byParent.get(p.ppid)??[];a.push(p.pid);byParent.set(p.ppid,a);}}
  for(const p of rows)p.children=byParent.get(p.pid)??[];
