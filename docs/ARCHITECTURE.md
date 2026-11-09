@@ -88,7 +88,7 @@ Every response must make clear which kind of statement it carries, and a model a
 
 1. **Measured facts** — observations from sampling, benchmarks and process inspection.
 2. **Static analysis results** — facts derived from files, headers, manifests and, later, disassembly.
-3. **Hypotheses and analogies** — proposed by the agent or a similarity provider. They are stored only in the **hypothesis ledger**, never as evidence and never inside a `measured` or `static` finding. Fields: `hypothesis_id`, `statement`, `origin` (agent, provider, analogy), `analogy_ref` with provenance and license of the source, `confidence`, `status` (`proposed`, `testing`, `confirmed`, `refuted`), `supporting_evidence_ids`. Promotion to `confirmed` requires a reference to Validation or Benchmark evidence produced by Reverse; refuted hypotheses are kept. MCP responses mark them `kind: "hypothesis"`. Hypotheses may steer the analyzer but are *unverified* until promoted.
+3. **Hypotheses and analogies** — proposed by the agent or a similarity provider. They are stored only in the **hypothesis ledger**, never as evidence and never inside a `measured` or `static` finding. Records carry `hypothesis_id`, `target_id`, statement, provenance, confidence, status and optional `promotionEvidenceId`. Promotion to `supported` requires same-session Validation or Benchmark evidence; refuted hypotheses are retained. MCP records mark them `kind: "hypothesis"`.
 4. **Confirmed optimization results** — a before/after comparison backed by measurements and validation.
 
 Every finding should carry its source, the target identifier, the time of observation, status, coverage, limitations, errors, supporting evidence, and a way to request more detail on demand. MCP responses stay compact; detailed evidence is returned on request.
@@ -190,9 +190,9 @@ Results are stored in a structured format so the agent can answer: does RAM grow
 
 **Limitation.** This is process-level monitoring, not hot-function detection. Without Frida, perf, eBPF or another suitable profiler, Reverse can reliably identify resource-intensive processes, but not specific functions inside them. Function-level data is reported only when produced by a real external profiler through a provider.
 
-## Benchmark methodology (0.1.0 and planned, 0.2)
+## Benchmark methodology (implemented, 0.2.0-beta.6)
 
-0.1.0 runs repeated wall-clock command executions and reports median, mean, min and max with bounded stdout/stderr. The planned Advanced Benchmark Engine adds: repeated runs, warm-up before measurement, separate cold and warm runs, mean, median, min/max, P95, standard deviation, MAD (median absolute deviation), outlier detection, and comparison of CPU time, peak RAM and binary size, together with a recorded system configuration.
+The Advanced Benchmark Engine runs repeated commands without a shell, enforces a byte-accurate 1 MiB output cap per stream, records warm-ups and cold/warm labels, and reports mean, median, min/max, P95, standard deviation, MAD, outliers and confidence intervals. Per-run CPU time and peak RAM are sampled on Linux, macOS and Windows (Windows PowerShell sampling has higher overhead); binary size and environment fingerprints are recorded. Benchmark suites execute cases in round-robin order to reduce temporal bias.
 
 A comparison reports the per-metric change between baseline and optimized runs (execution time, CPU time, peak RAM, binary size), the number of repetitions and which robust statistics were available. A reduced mean alone must not be declared statistically significant: measurement spread and experimental conditions have to be taken into account.
 
@@ -207,15 +207,15 @@ Measurement quality rules:
 - Target indicators are defined per experiment.
 - An improvement must not be claimed because only the report size, line count or the volume of data sent to the model changed.
 
-### Environment fingerprint (planned, 0.2)
+### Environment fingerprint (implemented, 0.2.0-beta.6)
 
-To judge whether two measurements are comparable, each experiment records: OS and version, CPU architecture, CPU core count, total RAM, Node.js version, Reverse version, target application version, launch arguments, environment variables (excluding secrets), time of the study, and benchmark parameters. Android-specific fields to be recorded by the Android adapters are device model / AVD configuration, Android SDK/API level, target ABI, ART/Dalvik version, and thermal-throttling / battery state. If hardware or configuration differs materially, Reverse warns that comparability of the results is limited.
+To judge comparability, each experiment records OS/version, CPU architecture/model/core count, RAM, Node.js and Reverse versions, target command/arguments, allowlisted non-secret environment and benchmark parameters. Load average, CPU governor and a thermal sensor are included where exposed; high load is flagged, not normalized. Android-specific device/API/ABI/ART/thermal fields remain planned for the Android adapters.
 
-## Evidence model (0.1.0 and planned, 0.2)
+## Evidence model (implemented, 0.2.0-beta.6)
 
-0.1.0 stores timestamped, source-linked evidence records (`EvidenceRef`) with a SHA-256 for regular files and local JSON artifacts.
+Evidence records are stored locally as atomic JSON files indexed by evidence ID through one shared atomic JSON writer. Regular-file hashes are streamed. Typed session evidence includes source, timestamp, measurement, confidence, limitations and a record hash.
 
-The planned Advanced Evidence Engine makes evidence the central store of technical facts. Every technical conclusion must be bound to its source — a file, function, address, offset, process, observed event or measurement result — so the agent receives structured facts and not prose. Evidence types: Process, Memory, CPU, I/O, Binary, Benchmark and Validation Evidence. Each record has:
+The Advanced Evidence Engine makes evidence the central store of technical facts. Every technical conclusion must be bound to its source — a file, function, address, offset, process, observed event or measurement result — so the agent receives structured facts and not prose. Evidence types: Process, Memory, CPU, I/O, Binary, Benchmark and Validation Evidence. Each record has:
 
 | Field | Purpose |
 |---|---|
@@ -245,13 +245,13 @@ Research Session
     +-- Final Evidence Report
 ```
 
-Tamper-evident integrity (a manifest and optional signing) is a later step; see the roadmap.
+Research sessions append hash-chained events, evidence and hypotheses. The chain is tamper-evident at the entry level but is not signed; Merkle roots, detached signatures and third-party verification remain in patch I.
 
-## Research cycle supported by the core (planned)
+## Research cycle supported by the core (session ledger implemented, orchestration remains agent-led)
 
 1. **Investigation** — the agent determines the application type, technologies, architecture, dependencies, source availability and available analysis tools.
 2. **Diagnosis** — the core collects technical data; the agent identifies causes of excessive resource use, outdated components, inefficient algorithms, bottlenecks and modernization options.
-3. **Hypotheses** — the agent proposes optimization options and estimates expected gain, complexity, risk, compatibility and required changes.
+3. **Hypotheses** — the agent proposes optimization options and estimates expected gain, complexity, risk, compatibility and required changes. They are recorded as `kind: hypothesis`, separate from evidence, with provenance, confidence and status. Promotion to `supported` requires same-session Validation or Benchmark evidence; refuted records are retained. They are recorded as `kind: hypothesis`, separate from evidence, with provenance/confidence/status; only same-session Validation or Benchmark evidence can promote one to `supported`, and refuted records remain in the ledger.
 4. **Experiment** — the agent applies a chosen change (algorithm or source change, library replacement, dependency update, compiler parameters, runtime or configuration tuning, removal of components that are truly unnecessary), limited to what is technically possible for closed programs.
 5. **Verification** — the core re-measures and checks behavior.
 6. **Decision** — accept if performance improved and correctness is preserved; roll back if results worsened; investigate further if data is insufficient; reject if functionality is broken.
@@ -263,15 +263,15 @@ The orchestration of this cycle belongs to the agent. Reverse provides the deter
 
 0.1.0 safe defaults and known gaps are described in [SECURITY.md](SECURITY.md). The core works locally and does not send target binaries to external models automatically; the external model must not receive unrestricted access to the local system.
 
-### Planned hardening (0.2)
+### Implemented hardening (0.2.0-beta.6)
 
-- Check that a PID exists; verify process identity before any operation; guard against PID reuse.
-- Timeouts for launched target processes; capped stdout/stderr size.
-- Control of child-process launches; clean termination of Reverse's own test processes.
-- Cancellation of investigations; safe removal of temporary files.
+- Single-PID inspection fast path on Linux; process start-time identity tokens and identity rechecks before process-tree termination.
+- Bounded child-process timeouts, tree termination, and byte-capped stdout/stderr.
+- MCP command execution gate, command/cwd allowlists and child environment allowlist.
+- AbortSignal and MCP cancellation for process sampling; test children are cleaned up.
 - Preserve the original state of the program and allow recovery after a failed change; operations that may change the target, its configuration or the environment require separate permission.
 
-### Operating modes (planned)
+### Operating modes (implemented)
 
 ```text
 READ_ONLY
@@ -289,14 +289,7 @@ CPU and RAM control must not be presented as full system isolation. Real hard li
 
 The existing tools, the implemented 0.2 process tools and `get_environment_fingerprint` are listed in [MCP.md](MCP.md). Existing tools must be preserved and backward compatibility must not be broken. Before adding a command, the existing contracts are checked and compatible ones reused, instead of creating duplicate commands.
 
-Remaining planned additions for 0.2 (not yet implemented):
-
-| Tool | Purpose |
-|---|---|
-| `create_benchmark_suite` | Create a set of measurements |
-| `run_benchmark_suite` | Run the measurements |
-| `compare_benchmarks` | Compare results |
-| `get_research_session` | History of an investigation |
+The 0.2 MCP surface includes benchmark-suite creation/execution/comparison and research-session creation, event/evidence attachment, hypothesis recording/promotion and retrieval. The live tool contract is listed in [MCP.md](MCP.md).
 
 Candidates for later releases, depending on providers: `get_hotspots` and `trace_execution` (require a real profiler or Frida/GDB provider).
 

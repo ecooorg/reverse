@@ -7,28 +7,28 @@ Reverse measures wall-clock duration for fresh child-process executions. It reco
 1. Use identical input files and arguments for baseline and candidate.
 2. Record executable version, build identifier, host, OS, architecture, power mode, and background load outside Reverse.
 3. Use at least 5-10 repetitions for exploratory comparisons; increase repetitions for noisy workloads.
-4. Use `warmupRuns` for warm-up (recorded, excluded from statistics); cold/warm classification is not implemented.
-5. Alternate baseline/candidate runs where practical to reduce drift.
+4. Use `warmupRuns` for warm-up (recorded, excluded from statistics); Reverse labels first-start and later runs as cold/warm without flushing the OS cache.
+5. Prefer `create_benchmark_suite` / `run_benchmark_suite`: cases execute in round-robin order by round, with warm-ups excluded, to reduce time-dependent drift.
 6. Compare medians and distributions, not a single run.
 7. Repeat on the same hardware and under comparable system load.
 8. Run functional checks separately and retain their expected fixtures.
 
 The median of an even number of runs is the mean of the two middle values.
 
-A negative `changePercent` means the candidate had lower mean wall-clock time. This is an observation, not proof of causal improvement. The current comparator does not calculate confidence intervals or reject noisy samples. Profiling overhead and external system load can materially affect results.
+A negative `changePercent` is descriptive only. `compare_results` uses successful per-run samples, Mann–Whitney U, a deterministic bootstrap interval of the median shift and a five-run minimum before returning a supported verdict. Environment fingerprints include load average and, where available, CPU governor and thermal sensor; high load is flagged, not corrected. Profiling overhead and external system load can materially affect results.
 
-## Resources, cold/warm and binary size (0.2.0-beta.4)
+## Resources, cold/warm and binary size (0.2.0-beta.6)
 
-Every run carries `cpuTimeMs`, `peakRssBytes` and `resources` (method, sample count). The benchmark summarizes them as `medianCpuTimeMs`, `meanCpuTimeMs`, `maxCpuTimeMs`, `medianPeakRssBytes` and `maxPeakRssBytes`, and `resourceMetrics` says whether any data exists (`method`: `proc`, `ps` or `none`).
+Every run carries `cpuTimeMs`, `peakRssBytes` and `resources` (method, sample count). The benchmark summarizes them as `medianCpuTimeMs`, `meanCpuTimeMs`, `maxCpuTimeMs`, `medianPeakRssBytes` and `maxPeakRssBytes`, and `resourceMetrics` says whether any data exists (`method`: `proc`, `ps` or `powershell`).
 
 - **Linux:** `/proc/<pid>/stat` (user + system + waited-for children CPU time, clock ticks from `getconf CLK_TCK`) and the kernel's peak resident set `VmHWM`, sampled every 5 ms.
 - **macOS and other POSIX systems:** `ps -o rss=,time=` every 25 ms; peak RAM is the largest sampled RSS, CPU time has 10 ms resolution.
-- **Windows:** not sampled yet; the fields are `null` and `resourceMetrics.available` is `false`.
+- **Windows:** PowerShell `Get-Process` samples `TotalProcessorTime` and peak working set. The helper starts separately for each sample, so very short runs can end before a sample and the sampling overhead is higher than on Linux.
 - Values describe the direct child and are **lower bounds**: sampling can miss what happens after the last sample, and a run shorter than one sample interval may have no data (then the fields are `null`, never zero).
 - `temperature`: the first process started by one benchmark call is `cold`, all later runs `warm` (`coldDurationMs`, `coldPhase`, `warmMedianDurationMs`). The operating system file cache is not dropped, so `cold` means first start in this call.
 - `binaryPath` and `binarySizeBytes`: the resolved command file (for `node` that is the interpreter, not the script).
 - `compare_results` adds `metrics`: median change of CPU time and peak RAM with their own verdicts (same test and the same 5-run minimum; `null` when a side has no samples) and the plain size difference. The headline `verdict` still refers to wall-clock time.
 
-## Statistics and verdicts (0.2.0-beta.3)
+## Statistics and verdicts (0.2.0-beta.6)
 
 Per benchmark: mean, median, min, max, P95 (nearest rank), sample standard deviation, MAD, outliers (modified z-score above 3.5) and a 95% Student-t interval of the mean. Failed runs (error, timeout, non-zero exit) are excluded. `compare_results` reports a verdict from the per-run durations: two-sided Mann-Whitney test (alpha 0.05, tie-corrected normal approximation) and a deterministic bootstrap interval of the median shift that must exclude zero; also the Hodges-Lehmann shift and Cohen's d. Fewer than 5 successful runs on either side gives `insufficient_evidence`; a lower mean alone never gives `improved`. Different environment fingerprints add a comparability warning and make the comparison `partial`.

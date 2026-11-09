@@ -73,17 +73,19 @@ Closes **Advanced Process Inspector**, **Time-Series Performance Profiler** and 
 
 Capability checks added for identity/ownership, cancellation, resource-control reporting and the new MCP tool.
 
-### Patch C — Measurement engine and baselines (0.2) — in progress, parts 1–3 released (0.2.0-beta.3, 0.2.0-beta.4, 0.2.0-beta.5)
+### Patch C — Measurement engine and baselines (0.2) — core delivered in 0.2.0-beta.6; residual quality gates remain
 
 **Done in 0.2.0-beta.3:** command-execution gate, allowlisted child environment and tool annotations (F-01); statistics, warm-up runs, failed-run exclusion and the `improved`/`regressed`/`no_significant_change`/`insufficient_evidence` verdict (F-04, most of R-13); environment fingerprint, comparability warning and `get_environment_fingerprint`; `noUnusedParameters`, `.gitattributes`, Node 22+ (F-14, R-16).
 
-**Done in 0.2.0-beta.4:** per-run CPU time and peak RAM (sampled: Linux `/proc`, macOS `ps`; Windows not sampled yet), binary size, cold/warm labels, per-metric comparison in `compare_results`.
+**Done in 0.2.0-beta.4:** per-run CPU time and peak RAM (Linux `/proc`, macOS `ps`); binary size, cold/warm labels, per-metric comparison in `compare_results`.
+
+**Done in 0.2.0-beta.6:** Windows PowerShell CPU/peak-working-set sampling; interleaved round-robin benchmark suites; baseline persistence and comparison; environment-noise snapshot and warning; hyperfine-compatible export shape; identity-checked process-tree termination and real Windows taskkill counts. `R-13`, `R-12` export, `F-12` and the implementation part of the baseline lifecycle are delivered. `R-17` built-ins and `R-06` formatting/size gates are also in place.
 
 **Done in 0.2.0-beta.5:** `untrustedContent` marker and string length cap on every MCP result, threat model text in SECURITY.md (F-17, R-02; adversarial fixture: oversized import name).
 
-**Still open in patch C (not claimed):** Windows CPU time and peak RAM, interleaved A/B runs, environment-noise detection, baseline manager and `create_benchmark_suite` / `run_benchmark_suite` / `compare_benchmarks`, F-12 (identity-checked group kill), F-16 (test split, partly started with `tests/benchmark-stats.test.ts`), R-03, R-05, R-06, R-17 and the hyperfine-compatible export of R-12. The Benchmark 🚧 about missing CPU time and peak RAM is closed on Linux; on Windows a 🚧 remains until sampling exists there. Patch C is not done and the roadmap does not mark it so.
+**Still open / partial in patch C:** `R-03` is partial (Dependabot, Scorecard, CycloneDX, audit signatures and release-please/provenance workflow added; the existing CI action references are not all SHA-pinned and provenance publishing needs an npm trusted-publisher/token setup); `R-05` is partial (strict TypeScript, TypeScript-printer format check and own-line size gate are present; `knip`, `jscpd` and dedicated linter are not); `F-16` test split is partial because the comprehensive capability harness remains monolithic. The Windows sampler is higher-overhead and has not been exercised on a Windows runner in this workspace.
 
-Closes **Advanced Benchmark Engine** (all items) and the baseline lifecycle.
+Implements the benchmark engine and baseline lifecycle; CI validation on macOS/Windows and the remaining quality gates are still required before declaring patch C fully closed.
 
 - First item, before any new tool: the command-execution gate from [AUDIT.md](AUDIT.md) F-01 (command-running MCP tools off unless the operator sets `CONTROLLED_EXECUTION`, command allowlist, environment allowlist, tool annotations). This changes a documented default and is announced in the release notes.
 - Audit items F-04 (no significance claim from means) and F-12 (identity-checked process-group kill).
@@ -94,19 +96,19 @@ Closes **Advanced Benchmark Engine** (all items) and the baseline lifecycle.
 - Baseline manager: create, store, re-measure, compare, report; a lower mean alone is never reported as a significant improvement.
 - `create_benchmark_suite`, `run_benchmark_suite`, `compare_benchmarks`, `get_environment_fingerprint`.
 
-Capability checks that flip: *Benchmark — only wall-clock time is measured* becomes ✅ (Linux and macOS since 0.2.0-beta.4; Windows pending).
+Capability checks that flip: *Benchmark — only wall-clock time is measured* becomes ✅ on Linux/macOS; Windows has a PowerShell sampling path but requires the manual Windows CI run to verify runtime coverage.
 
-### Patch D — Evidence engine, research sessions and MCP surface (0.2)
+### Patch D — Evidence engine, research sessions and MCP surface (0.2) — core delivered in 0.2.0-beta.6; audit residuals remain
 
 Closes **Advanced Evidence Engine**, the remaining MCP tools of 0.2 and the **0.2 acceptance criteria**.
 
 - Evidence types Process, Memory, CPU, I/O, Binary, Benchmark and Validation, with `evidence_id`, `target_id`, `type`, `source`, `timestamp`, `measurement`, `confidence`, `limitations` and `hash`.
 - Research sessions that link target, observations, profile, baseline, optimization, new benchmark, comparison, validation and the final evidence report; `get_research_session`.
 - Hypothesis ledger (H-01, H-02): record type `hypothesis` beside Evidence (fields in [ARCHITECTURE.md](ARCHITECTURE.md), fact category 3), hash-chained with the session, promotion only by reference to Validation or Benchmark evidence, refuted hypotheses kept; MCP output marks `kind: "hypothesis"` and never mixes it into measured or static findings.
-- Remaining MCP tool: `get_research_session` (the process-data tools shipped with patch B).
-- Trials on the three reference applications (small, large with dependencies, closed binary) and verification of all twelve 0.2 acceptance criteria.
+- MCP research tools: `create_research_session`, `get_research_session`, `add_research_event`, `add_research_evidence`, `link_research_artifacts`, `add_research_hypothesis` and `promote_research_hypothesis`; MCP tool contracts include title, annotations, output schema, compact/full input schema profiles, structured error codes, pagination and a 1 MiB response budget.
+- Fixture trials cover the three reference shapes (small source app, larger dependency-bearing source app, closed binary) and the complete observation → profile → baseline → optimization → benchmark → comparison → validation → final report session link chain. The full 12-item release acceptance checklist and external reference-application trials remain a release gate.
 
-Capability checks that flip: the *Evidence* limitation (no session link, confidence or limitations fields) becomes ✅ except for signing, which belongs to patch I.
+Capability checks that flip: typed evidence, session hash-chain verification and hypothesis separation become ✅. Merkle roots/signatures remain in I; mutation testing, full fast-check fuzzing and persistent Windows/macOS metric helpers remain open.
 
 **Milestone 0.2 is released when B, C and D are done.**
 
@@ -235,42 +237,42 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-03 | Output cap counted in bytes | closed in 0.2.0-beta.2 |
 | F-04 | No `improved`/significance claim from means; exclude failed runs; minimum runs and confidence interval, else `insufficient_evidence` | closed in 0.2.0-beta.3 |
 | F-05 | Validation never matches truncated output | closed in 0.2.0-beta.2; normalization rules in **I** |
-| F-06 | (a)–(c) protocol errors | closed in 0.2.0-beta.2; (d) newer protocol revisions, `title`, `outputSchema`, annotations, SDK contract tests in **D** |
-| F-07 | Page size and `CLK_TCK` read from the OS; one documented CPU-percent convention | **D** |
-| F-08 | Single-PID fast path for inspection and sampling; cached `btime`, page size, tick rate | **D** |
+| F-06 | (a)–(c) protocol errors | closed in 0.2.0-beta.2; stateful revisions through 2025-11-25, titles, output schemas and annotations in 0.2.0-beta.6; stateless 2026 protocol remains open |
+| F-07 | Page size and `CLK_TCK` read from the OS; one documented CPU-percent convention | closed in 0.2.0-beta.6 |
+| F-08 | Single-PID fast path for inspection and sampling; cached `btime`, page size, tick rate | Linux inspection fast path and cached constants in 0.2.0-beta.6; non-Linux fast paths remain partial |
 | F-09 | File and size caps, `lstat`, `.wasm` | closed in 0.2.0-beta.2; real parser (AST) in **E** |
 | F-10 | Dependency groups kept per group, `peerDependencies` | **E** |
-| F-11 | Streamed hashing, atomic evidence writes, lookup by evidence id, one evidence code path | **D** |
-| F-12 | Process-group kill with identity-checked sweep; real counts on Windows | **C** |
+| F-11 | Streamed hashing, atomic evidence writes, lookup by evidence id, one evidence code path | closed in 0.2.0-beta.6 (shared atomic JSON writer) |
+| F-12 | Process-group kill with identity-checked sweep; real counts on Windows | closed in 0.2.0-beta.6 |
 | F-13 | Mach-O CPU type and fat slice table, PE `e_lfanew` beyond the buffer reported as `partial` | **E** |
 | F-14 | Remaining: `.gitattributes`, `noUnusedParameters` | closed in 0.2.0-beta.3 |
 | F-15 | Documentation drift and the planned-tools check | closed in 0.2.0-beta.2 |
-| F-16 | Split the test suite into flat `tests/<area>.test.ts` files with pure fixtures; statistics, `CappedBuffer`, MCP error paths, `/proc` parser | **C** (statistics, capture) and **D** (the rest) |
+| F-16 | Split the test suite into flat `tests/<area>.test.ts` files with pure fixtures; statistics, `CappedBuffer`, MCP error paths, `/proc` parser | partial in 0.2.0-beta.6: statistics, benchmark suites, evidence, research cycle, untrusted output and parser tests split; capability harness remains large |
 | F-17 | Threat model: agent as untrusted caller, prompt injection through target data | closed in 0.2.0-beta.5 |
 
 ### Recommendations
 
 | ID | Task | Patch |
 |---|---|---|
-| R-01 | Mutation testing (Stryker) on pure modules | **D**, extended to each later patch's pure modules |
+| R-01 | Mutation testing (Stryker) on pure modules | **D** (open; no mutation runner configured) |
 | R-02 | Threat model and prompt-injection hardening (`untrustedContent` wrapper, length caps, adversarial fixtures) | closed in 0.2.0-beta.5 (basic wrapper and caps) |
-| R-03 | Supply chain: npm provenance, pinned action SHAs, Dependabot, OpenSSF Scorecard, CycloneDX SBOM, `npm audit signatures`, `release-please` | **C** |
-| R-04 | Fuzz and property tests (`fast-check`, devDependency) for parsers | **D** (process parsers), **E** (binary parsers) |
-| R-05 | Static gates: linter and formatter, `knip`, `jscpd`, own-line size gate | **C** |
-| R-06 | Reformat dense files, formatter check in the structure workflow | **C** start; every dense file reformatted before **J** |
-| R-07 | Contract-first MCP: one definition generates `tools/list`, [MCP.md](MCP.md) and schemas; compact/full schema profile; structured error codes; pagination; size budgets | **D** |
+| R-03 | Supply chain: npm provenance, pinned action SHAs, Dependabot, OpenSSF Scorecard, CycloneDX SBOM, `npm audit signatures`, `release-please` | partial in 0.2.0-beta.6; provenance workflow and several pinned actions added, existing workflow SHAs/trusted publishing still need validation |
+| R-04 | Fuzz and property tests (`fast-check`, devDependency) for parsers | partial in 0.2.0-beta.6: deterministic hostile process-parser corpus; fast-check and binary parser fuzzing remain open |
+| R-05 | Static gates: linter and formatter, `knip`, `jscpd`, own-line size gate | partial in 0.2.0-beta.6: strict TypeScript, format check and own-line size gate; knip/jscpd/dedicated linter remain open |
+| R-06 | Reformat dense files, formatter check in the structure workflow | source/test TypeScript reformatted; format check wired into capabilities CI in 0.2.0-beta.6 |
+| R-07 | Contract-first MCP: one definition generates `tools/list`, [MCP.md](MCP.md) and schemas; compact/full schema profile; structured error codes; pagination; size budgets | partial in 0.2.0-beta.6: schemas, profiles, errors, offset pagination and 1 MiB budget implemented; docs are contract-tested but not generated |
 | R-08 | MCP prompts and resources; `reverse setup` for Claude Code, Codex, Cursor, Gemini CLI with dry run and backups; investigation skill file | **L** |
-| R-09 | `reverse doctor` | **D** |
+| R-09 | `reverse doctor` | closed in 0.2.0-beta.6 |
 | R-10 | Existing parsers and tools as opt-in providers (lief/goblin, objdump/readelf, rz-bin, capa, yara-x, diec, syft, osv-scanner, cargo-auditable, Go build info) | **E** (static), **F** (provider adapters), **H** (profiling) |
 | R-11 | Hardening-flag report (PIE, NX, RELRO, canary, CFG, ASLR) | **E** |
-| R-12 | Profile ingestion in standard formats (perf, pprof, `.cpuprofile`, Speedscope, Firefox Profiler); hyperfine-compatible benchmark export; eBPF via bpftrace | **H** (ingestion), **C** (export shape) |
-| R-13 | Statistics: bootstrap intervals, Mann-Whitney with Hodges-Lehmann shift, effect size, MAD outliers, environment-noise detection, interleaved A/B runs by default, `insufficient_evidence` verdict | **C**: done in 0.2.0-beta.3 except environment-noise detection and interleaved A/B runs (open) |
+| R-12 | Profile ingestion in standard formats (perf, pprof, `.cpuprofile`, Speedscope, Firefox Profiler); hyperfine-compatible benchmark export; eBPF via bpftrace | export shape closed in 0.2.0-beta.6; profile ingestion remains **H** |
+| R-13 | Statistics: bootstrap intervals, Mann-Whitney with Hodges-Lehmann shift, effect size, MAD outliers, environment-noise detection, interleaved A/B runs by default, `insufficient_evidence` verdict | closed in 0.2.0-beta.6 (noise snapshot and interleaved suites added) |
 | R-14 | Tamper-evident evidence: per-session hash chain, Merkle root, Ed25519 signature, `reverse export` / `reverse verify` | **I** |
 | R-15 | Golden results and the three reference trials as manual CI jobs | **J** |
 | R-16 | Node support window: drop Node 20, `engines` and matrix to 22 and 24 | closed in 0.2.0-beta.3 |
-| R-17 | Node built-ins instead of code: `util.parseArgs`, `AbortSignal.timeout`, `fs.glob`, test coverage, `os.availableParallelism` | **C** |
+| R-17 | Node built-ins instead of code: `util.parseArgs`, `AbortSignal.timeout`, `fs.glob`, test coverage, `os.availableParallelism` | closed in 0.2.0-beta.6 |
 | R-18 | Distribution: `npx` entry, install scripts that only check Node and print configuration, optional single binary, `server.json` for MCP registries | **L** |
-| R-19 | Windows and macOS metric parity: persistent helpers instead of a fork per sample; `typeperf`/ETW and `libproc` providers | **D** (helpers), **H** (providers) |
+| R-19 | Windows and macOS metric parity: persistent helpers instead of a fork per sample; `typeperf`/ETW and `libproc` providers | **D/H** open: PowerShell helper currently forks per sample; persistent helper and ETW/libproc remain |
 | R-20 | Sandbox for executed targets under `CONTROLLED_EXECUTION` (bwrap/unshare, sandbox-exec, Job Objects/AppContainer or a container provider; no network by default; scratch directory; rlimits) | **G** |
 
 ### Goal gaps (Audit 2, approved 2026-11-09)
@@ -392,7 +394,7 @@ Sequencing principle: do not start with Ghidra and do not try to implement every
 
 ## 0.2.0-beta.4 — Patch C, part 2
 
-- [x] Per-run CPU time and peak RAM of the benchmark child, sampled (Linux `/proc` every 5 ms, macOS/POSIX `ps` every 25 ms); fields are `null` where nothing could be sampled, never zero. Windows is not sampled yet.
+- [x] Per-run CPU time and peak RAM of the benchmark child, sampled (Linux `/proc` every 5 ms, macOS/POSIX `ps` every 25 ms); fields are `null` where nothing could be sampled, never zero. Windows uses PowerShell `Get-Process` sampling (higher overhead; manual Windows CI verification remains required).
 - [x] Binary size of the command, cold/warm labels (`temperature`, `coldDurationMs`, `warmMedianDurationMs`).
 - [x] `compare_results` reports CPU time, peak RAM (own verdicts, 5-run minimum) and binary size per metric; the headline verdict stays wall-clock.
 - [x] New module `src/benchmark-resources.ts`; parsers are unit-tested with fixtures on every platform (`tests/benchmark-resources.test.ts`).

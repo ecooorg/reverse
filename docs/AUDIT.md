@@ -179,3 +179,11 @@ macOS/Windows runtime behavior; the 893-line capability suite was run but not re
 ---
 
 <!-- New audits are inserted above this line, directly under the introduction. Do not delete earlier audits. -->
+
+## Implementation status after 0.2.0-beta.6
+
+This update records only work verified in the beta.6 source tree; it does not declare patches C or D fully closed.
+
+- **Closed in 0.2.0-beta.6:** F-07 (OS page size/tick rate and per-core CPU convention), F-11 (shared atomic JSON persistence, streamed file hashing and ID lookup), F-12 (identity-checked POSIX process-group termination and Windows CIM/taskkill counts), R-06 (TypeScript format gate and source-size gate), R-09 (`reverse doctor`), R-12 benchmark export shape, R-13 (noise snapshot and interleaved benchmark suites), R-17 (Node built-ins).
+- **Partially implemented in 0.2.0-beta.6:** F-06(d) (stateful protocol revisions through 2025-11-25; the stateless 2026 protocol era remains unsupported); F-08 (Linux single-PID `/proc` fast path and cached constants; non-Linux fast paths remain); F-16 (focused test files added, but the capability harness remains monolithic); R-03 (Dependabot, Scorecard, CycloneDX, signature audit and release-please/provenance workflow added; existing workflow references are not all SHA-pinned and trusted publishing still needs repository configuration); R-04 (deterministic hostile process-parser corpus, not full `fast-check` coverage); R-05 (strict TypeScript, formatter and line-size gates, but no `knip`, `jscpd` or dedicated linter); R-07 (schemas, compact/full profiles, structured errors, pagination and response budget, but docs are contract-tested rather than generated).
+- **Still open:** R-01 mutation testing; R-19 persistent Windows/macOS metric helpers and ETW/libproc providers; full stateless MCP 2026 protocol support; complete binary parser fuzzing; external reference-app release trials and the full twelve-item 0.2 acceptance checklist.
