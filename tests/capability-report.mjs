@@ -28,8 +28,8 @@ for (const r of reports) for (const x of r.records) {
 const esc = s => String(s).replace(/\|/g, '\\|').replace(/\n/g, ' ');
 const out = [];
 
-out.push('# CREA capability verification', '');
-out.push(`CREA ${reports[0].crea} — checked on ${reports.length} environment${reports.length > 1 ? 's' : ''}: ${reports.map(r => r.label).join(', ')}`, '');
+out.push('# Reverse capability verification', '');
+out.push(`Reverse ${reports[0].reverse} — checked on ${reports.length} environment${reports.length > 1 ? 's' : ''}: ${reports.map(r => r.label).join(', ')}`, '');
 out.push('| Environment | ✅ verified | 🚧 limitation confirmed | ⚠️ drift | ❌ failed |', '|---|---|---|---|---|');
 for (const r of reports) out.push(`| ${r.label} | ${r.totals.verified} | ${r.totals.limitation} | ${r.totals.drift} | ${r.totals.failed} |`);
 out.push('', '✅ works as documented · 🚧 a documented limitation is real (feature absent) · ⚠️ docs and behaviour disagree, or a defect was found · ❌ must-work capability is broken', '');
@@ -60,12 +60,12 @@ const section = (title, status) => {
 };
 const failed = section('❌ Failed', 'failed');
 const drift = section('⚠️ Drift and defects found', 'drift');
-section('🚧 Confirmed limitations (what CREA cannot do today)', 'limitation');
+section('🚧 Confirmed limitations (what Reverse cannot do today)', 'limitation');
 
 const text = out.join('\n') + '\n';
 if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, text); else process.stdout.write(text);
 
 const ann = (level, title, msg) => console.log(`::${level} title=${title}::${msg.replace(/%/g, '%25').replace(/\r/g, '').replace(/\n/g, '%0A')}`);
-for (const { row, detail, where } of drift ?? []) ann('warning', 'CREA capability drift', `${row.area} — ${row.name}: ${detail} [${where.join(', ')}]`);
-for (const { row, detail, where } of failed ?? []) ann('error', 'CREA capability failed', `${row.area} — ${row.name}: ${detail} [${where.join(', ')}]`);
+for (const { row, detail, where } of drift ?? []) ann('warning', 'Reverse capability drift', `${row.area} — ${row.name}: ${detail} [${where.join(', ')}]`);
+for (const { row, detail, where } of failed ?? []) ann('error', 'Reverse capability failed', `${row.area} — ${row.name}: ${detail} [${where.join(', ')}]`);
 process.exit(reports.some(r => r.totals.failed > 0) ? 1 : 0);

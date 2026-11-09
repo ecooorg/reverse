@@ -1,6 +1,6 @@
 // Capability verification suite.
 //
-// Goal: establish what CREA can REALLY do on the machine running this file, by exercising the built
+// Goal: establish what Reverse can REALLY do on the machine running this file, by exercising the built
 // output in dist/ (library API, CLI and MCP stdio server) against real fixtures and real processes.
 //
 // Every check ends in one of four outcomes, recorded in a JSON report:
@@ -44,9 +44,9 @@ const WIN = process.platform === 'win32';
 const MAC = process.platform === 'darwin';
 const NODE = process.execPath;
 
-const WORK = await mkdtemp(path.join(os.tmpdir(), 'crea-verify-'));
-const HOME = path.join(WORK, 'crea-home');
-process.env.CREA_HOME = HOME; // keep evidence/benchmark artifacts out of the real home directory
+const WORK = await mkdtemp(path.join(os.tmpdir(), 'reverse-verify-'));
+const HOME = path.join(WORK, 'reverse-home');
+process.env.REVERSE_HOME = HOME; // keep evidence/benchmark artifacts out of the real home directory
 
 function check(area: string, name: string, fn: (c: Ctx) => Promise<void> | void) {
   test(`${area} — ${name}`, async () => {
@@ -72,7 +72,7 @@ after(async () => {
   const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   const report = {
     schema: 1,
-    crea: pkg.version,
+    reverse: pkg.version,
     platform: process.platform,
     arch: process.arch,
     node: process.version,
@@ -81,7 +81,7 @@ after(async () => {
     totals,
     records,
   };
-  const out = process.env.CREA_CAPABILITY_REPORT || path.join(ROOT, 'dist-tests', 'capability-report.json');
+  const out = process.env.REVERSE_CAPABILITY_REPORT || path.join(ROOT, 'dist-tests', 'capability-report.json');
   await mkdir(path.dirname(out), { recursive: true });
   await writeFile(out, JSON.stringify(report, null, 2) + '\n', 'utf8');
   await rm(WORK, { recursive: true, force: true });
@@ -167,7 +167,7 @@ check('Package', 'built output exists and the library exports the documented API
 check('Package', 'bin entry has a shebang and package.json targets exist', () => {
   const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   assert.equal(readFileSync(CLI, 'utf8').split('\n')[0], '#!/usr/bin/env node');
-  assert.ok(existsSync(path.join(ROOT, pkg.bin.crea)), 'bin.crea target');
+  assert.ok(existsSync(path.join(ROOT, pkg.bin.reverse)), 'bin.reverse target');
   const exp = pkg.exports['.'];
   assert.ok(existsSync(path.join(ROOT, exp.default)), 'exports default');
   assert.ok(existsSync(path.join(ROOT, exp.types)), 'exports types');
@@ -412,7 +412,7 @@ check('Benchmark', 'repeats a command and reports mean/median/min/max with per-r
   assert.ok(f.minDurationMs <= f.medianDurationMs && f.medianDurationMs <= f.maxDurationMs && f.meanDurationMs > 0);
   assert.ok(f.runs.every((x: any) => x.stdout === 'ok' && x.exitCode === 0));
 });
-check('Benchmark', 'persists the result as a JSON artifact under CREA_HOME', async () => {
+check('Benchmark', 'persists the result as a JSON artifact under REVERSE_HOME', async () => {
   const f: any = ((await runBenchmark({ command: NODE, args: nodeEval('0'), repetitions: 1 })) as any).findings[0];
   assert.ok(path.resolve(f.artifactPath).startsWith(path.resolve(HOME)), f.artifactPath);
   assert.equal((await read(f.artifactPath)).operation, 'benchmark');
@@ -578,7 +578,7 @@ const cliDir = path.join(WORK, 'cli'); await mkdir(cliDir, { recursive: true });
 check('CLI', '--help, no arguments and "help" print usage listing every command', () => {
   for (const a of [['--help'], [], ['help'], ['-h']]) {
     const r = runCli(a);
-    assert.equal(r.code, 0, j(a)); assert.match(r.stdout, /Usage: crea/);
+    assert.equal(r.code, 0, j(a)); assert.match(r.stdout, /Usage: reverse/);
     for (const cmd of ['binary', 'source', 'dependencies', 'processes', 'process', 'profile', 'benchmark', 'compare', 'validate', 'analyzers', 'mcp']) assert.ok(r.stdout.includes(cmd), cmd);
   }
 });
@@ -618,7 +618,7 @@ check('CLI', 'validate --expected works for argument-less commands', async () =>
 check('CLI', 'validate cannot pass arguments to the command (MCP validate_changes can)', async c => {
   const exp = path.join(cliDir, 'exp2.json'); await writeFile(exp, j({ exitCode: 0, stdout: 'x' }));
   const v = JSON.parse(runCli(['validate', '--command', NODE, '--arg', '-e', '--arg', 'process.stdout.write("x")', '--expected', exp]).stdout);
-  if (v.findings[0].passed === false) c.drift('`crea validate` ignores --arg, so only argument-less commands can be validated from the CLI (the README/help do not say so)');
+  if (v.findings[0].passed === false) c.drift('`reverse validate` ignores --arg, so only argument-less commands can be validated from the CLI (the README/help do not say so)');
   else c.note('CLI validate accepts --arg');
 });
 check('CLI', 'analyzers lists providers', () => {
@@ -639,7 +639,7 @@ check('MCP', 'handshake: initialize, ping and tools/list', async () => {
   const s = startMcp();
   try {
     const init = await s.req('initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'verify', version: '1' } });
-    assert.equal(init.result.serverInfo.name, 'crea'); assert.ok(init.result.capabilities.tools);
+    assert.equal(init.result.serverInfo.name, 'reverse'); assert.ok(init.result.capabilities.tools);
     s.notify('notifications/initialized');
     assert.deepEqual((await s.req('ping')).result, {});
     const names = (await s.req('tools/list')).result.tools.map((t: any) => t.name);
@@ -703,7 +703,7 @@ check('MCP', 'tool errors (missing file, bad PID) surface as JSON-RPC errors, no
     assert.deepEqual((await s.req('ping')).result, {});
   } finally { s.close(); }
 });
-check('MCP', '"crea mcp" starts the same stdio server', async () => {
+check('MCP', '"reverse mcp" starts the same stdio server', async () => {
   const s = startMcp([CLI, 'mcp']);
   try { assert.equal((await s.req('tools/list')).result.tools.length, 13); } finally { s.close(); }
 });
