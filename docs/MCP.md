@@ -22,7 +22,8 @@ Each tool returns its result as JSON text in `content[0].text` and as the same d
 | `analyze_memory` | `pid` | Process memory metrics |
 | `analyze_cpu` | `pid` | Process CPU metrics |
 | `analyze_io` | `pid` | Per-process disk I/O counters where available |
-| `detect_resource_anomalies` | `series` | Detect high CPU and growing memory in supplied profiles |
+| `detect_resource_anomalies` | `series` | Detect sustained CPU, CPU spikes and growing RSS in supplied profiles |
+| `get_resource_control_status` | none | Report OS resource-control availability without changing a process |
 | `capture_baseline` | `command` | Persist a named baseline benchmark artifact |
 | `run_benchmark` | `command` | Run command; optional `args`, `cwd`, `timeoutMs`, `repetitions`, `label` |
 | `compare_results` | `before`, `after` | Compare Reverse benchmark envelopes |
@@ -31,3 +32,5 @@ Each tool returns its result as JSON text in `content[0].text` and as the same d
 | `list_analyzers` | none | Distinguish built-ins from extension points |
 
 Tool argument schemas are intentionally compact. Validate all paths, PIDs, and commands at the client boundary too.
+
+Long-running `profile_process` and `monitor_process` calls accept MCP `notifications/cancelled` for their request ID. Cancellation returns a `partial` result and persists the samples collected so far. The library API also accepts an `AbortSignal`.

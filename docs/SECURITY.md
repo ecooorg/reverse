@@ -17,10 +17,10 @@ Only inspect software and processes you own or are authorized to examine. Treat 
 
 ## Known security gaps
 
-- No OS-level sandbox, resource cgroup/job object, network isolation, or filesystem allowlist. Monitoring is read-only; no process termination or control operation is exposed.
-- Process listing and sampling are subject to host permissions and race conditions.
+- No general OS sandbox, network isolation, or filesystem allowlist. Linux cgroup v2 CPU/memory limits are available only through the explicit scoped `withProcessResourceLimits` API on delegated hierarchies; no Windows Job Object or macOS hard-quota adapter exists.
+- Process listing and sampling remain subject to host permissions and unavoidable races between OS reads and subsequent operations. Start-time identity checks reduce, but cannot mathematically eliminate, PID-reuse races. Linux/macOS ownership is checked by UID; Windows ownership is currently unknown.
 - MCP stdio assumes a trusted local client. There is no authentication layer.
 - Evidence JSON is not signed or tamper-evident.
-- Path allowlists and explicit approval gates for experiments are planned, not implemented.
+- The cgroup resource-control API requires `CONTROLLED_EXECUTION` and an explicit `confirm: true`; it is scoped to a callback and attempts to restore the original cgroup on exit. Path allowlists and broader approval gates for experiments remain planned.
 
 Report vulnerabilities privately to the repository maintainer. Do not publish exploit details before a fix is available.

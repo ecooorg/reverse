@@ -107,20 +107,31 @@ Reverse
     ├── GDB
     ├── eBPF
     ├── ETW
-    └── Instruments
+    ├── Instruments
+    ├── JADX / Apktool
+    ├── ADB / Android Device Bridge
+    └── simpleperf / Perfetto / dumpsys
 ```
 
-Specialist analysis beyond the built-in analyzers (native, JavaScript/Electron, .NET and WebAssembly analysis, hotspot detection, disk/network I/O) is reached through providers and extensions, not by reimplementing the underlying tools. Platform and domain extensions (Android, browser, GPU, network, database, firmware, container, cloud, compiler, algorithm, energy) are added only when a real need appears. Each has its own adapter, contracts, requirements and tests, and the core must not know the internals of any extension. Linux is the first fully supported profiling environment; interfaces for Windows and macOS are designed in from the start.
+### Android analysis extension (planned across patches E–J)
+
+Android packages are treated as analysis targets without expanding the core with heavyweight reverse-engineering engines. The static layer will inventory APK/AAB archives, parse binary `AndroidManifest.xml` (permissions, components, exported components and debug flags), and list `classes*.dex`, `lib/<abi>/*.so`, assets and resources. Dependency analysis will read `build.gradle`, `build.gradle.kts`, `gradle.lockfile` and `libs.versions.toml`, plus available `META-INF` metadata in built APKs.
+
+Static providers: JADX for DEX-to-Java decompilation and Apktool for Smali/resources; Ghidra remains the native `.so` analyzer. Device operations use an ADB provider. Frida supports Java/ART (`Java.perform`) and native hooks, including remote `frida-server` through ADB. Android profiling uses simpleperf for CPU hotspots, Perfetto for system traces, and `dumpsys` for memory/CPU/battery context.
+
+`CONTROLLED_EXECUTION` on Android requires a dedicated AVD or test device. Each benchmark restores app state (for example `pm clear` or an AVD snapshot rollback). APK modifications require rebuild (`apktool b`), alignment (`zipalign`) and test-key signing (`apksigner`) before install and regression verification. These are planned provider workflows, not current built-in capabilities.
+
+Specialist analysis beyond the built-in analyzers (native, JavaScript/Electron, .NET and WebAssembly analysis, hotspot detection, disk/network I/O) is reached through providers and extensions, not by reimplementing the underlying tools. Platform and domain extensions (Android, browser, GPU, network, database, firmware, container, cloud, compiler, algorithm, energy) are added through provider adapters with explicit contracts; the core must not know the internals of any extension. Android support is scheduled across patches E–J. Linux is the first fully supported profiling environment; interfaces for Windows and macOS are designed in from the start.
 
 ## Process Intelligence (partially implemented, 0.2)
 
-**Implemented subset.** The inspector now collects OS-exposed PID/PPID, executable and arguments, uptime, thread count, RSS/VMS, CPU time, Linux disk I/O and open-FD count, plus visible child relationships. Linux reads `/proc`; Windows uses CIM and macOS uses `ps`. Metrics are not at parity across platforms.
+**Implemented (Patch B).** The inspector collects OS-exposed PID/PPID, executable and arguments, uptime, thread count, RSS/VMS, CPU time where available, Linux disk I/O and open-FD count, plus visible child relationships. Linux reads `/proc`; Windows uses CIM and macOS uses `ps`. It records start-time identity tokens; Linux/macOS expose UID ownership checks. Metrics are not at parity across platforms.
 
-**Advanced Process Inspector (remaining planned work).** Beyond a point-in-time snapshot, the inspector collects: PID, PPID and the process tree; executable and launch arguments; process uptime; thread count; RSS and virtual memory; CPU utilization and accumulated CPU time; disk I/O; open file descriptors where available; child processes; and processes consuming disproportionate resources. Observation over a given interval — not only a snapshot — is a core requirement, so the agent sees the dynamics of consumption. An observation report states the target, PID, average and peak CPU, average and peak RSS, thread count, disk read/write totals, observation duration and sample count.
+**Advanced Process Inspector (implemented core; remaining platform work).** Beyond a point-in-time snapshot, the inspector collects: PID, PPID and the process tree; executable and launch arguments; process uptime; thread count; RSS and virtual memory; CPU utilization and accumulated CPU time; disk I/O; open file descriptors where available; child processes; and processes consuming disproportionate resources. Observation over a given interval — not only a snapshot — is a core requirement, so the agent sees the dynamics of consumption. An observation report states the target, PID, average and peak CPU, average and peak RSS, thread count, disk read/write totals, observation duration and sample count.
 
-**Implemented subset.** Bounded sampling persists structured JSON time series with available CPU, memory, thread, child and disk-I/O metrics, and deterministic high-CPU / growing-RSS anomaly checks.
+**Implemented (Patch B).** Bounded sampling persists structured JSON time series with available CPU, memory, thread, child and disk-I/O metrics; checks process identity between samples; supports AbortSignal and MCP request cancellation; and detects sustained CPU, CPU spikes and growing RSS.
 
-**Time-Series Performance Profiler (remaining planned work).** Collects metrics at a configured frequency: interval CPU utilization, RSS and VMS, peak RAM and memory change, CPU time, read/write I/O and thread count. It detects sharp load spikes, prolonged high load, and processes with continuously growing memory. Modes:
+**Time-Series Performance Profiler (implemented core; remaining advanced analysis).** Collects metrics at a configured frequency: interval CPU utilization, RSS and VMS, peak RAM and memory change, CPU time, read/write I/O and thread count. It detects sharp load spikes, prolonged high load, and processes with continuously growing memory. Modes:
 
 | Mode | Purpose |
 |---|---|
@@ -152,7 +163,7 @@ Measurement quality rules:
 
 ### Environment fingerprint (planned, 0.2)
 
-To judge whether two measurements are comparable, each experiment records: OS and version, CPU architecture, CPU core count, total RAM, Node.js version, Reverse version, target application version, launch arguments, environment variables (excluding secrets), time of the study, and benchmark parameters. If hardware or configuration differs materially, Reverse warns that comparability of the results is limited.
+To judge whether two measurements are comparable, each experiment records: OS and version, CPU architecture, CPU core count, total RAM, Node.js version, Reverse version, target application version, launch arguments, environment variables (excluding secrets), time of the study, and benchmark parameters. Android-specific fields to be recorded by the Android adapters are device model / AVD configuration, Android SDK/API level, target ABI, ART/Dalvik version, and thermal-throttling / battery state. If hardware or configuration differs materially, Reverse warns that comparability of the results is limited.
 
 ## Evidence model (0.1.0 and planned, 0.2)
 
@@ -257,7 +268,7 @@ Candidates for later releases, depending on providers: `get_hotspots` and `trace
 
 Implement `AnalyzerProvider` from `src/providers-registry.ts`, declare concrete capabilities, check availability without side effects, and return structured observations with explicit coverage and limitations. Never report `available: true` unless the executable and required runtime are actually detected. Provider registration is in-process; dynamic plugin loading is a future task.
 
-Providers are independent so that connecting Ghidra, Rizin, Frida, GDB, eBPF, ETW or Instruments does not require rewriting the core. The core must not depend exclusively on any single engine; engines are connected through the common interface. Provider integrations, in planned order: Ghidra and Rizin (0.3), Frida and GDB (0.4), then separate Linux (eBPF), Windows (ETW) and macOS (Instruments) providers. Android, GPU and network analyzers come later.
+Providers are independent so that connecting Ghidra, Rizin, Frida, GDB, eBPF, ETW or Instruments does not require rewriting the core. The core must not depend exclusively on any single engine; engines are connected through the common interface. Provider integrations, in planned order: Ghidra and Rizin (0.3), Frida and GDB (0.4), then separate Linux (eBPF), Windows (ETW) and macOS (Instruments) providers. Android adapters are scheduled across patches E–J; GPU and network analyzers remain later extensions.
 
 ## Size guidance
 

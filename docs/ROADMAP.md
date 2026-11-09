@@ -49,19 +49,23 @@ Goal: make the existing 0.1.0 trustworthy before building on it. Every ⚠️ dr
 
 Remaining ⚠️ drift after this patch: none. The 🚧 limitations that are left each belong to patches B–K.
 
-### Patch B — Process intelligence and safety (0.2)
+### Patch B — Process intelligence and safety (0.2) — done
 
-**Implementation status: in progress (not released).** This work chunk adds OS-backed process metadata and persisted process-level time series. It does not close Patch B: cancellation/identity hardening, full Windows/macOS metric parity, resource-control integration, complete anomaly coverage, and the full cross-platform verification gate remain outstanding.
+**Implementation status: done locally; cross-platform CI remains the release gate.**
 
-Closes the roadmap items **Advanced Process Inspector**, **Time-Series Performance Profiler** and **Process Safety & Resource Control**.
+Closes **Advanced Process Inspector**, **Time-Series Performance Profiler** and the implemented scope of **Process Safety & Resource Control**.
 
-- Process inspector: PID, PPID and process tree, executable and arguments, uptime, threads, RSS and virtual memory, CPU utilization and CPU time, disk I/O, open file descriptors and child processes, using Linux `/proc`, Windows performance counters and macOS sampling.
-- Interval observation instead of single snapshots; detection of disproportionate consumers.
-- Time-series profiler with modes Snapshot, Monitor, Diagnostic and Compare; detection of spikes, sustained load and continuously growing memory; persisted structured results.
-- Anomaly detector (`detect_resource_anomalies`) over stored series.
-- Safety: PID existence and identity checks with PID-reuse protection, ownership verification, timeouts, capped output, child-process control, cancellation, cleanup of temporary files, and the operating modes `READ_ONLY` (default), `OBSERVE` and `CONTROLLED_EXECUTION`, with resource limits through cgroups where the OS supports them (not presented as isolation elsewhere).
+- [x] Process inventory and inspection: PID/PPID/tree, executable and arguments, uptime, threads, RSS/VMS, CPU metrics where exposed, Linux disk I/O and open FDs.
+- [x] Bounded Snapshot, Monitor, Diagnostic and Compare sampling; persisted JSON series; average/peak CPU and RSS, memory change, I/O deltas and thread peaks.
+- [x] Deterministic anomaly checks for sustained CPU, CPU spikes and growing RSS.
+- [x] Start-time identity tokens and identity rechecks between samples to reduce PID-reuse contamination; UID ownership checks where the OS exposes them.
+- [x] Caller cancellation via AbortSignal and MCP `notifications/cancelled`; partial results preserve samples collected before cancellation.
+- [x] Explicit `READ_ONLY` / `OBSERVE` / `CONTROLLED_EXECUTION` safety contract. Linux cgroup v2 resource limits are available through the scoped `withProcessResourceLimits` API only when the caller explicitly confirms controlled execution and the hierarchy is delegated.
+- [x] Added MCP `get_resource_control_status`; existing tool names and arguments remain compatible.
 
-Capability checks that flip: *Processes — no memory maps, threads, per-process I/O or process tree* and *Profiling — process-level only* change from 🚧 to ✅ for the metrics above, on all three operating systems. The function-level part stays with patches G and H.
+**Known platform limits (not hidden):** Windows process ownership is unknown; Windows/macOS metric parity is incomplete; hard resource quotas are only implemented for delegated Linux cgroup v2. This patch does not provide an OS sandbox, network isolation, memory maps, thread stacks, or function hotspots. Linux was exercised locally; macOS and Windows are delegated to the existing CI matrix and are not claimed as locally verified.
+
+Capability checks added for identity/ownership, cancellation, resource-control reporting and the new MCP tool.
 
 ### Patch C — Measurement engine and baselines (0.2)
 
@@ -96,6 +100,7 @@ Closes the first half of the 0.3 section: structural binary analysis and depende
 - Function discovery and call graph where the format allows it without a disassembler engine; duplicated code and embedded libraries; unused components, only when it can be proven.
 - Dependency analysis: lockfile parsers (npm, pip, Cargo, Go modules and similar), resolved versions, transitive graph, duplicate and outdated libraries, size and resource impact, compatibility and risk notes for suggested replacements.
 - Source analysis moves from regular expressions to real parsing (an AST for the supported languages), so commented-out imports are no longer counted.
+- Android static inventory: APK/AAB archive structure, ABI list, `classes*.dex`, native `.so` files, R8/ProGuard obfuscation indicators, binary manifest metadata, and Gradle dependency/lockfile parsing. Add a closed reference APK to Trials.
 
 Capability checks that flip: *Binary — no sections, imports or symbols*, *Source — textual import counting* and *Dependencies — declared ranges only* become ✅.
 
@@ -105,6 +110,7 @@ Closes the second half of the 0.3 section and the **Plugin loading and provider 
 
 - Provider contract tests, executable discovery, availability checks without side effects, timeouts and clean shutdown, plugin loading and provider lifecycle.
 - Opt-in Ghidra adapter (main deep-analysis engine) and Rizin adapter (alternative) with integration tests against real installations; results are normalized into the common `Result` envelope with explicit coverage and limitations.
+- Opt-in JADX and Apktool static providers behind `AnalyzerProvider` for DEX/Smali/resources; Ghidra remains responsible for native `.so` libraries.
 - Disassembly, decompilation and cross-reference data are available through the adapters, never faked when the tool is absent.
 
 Capability checks that flip: *Providers — Ghidra and Rizin are labels only* becomes ✅ for these two; the remaining extension points keep their 🚧 until their own patch.
@@ -118,6 +124,7 @@ Closes the dynamic-analysis part of the 0.4 section.
 - Opt-in Frida and GDB adapters with integration tests: execution tracing, frequently called functions, repeated computation, component interaction and behavior under different loads.
 - Tracing runs only under the `CONTROLLED_EXECUTION` mode from patch B, with limits and cancellation; the target's original state is preserved.
 - `trace_execution` exposed through MCP.
+- ADB transport for local USB/TCP devices and remote `frida-server`; Frida Java/ART method tracing (`Java.perform`) alongside native hooks.
 
 Capability checks that flip: the Frida and GDB rows of *Providers* and the *Profiling — no function-level data* limitation (partly; completed by H).
 
@@ -126,6 +133,7 @@ Capability checks that flip: the Frida and GDB rows of *Providers* and the *Prof
 Closes **Function hotspots via real external profilers** and the **Disk/network I/O providers** items.
 
 - Providers for `perf` and eBPF (Linux), ETW (Windows), Instruments (macOS) and Valgrind, each used only when really detected.
+- Android profiling adapters for simpleperf, Perfetto and `dumpsys` CPU/RAM/battery metrics; include device/API/ABI/ART/thermal state in environment fingerprints.
 - `get_hotspots` returns confirmed hot functions with their source (profiler, sample count, time range) as evidence; disk and network I/O per process.
 - Hotspots are reported only when a real profiler produced them; without one Reverse still says "process-level only".
 
@@ -152,6 +160,7 @@ Closes the research cycle (investigation, diagnosis, hypotheses, experiment, ver
 - A change-application mode that needs separate explicit permission: work happens on a copy or a version-control branch, never on the original; the original state is preserved and a failed change can be rolled back.
 - Decision rules computed from evidence: accept when performance improved with statistical support and validation passed; roll back when results worsened; request more data when the evidence is insufficient; reject when behavior broke.
 - Support for the change types that are technically possible: source and algorithm changes, library replacement and dependency updates, compiler parameters, runtime and configuration tuning, removal of provably unused components; for closed programs only the options that do not need source.
+- Controlled APK modification pipeline: Smali/resource/native-library edit on a copy → `apktool b` → `zipalign` → test-key `apksigner` → install via ADB → regression tests on a dedicated AVD/test device. Reset app state (`pm clear`) or restore an emulator snapshot before each benchmark.
 - End-to-end trials: one scenario that finds a real performance problem and one that verifies an optimization with a measurable result, on each of the three reference applications.
 
 ### Patch K — Runtime analyzers and on-demand extensions (1.0)
@@ -160,7 +169,7 @@ Closes the remaining **Later** items.
 
 - JavaScript/Electron, .NET and WebAssembly analyzers, delivered as providers on the framework from patch F.
 - Optional HTTP MCP transport, only with a concrete deployment need and with authentication.
-- Extensions are added only when a real need appears, each with its own adapter, contracts, requirements and tests: Android, Browser, GPU, Network, Database, Firmware, Container, Cloud, Compiler, Algorithm, Energy. They are not required for 1.0 unless a user asks for one; the framework and a worked example of an extension are.
+- Remaining extensions are added only when a real need appears, each with its own adapter, contracts, requirements and tests: Browser, GPU, Network, Database, Firmware, Container, Cloud, Compiler, Algorithm, Energy. Android is delivered through patches E–J.
 
 **Version 1.0 is released when J and K are done.**
 
@@ -189,6 +198,17 @@ Closes the remaining **Later** items.
 
 Sequencing principle: do not start with Ghidra and do not try to implement every external analyzer at once. First strengthen Reverse's ability to investigate running programs, detect real performance problems and collect evidence, because the main job of Reverse is to help an AI agent find the causes of excessive resource use and objectively verify optimization results. Linux is the first fully supported profiling environment, with interfaces for Windows and macOS designed in from the start.
 
+## 0.2.0-beta.1 — Patch B: Process intelligence and safety
+
+- [x] OS-backed process inventory and inspection with available memory, CPU, I/O, thread and process-tree metrics.
+- [x] Persisted time-series sampling, deterministic anomaly detection and process identity checks.
+- [x] AbortSignal and MCP request cancellation.
+- [x] Explicit operating modes and scoped Linux cgroup v2 resource limits (not a sandbox).
+- [x] MCP process tools plus `get_resource_control_status`; backward-compatible existing tools.
+- [x] Capability checks and updated safety / capability documentation.
+
+The overall 0.2 milestone remains unreleased until patches C and D are complete. Windows/macOS metric parity and cross-platform CI are outstanding release gates.
+
 ## 0.1.0 — compact MVP
 
 - [x] Standalone TypeScript project, CLI, MCP stdio server
@@ -209,20 +229,20 @@ Sequencing principle: do not start with Ghidra and do not try to implement every
 Priorities: Process Manager, Performance Profiler, Evidence Engine and Benchmark Engine. This release is not about adding more analyzers.
 
 **Advanced Process Inspector**
-- [ ] PID, PPID and process tree; executable, launch arguments, uptime, thread count
-- [ ] RSS, virtual memory, CPU utilization and accumulated CPU time, disk I/O
-- [ ] Open file descriptors where available; child-process detection
-- [ ] Detection of processes consuming disproportionate resources
-- [ ] Observation over a given interval, not only a point-in-time snapshot
-- [ ] Linux `/proc` metrics with clear units and per-process CPU deltas
-- [ ] Windows performance counters and macOS sampling adapter
+- [x] PID, PPID and process tree; executable, launch arguments, uptime, thread count
+- [x] RSS, virtual memory, CPU utilization and accumulated CPU time where exposed, disk I/O
+- [x] Open file descriptors where available; child-process detection
+- [x] Detection of processes consuming disproportionate resources
+- [x] Observation over a given interval, not only a point-in-time snapshot
+- [x] Linux `/proc` metrics with clear units and per-process CPU deltas
+- [x] Windows CIM and macOS `ps` sampling adapters (metric parity remains limited)
 
 **Time-Series Performance Profiler**
-- [ ] Sampling at a configured frequency: interval CPU, RSS/VMS, peak RAM and memory change, CPU time, read/write I/O, thread count
-- [ ] Modes: Snapshot, Monitor, Diagnostic, Compare
-- [ ] Detection of sharp load spikes, prolonged high load and continuously growing memory
-- [ ] Structured, persisted results
-- [ ] Reported as process-level monitoring, not as hot-function detection
+- [x] Sampling at a configured frequency: interval CPU, RSS/VMS, peak RAM and memory change, CPU time, read/write I/O, thread count where exposed
+- [x] Modes: Snapshot, Monitor, Diagnostic, Compare
+- [x] Detection of CPU spikes, sustained high load and continuously growing memory
+- [x] Structured, persisted results
+- [x] Reported as process-level monitoring, not as hot-function detection
 
 **Advanced Benchmark Engine**
 - [ ] Warm-up, cold/warm separation, alternating runs
@@ -238,20 +258,20 @@ Priorities: Process Manager, Performance Profiler, Evidence Engine and Benchmark
 - [ ] Research sessions linking target, observations, profile, baseline, optimization, new benchmark, comparison, validation and final evidence report
 
 **Process Safety & Resource Control**
-- [ ] PID existence and identity checks, protection against PID reuse; process ownership verification
-- [ ] Timeouts, capped stdout/stderr, child-process control, process-tree observation
-- [ ] Cancellation and cleanup, including safe removal of temporary files
-- [ ] Modes `READ_ONLY` (default), `OBSERVE`, `CONTROLLED_EXECUTION`
-- [ ] Resource limits and OS sandbox integration (CPU/RAM control is not presented as isolation; hard limits need OS mechanisms such as cgroups)
+- [x] PID existence and start-time identity checks; ownership verification where supported
+- [x] Timeouts, capped stdout/stderr, child-process control, process-tree observation
+- [x] Cancellation and cleanup, including safe removal of temporary cgroup directories
+- [x] Modes `READ_ONLY` (default), `OBSERVE`, `CONTROLLED_EXECUTION`
+- [x] Scoped Linux cgroup v2 CPU/RAM limits; no sandbox/isolation claim; Windows/macOS hard limits remain unsupported
 
 **MCP interface**
-- [ ] `list_processes`, `monitor_process`, `get_process_metrics`, `get_process_tree`
-- [ ] `analyze_memory`, `analyze_cpu`, `analyze_io`, `detect_resource_anomalies`
+- [x] `list_processes`, `monitor_process`, `get_process_metrics`, `get_process_tree`
+- [x] `analyze_memory`, `analyze_cpu`, `analyze_io`, `detect_resource_anomalies`
 - [ ] `create_benchmark_suite`, `run_benchmark_suite`, `compare_benchmarks`
 - [ ] `get_environment_fingerprint`, `get_research_session`
 - [ ] Existing MCP commands are preserved; backward compatibility is not broken
 
-**Explicitly deferred from 0.2:** Ghidra and Rizin (0.3); Frida and GDB (0.4); eBPF, Windows ETW and macOS Instruments as separate platform providers later; Android, GPU and Network analyzers later. The independent-provider architecture is laid down now so these can be added without rewriting the core.
+**Explicitly deferred from 0.2:** Ghidra and Rizin (0.3); Frida and GDB (0.4); eBPF, Windows ETW and macOS Instruments as separate platform providers later; Android implementation is scheduled across patches E–J. The independent-provider architecture is laid down now so these can be added without rewriting the core.
 
 ### Acceptance criteria for 0.2
 
@@ -294,7 +314,7 @@ Trials are required on three kinds of application defined by the original specif
 - [ ] Disk/network I/O providers
 - [ ] JS/Electron, .NET and WASM analyzers
 - [ ] Plugin loading and provider lifecycle
-- [ ] Extensions added only when a real need appears, each with its own adapter, contracts, requirements and tests: Android, Browser, GPU, Network, Database, Firmware, Container, Cloud, Compiler, Algorithm, Energy
+- [ ] Extensions added only when a real need appears, each with its own adapter, contracts, requirements and tests: Browser, GPU, Network, Database, Firmware, Container, Cloud, Compiler, Algorithm, Energy
 - [ ] HTTP MCP transport only if a concrete deployment need exists
 
 ## Core development order and completion criteria
