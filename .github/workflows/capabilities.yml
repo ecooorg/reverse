@@ -72,11 +72,16 @@ jobs:
     env:
       REVERSE_CAPABILITY_REPORT: capability-reports/${{ matrix.os }}-node${{ matrix.node }}.json
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node }}
           cache: npm
+      - name: Toolchain and runner facts
+        run: |
+          echo "node $(node -v), npm $(npm -v), shell $BASH_VERSION"
+          node -p "'platform ' + process.platform + ' ' + process.arch + ', cores ' + require('os').availableParallelism() + ', RAM GiB ' + (require('os').totalmem()/2**30).toFixed(1)"
+          echo "commit $GITHUB_SHA, event $GITHUB_EVENT_NAME"
       # --ignore-scripts: the `prepare` hook would build once here and the next step builds again.
       - run: npm ci --ignore-scripts
       - name: Build library, CLI and MCP server
@@ -90,17 +95,74 @@ jobs:
         if: runner.os == 'Linux'
         run: node --test dist-tests/*.test.js
       - name: Exercise every capability (library API, CLI, MCP stdio)
-        run: node --test --test-reporter=spec dist-tests/capabilities.check.js
+        # Two reporters: readable spec output in the log and JUnit XML (per-check durations) for the diagnostics below.
+        # --test-timeout names a hung check instead of letting the whole job die silently at the job timeout.
+        timeout-minutes: 8
+        run: |
+          mkdir -p capability-reports
+          node --test --test-timeout=240000 \
+            --test-reporter=spec --test-reporter-destination=stdout \
+            --test-reporter=junit --test-reporter-destination=capability-reports/junit-${{ matrix.os }}-node${{ matrix.node }}.xml \
+            dist-tests/capabilities.check.js
+      - name: Diagnostics (job summary, slowest checks, failures, host load)
+        if: always()
+        run: |
+          node - <<'DIAG'
+          const fs = require('fs'), os = require('os');
+          const out = [];
+          const label = '${{ matrix.os }} / node ${{ matrix.node }}';
+          out.push(`### Capability run: ${label}`, '');
+          out.push(`Runner: ${os.platform()} ${os.release()} ${process.arch}, ${os.availableParallelism()} cores, ${(os.totalmem()/2**30).toFixed(1)} GiB RAM, free ${(os.freemem()/2**30).toFixed(1)} GiB, load ${os.loadavg().map(x => x.toFixed(2)).join('/')}`, '');
+          const xmlFile = fs.readdirSync('capability-reports').find(f => f.startsWith('junit-'));
+          if (!xmlFile) { out.push('No JUnit file was written: the suite did not start or crashed before reporting.'); }
+          else {
+            const xml = fs.readFileSync('capability-reports/' + xmlFile, 'utf8');
+            const unesc1 = t => t.replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+            const unesc = t => unesc1(unesc1(t)); // Node's JUnit reporter escapes some characters twice
+            const cases = xml.split('<testcase ').slice(1).map(seg => {
+              const name = unesc((seg.match(/name="([^"]*)"/) || [])[1] || '?');
+              const ms = Math.round(parseFloat((seg.match(/time="([^"]*)"/) || [])[1] || '0') * 1000);
+              const head = seg.split('</testcase>')[0];
+              const failed = head.includes('<failure');
+              const skipped = head.includes('<skipped');
+              const msg = unesc(((head.match(/<failure[^>]*message="([^"]*)"/) || [])[1] || '').slice(0, 400));
+              return { name, ms, failed, skipped, msg };
+            });
+            const total = cases.reduce((a, c) => a + c.ms, 0);
+            out.push(`Checks: ${cases.length}, failed: ${cases.filter(c => c.failed).length}, skipped: ${cases.filter(c => c.skipped).length}, summed duration: ${(total/1000).toFixed(1)} s`, '');
+            const failed = cases.filter(c => c.failed);
+            if (failed.length) {
+              out.push('#### Failed checks', '');
+              for (const c of failed) { out.push(`- **${c.name}** (${c.ms} ms): ${c.msg}`); console.log(`::error title=Capability check failed (${label})::${c.name}: ${c.msg}`); }
+              out.push('');
+            }
+            out.push('#### Ten slowest checks', '', '| ms | check |', '|---:|---|');
+            for (const c of [...cases].sort((a, b) => b.ms - a.ms).slice(0, 10)) out.push(`| ${c.ms} | ${c.name.replace(/\|/g, '\\|')} |`);
+            out.push('');
+            for (const c of cases) if (c.ms > 60000) console.log(`::warning title=Slow check (${label})::${c.name} took ${(c.ms/1000).toFixed(0)} s`);
+          }
+          const rep = fs.readdirSync('capability-reports').find(f => f.endsWith('.json'));
+          if (rep) {
+            const r = JSON.parse(fs.readFileSync('capability-reports/' + rep, 'utf8'));
+            out.push(`Totals: ${JSON.stringify(r.totals)} (Reverse ${r.reverse}, Node ${r.node}, OS release ${r.osRelease})`, '');
+            const lim = r.records.filter(x => x.status === 'limitation' || x.status === 'drift');
+            if (lim.length) { out.push('#### Limitations and drift on this platform', ''); for (const x of lim) out.push(`- ${x.status === 'drift' ? '⚠️' : '🚧'} ${x.area}: ${x.name}${x.detail ? ' — ' + x.detail : ''}`); out.push(''); }
+          } else out.push('No capability JSON report was written.');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, out.join('\n') + '\n');
+          DIAG
       - name: Capability report (single run)
         if: always() && github.event_name != 'workflow_dispatch'
         run: |
           if compgen -G 'capability-reports/*.json' > /dev/null; then node tests/capability-report.mjs capability-reports/*.json; fi
-      - name: Upload capability report
-        if: always() && github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
+      - name: Upload capability report and JUnit timings
+        if: always()
+        uses: actions/upload-artifact@v6
         with:
           name: capability-report-${{ matrix.os }}-node${{ matrix.node }}
-          path: capability-reports/*.json
+          path: |
+            capability-reports/*.json
+            capability-reports/*.xml
+          retention-days: 14
           if-no-files-found: warn
 
   package:
@@ -115,8 +177,8 @@ jobs:
       matrix:
         os: ${{ fromJSON(inputs.os == 'all' && '["ubuntu-latest","windows-latest"]' || format('["{0}"]', inputs.os)) }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -168,8 +230,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v7
         with:
           pattern: capability-report-*
           path: reports

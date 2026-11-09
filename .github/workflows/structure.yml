@@ -3,12 +3,24 @@ name: Structure
 # Flat layout, Markdown links and the import graph. Needs no dependencies and finishes in seconds, so it
 # runs on every change, including documentation-only ones that capabilities.yml skips.
 # The package.json targets (built tree) are checked in capabilities.yml after the build.
+#
+# Diagnostics: the checker output is kept as an artifact and shown in the job summary, every reported problem
+# becomes an annotation, and a few repository-hygiene facts are printed as warnings (never as failures):
+# CRLF files in the index, build output or dependencies committed by mistake, and folders deeper than allowed.
+# push / pull request: Linux only. Manual run (Actions -> Structure -> Run workflow): choose one OS or all
+# three, to catch path-separator and line-ending drift that Linux cannot show.
 
 on:
   push:
     branches: [main, develop]
   pull_request:
   workflow_dispatch:
+    inputs:
+      os:
+        description: Operating systems (macOS bills 10x, Windows 2x)
+        type: choice
+        options: [ubuntu-latest, all, windows-latest, macos-latest]
+        default: ubuntu-latest
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -17,11 +29,72 @@ concurrency:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   structure:
-    runs-on: ubuntu-latest
+    name: structure (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 3
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(github.event_name == 'workflow_dispatch' && (inputs.os == 'all' && '["ubuntu-latest","windows-latest","macos-latest"]' || format('["{0}"]', inputs.os)) || '["ubuntu-latest"]') }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Facts about the checkout
+        run: |
+          echo "node $(node -v), git $(git --version | cut -d' ' -f3), commit $GITHUB_SHA"
+          echo "tracked files: $(git ls-files | wc -l)"
+          echo "autocrlf: $(git config --get core.autocrlf || echo unset)"
+          git ls-files | awk -F/ 'NF>1 {print $1}' | sort | uniq -c | sed 's/^/  files in top-level folder: /'
       - name: Layout, links and import graph (source tree)
-        run: node tests/check-structure.mjs
+        id: check
+        run: |
+          set +e
+          node tests/check-structure.mjs 2>&1 | tee structure-output.txt
+          code=${PIPESTATUS[0]}
+          echo "exit=$code" >> "$GITHUB_OUTPUT"
+          exit "$code"
+      - name: Hygiene warnings (never fail the run)
+        if: always()
+        run: |
+          crlf=$(git ls-files --eol | grep -E 'i/crlf' | grep -v 'attr/-text' | awk '{print $NF}' | head -10)
+          [ -n "$crlf" ] && echo "::warning title=CRLF in the index::$(echo $crlf | tr '\n' ' ')"
+          built=$(git ls-files | grep -E '^(dist|dist-tests|node_modules|capability-reports)/' | head -5)
+          [ -n "$built" ] && echo "::warning title=Build output or dependencies are tracked::$(echo $built | tr '\n' ' ')"
+          archives=$(git ls-files | grep -E '\.(zip|tgz|tar\.gz)$' | head -5)
+          [ -n "$archives" ] && echo "::warning title=Archives are tracked::$(echo $archives | tr '\n' ' ')"
+          deep=$(git ls-files | awk -F/ 'NF>3 {print}' | grep -v '^\.github/workflows/' | head -5)
+          [ -n "$deep" ] && echo "::warning title=Files deeper than the flat layout allows::$(echo $deep | tr '\n' ' ')"
+          secrets=$(git ls-files | grep -E '(^|/)(\.env|id_rsa|.*\.pem|.*\.key)$' | head -5)
+          [ -n "$secrets" ] && echo "::warning title=Possible secret files are tracked::$(echo $secrets | tr '\n' ' ')"
+          exit 0
+      - name: Job summary and annotations
+        if: always()
+        run: |
+          {
+            echo "### Structure check: ${{ matrix.os }}"
+            echo
+            echo '```text'
+            tail -n 60 structure-output.txt 2>/dev/null || echo "no checker output"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.check.outputs.exit }}" != "0" ] && [ -s structure-output.txt ]; then
+            grep -v -E '^(structure OK|::|[0-9]+ problem)' structure-output.txt | head -20 | while IFS= read -r line; do
+              echo "::error title=Structure (${{ matrix.os }})::${line//$'\r'/}"
+            done
+          fi
+      - name: Upload checker output
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: structure-output-${{ matrix.os }}
+          path: structure-output.txt
+          retention-days: 14
+          if-no-files-found: ignore
