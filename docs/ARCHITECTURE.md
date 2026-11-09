@@ -22,6 +22,40 @@ Development rules:
 - The core is an independent tool, not a part of one specific agent, so it can be attached to different models and agents without rewriting the analysis infrastructure.
 - Do not turn the core into another universal reverse-engineering framework: no workflow system of its own, no duplicated analyzers, no duplicated AI logic, no heavy embedded knowledge bases, no unnecessary universal adapters. Heavy components are connected lazily and optional capabilities are modular.
 
+## Product goal and the legacy track (planned, patches M–P)
+
+**Goal.** Reverse must let an agent fully analyze modern **and old** programs without source, find why they do not work or work badly on modern hardware and in a modern environment, and propose concrete improvements or a full rework with the highest verifiable preservation of functionality. Patches A–K build the general core; patches M–P (after 1.0) add the legacy and compatibility capabilities below. Nothing in this section is implemented.
+
+**Host versus target.** The *host* is the machine Reverse runs on; the *target* is the analyzed program and its era. Static analysis does not depend on the host. Running an old target uses an execution environment (emulator, compatibility layer or virtual machine) that may live on any host.
+
+**Target platform priority.** Windows up to 2010 first, then old Linux, old Mac, old Android, and then the newer generations of the same four, each as a vertical slice through M, N, O and P (see the wave table in [ROADMAP.md](ROADMAP.md)).
+
+### Components
+
+- **Target Profile.** Required OS and era, CPU, bitness, ABI, runtime, installer and toolchain, each field with evidence (patch M).
+- **Compatibility Diagnosis.** Turns the profile and static facts into a list of probable causes of failure on a modern system: removed or changed APIs, missing libraries, privilege and virtualization assumptions, timing tied to CPU speed, graphics/audio/driver dependencies, DPI and locale assumptions, address-space and date limits. Causes that only running the program can confirm are marked as needing an execution environment (patch M). Version tables are data files with sources, not code.
+- **Execution Environments.** An `ExecutionEnvironment` provider contract (detect, prepare, snapshot, restore, run with limits, trace, shut down) with adapters for Wine, DOSBox-class emulators, QEMU and other virtual machines, old-userland containers and old-API Android images. Reverse never ships operating-system images; the user supplies them and Reverse records their hashes in the environment fingerprint. The result is a works/fails matrix across environments (patch N).
+- **Behavior Capture and Replay.** Records what a program does (inputs, outputs, files, registry/preferences, network, UI events), controls time and randomness, replays deterministically, measures code coverage of the original and compares old against new after normalization (patch O).
+- **Equivalence Lab.** Runs an original function and its replacement on the same input sets in emulation or in the original environment, with differential, property and fuzz testing (patch P).
+- **Migration Advisor.** Ranks the options from a configuration or compatibility-layer change to a full rewrite, with gain, risk, effort, permissions and supporting evidence. The agent chooses; Reverse supplies facts and enforces safety (patch P).
+
+### Behavior-preservation levels
+
+Full preservation cannot be proven for real programs, so Reverse reports a level and never a guarantee:
+
+| Level | Meaning |
+|---|---|
+| L0 | Not checked, or checks failed |
+| L1 | Outputs and side effects match on the supplied scenarios |
+| L2 | L1 and the scenarios cover a stated, measured share of the original's code, with uncovered regions listed |
+| L3 | L2 and replaced functions were compared with the original on large generated and recorded input sets without differences |
+
+L4 (formal proof of equivalence) is out of scope. A report always states the level, the coverage, the number of scenarios and inputs, the environments used and the residual risk.
+
+### Scope and legal limits
+
+Analysis is for software the user owns or is authorized to examine. Copy protection, dongles and license checks are reported as facts but are not defeated by Reverse; operating-system images and commercial tools are supplied by the user. See [SECURITY.md](SECURITY.md).
+
 ## Layers (0.1.0)
 
 - **Analysis Core:** bounded file/header inspection, source inventory, direct manifest dependency inventory.
@@ -259,7 +293,7 @@ Candidates for later releases, depending on providers: `get_hotspots` and `trace
 
 Implement `AnalyzerProvider` from `src/providers-registry.ts`, declare concrete capabilities, check availability without side effects, and return structured observations with explicit coverage and limitations. Never report `available: true` unless the executable and required runtime are actually detected. Provider registration is in-process; dynamic plugin loading is a future task.
 
-Providers are independent so that connecting Ghidra, Rizin, Frida, GDB, eBPF, ETW or Instruments does not require rewriting the core. The core must not depend exclusively on any single engine; engines are connected through the common interface. Provider integrations, in planned order: Ghidra and Rizin (0.3), Frida and GDB (0.4), then separate Linux (eBPF), Windows (ETW) and macOS (Instruments) providers. Android adapters are scheduled across patches E–J; GPU and network analyzers remain later extensions.
+Providers are independent so that connecting Ghidra, Rizin, Frida, GDB, eBPF, ETW or Instruments does not require rewriting the core. The core must not depend exclusively on any single engine; engines are connected through the common interface. Execution-environment providers (patch N) use the same independence rule. Provider integrations, in planned order: Ghidra and Rizin (0.3), Frida and GDB (0.4), then separate Linux (eBPF), Windows (ETW) and macOS (Instruments) providers. Android adapters are scheduled across patches E–J; GPU and network analyzers remain later extensions.
 
 ## Size guidance
 

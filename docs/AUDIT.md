@@ -2,7 +2,32 @@
 
 This file is permanent. **New audits are added at the top** (newest first); older audits are never edited except to mark a finding as closed (`Status: closed in <version>, <patch>`). Each audit lists findings with an ID, severity, evidence and a recommended fix, then improvement proposals. Findings that are accepted are copied into [ROADMAP.md](ROADMAP.md) under the patch named in the "Patch" column; this file stays the record of *why*.
 
-Severity: **High** = wrong results or a safety/honesty violation of [AGENTS.md](../AGENTS.md); **Medium** = incorrect or fragile behavior with limited blast radius; **Low** = hygiene, docs, polish.
+IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap. Severity: **High** = wrong results or a safety/honesty violation of [AGENTS.md](../AGENTS.md); **Medium** = incorrect or fragile behavior with limited blast radius; **Low** = hygiene, docs, polish.
+
+---
+
+## Audit 2 — 2026-11-09 — product goal versus roadmap (goal-gap audit)
+
+**Scope.** Not a code review. The maintainer stated the product goal: fully analyze modern **and old** programs without source, explain why they do not work or work badly on modern hardware and in a modern environment, and let an agent propose concrete improvements or a full rework **with full preservation of functionality**. This audit compares that goal with [ROADMAP.md](ROADMAP.md) (patches A–L) and [ARCHITECTURE.md](ARCHITECTURE.md). No code was run or changed.
+
+**Verdict.** Patches A–K deliver a strong general core (observation, measurement, evidence, static analysis, providers, controlled optimization). They are aimed at *performance of current programs*. For the stated goal they leave seven gaps: there is no compatibility diagnosis, no legacy formats and eras, no multi-environment execution, no behavior capture that could prove preservation, no function-level equivalence lab, no migration strategy, and no scope/legal policy. Full preservation of behavior cannot be *proven* by any tool; Reverse must report a **confidence level with its coverage**, never a guarantee.
+
+**Approval and priority.** Approved by the maintainer on 2026-11-09. Target platforms are delivered in this order, each as a complete vertical slice through patches M–P: (1) Windows up to 2010, (2) old Linux, (3) old Mac, (4) old Android, (5) the same four in their newer generations.
+
+| ID | Sev | Gap | Task | Patch |
+|---|---|---|---|---|
+| G-01 | **High** | No answer to "why does it not work today" | Compatibility diagnosis: required OS, CPU, bitness, ABI; imported APIs against what the target OS still provides; missing libraries; privilege and virtualization assumptions; CPU-speed-dependent timing; graphics, audio and driver dependencies; DPI and resolution; locale and path assumptions; address-space limits; date limits. Every cause is a finding with evidence | M |
+| G-02 | **High** | Old formats and technologies are not recognized | Legacy formats and toolchains per platform wave (see the wave table in the roadmap) | M |
+| G-03 | **High** | Programs can only be run in the current host | Execution-environment providers (Wine, DOSBox-class emulators, QEMU/VMs, old userland containers, classic-Mac and old-Android emulators), snapshots, a works/fails matrix across environments | N |
+| G-04 | **High** | Behavior preservation cannot be shown | Behavior capture and replay: inputs, outputs, files, registry/preferences, network, UI events, time and random control, code coverage, normalization, comparison old versus new | O |
+| G-05 | **High** | A rewritten function cannot be checked against the original | Equivalence lab: emulate or run the original function and the replacement on the same large input sets, differential and property tests, coverage-based confidence | P |
+| G-06 | Medium | No guidance on *how* to fix | Migration strategy advisor: ranked options from configuration or compatibility layer through wrapper, emulation/VM packaging, minimal binary patch, recompilation from a reconstruction, to full rewrite, each with risk, effort and evidence | P |
+| G-07 | Medium | No scope and legal policy | Authorized-use policy, handling of copy protection, dongles and licenses, user-supplied OS images; first item of patch M | M |
+| G-08 | Medium | Platform priority is not encoded | Wave order is a roadmap rule: nothing for a later wave starts before the previous wave has its end-to-end trial | M–P |
+| G-09 | Medium | No per-target support matrix | `CAPABILITIES.md` gets a target-platform and era matrix; the suite checks it against the registered format detectors | M |
+| G-10 | Medium | "Full preservation" is an unmeasurable promise | Behavior-preservation report with levels L0–L3 (defined in [ARCHITECTURE.md](ARCHITECTURE.md)); L4 (formal proof) is explicitly out of scope | O, P |
+
+Tasks G-01…G-10 are tracked in the [approved audit backlog](ROADMAP.md#approved-audit-backlog-audit-1-approved-2026-11-09). Audit 1 follows; its text is unchanged except for status marks.
 
 ---
 

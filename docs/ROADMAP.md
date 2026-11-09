@@ -2,7 +2,7 @@
 
 The design behind each item is described in [ARCHITECTURE.md](ARCHITECTURE.md).
 
-## Delivery plan: eleven large patches to 1.0, plus patch L after it
+## Delivery plan: eleven large patches to 1.0, plus patch L and the legacy track M–P after it
 
 This plan closes **every** item listed in the release sections below (0.2, 0.3, 0.4 and Later), so that Reverse can analyze a program, reverse-engineer it, find the cause of excessive resource use, apply an optimization and prove the result. Each patch is a large, independently releasable unit: it ends in a merged, tested change set, not in a partially working branch. The patches are ordered by dependency; the release sections further down describe the same work item by item.
 
@@ -35,6 +35,10 @@ Version 1.0 is reached when patches A–K are done and the capability matrix con
 | J | Controlled optimization loop | 1.0 | G, H, I |
 | K | Runtime analyzers and on-demand extensions | 1.0 | F, J |
 | L | Agent integration and distribution | 1.x (after 1.0) | D, J |
+| M | Compatibility diagnosis and legacy formats | 1.1–1.5 (waves) | E, F, G, J |
+| N | Execution environments | 1.1–1.5 (waves) | G, M |
+| O | Behavior capture and replay | 1.1–1.5 (waves) | I, N |
+| P | Function equivalence lab and migration advisor | 1.1–1.5 (waves) | O, J |
 
 B and C can proceed in parallel after A; E can start at the same time. G and H can proceed in parallel once F is done.
 
@@ -204,6 +208,7 @@ Closes audit tasks R-08 and R-18. It does not block 1.0.
 | Later: function hotspots, disk/network I/O | H |
 | Later: JS/Electron, .NET, WASM, plugin loading, HTTP MCP, extensions | F (plugin loading), K (the rest) |
 | Core readiness criteria and the two trial scenarios | J |
+| Product goal for old and modern programs: compatibility diagnosis, environments, behavior preservation, migration | M–P by platform wave (see the legacy track) |
 
 ## Approved audit backlog (Audit 1, approved 2026-11-09)
 
@@ -255,6 +260,85 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | R-18 | Distribution: `npx` entry, install scripts that only check Node and print configuration, optional single binary, `server.json` for MCP registries | **L** |
 | R-19 | Windows and macOS metric parity: persistent helpers instead of a fork per sample; `typeperf`/ETW and `libproc` providers | **D** (helpers), **H** (providers) |
 | R-20 | Sandbox for executed targets under `CONTROLLED_EXECUTION` (bwrap/unshare, sandbox-exec, Job Objects/AppContainer or a container provider; no network by default; scratch directory; rlimits) | **G** |
+
+### Goal gaps (Audit 2, approved 2026-11-09)
+
+| ID | Task | Patch |
+|---|---|---|
+| G-01 | Compatibility diagnosis with evidence per cause | **M** |
+| G-02 | Legacy formats and toolchains, by platform wave | **M** |
+| G-03 | Execution-environment providers, snapshots, works/fails matrix | **N** |
+| G-04 | Behavior capture and replay, coverage, normalization, old-versus-new comparison | **O** |
+| G-05 | Function equivalence lab (emulation, differential and property tests) | **P** |
+| G-06 | Migration strategy advisor | **P** |
+| G-07 | Authorized-use and legal scope policy (first item of M) | **M** |
+| G-08 | Platform-wave priority rule | **M–P** |
+| G-09 | Target-platform and era support matrix in `CAPABILITIES.md` | **M** |
+| G-10 | Behavior-preservation report with levels L0–L3 | **O**, **P** |
+
+---
+
+## Legacy and compatibility track (patches M–P, after 1.0)
+
+This track delivers the product goal stated in [ARCHITECTURE.md](ARCHITECTURE.md): analyze modern and old programs without source, find why they fail or run badly today, and support an improvement or full rework with the **highest verifiable preservation of behavior**. It starts after patch J, because it reuses the controlled change loop, evidence, providers and validation.
+
+### Platform waves (priority order set by the maintainer)
+
+The track is delivered as **vertical slices**: every wave goes through M, N, O and P for one target family, ends in an end-to-end trial on closed reference programs of that family, and is released as its own minor version. A later wave does not start before the previous wave has its trial.
+
+| Wave | Release | Target family | Examples of what must be recognized and handled |
+|---|---|---|---|
+| 1 | 1.1 | **Windows up to 2010** | DOS (MZ), Windows 3.x (NE/LE/LX), Win9x/NT/2000/XP/Vista/7 PE32, 16- and 32-bit installers, packers (UPX and similar), Visual Basic 6, Delphi/C++ Builder, MFC/ATL, COM/ActiveX, .NET 1.x–3.5, DirectDraw/Direct3D ≤ 9, Glide, 8.3 paths, ANSI code pages, UAC and Program Files/HKLM write assumptions |
+| 2 | 1.2 | **Old Linux** | a.out and early ELF, libc5/old glibc, i386 and static binaries, old kernel interfaces (OSS audio, vsyscall), Motif/GTK1/Qt3, old package formats |
+| 3 | 1.3 | **Old Mac** | classic Mac OS (68k and PEF/CFM, resource forks), Mac OS X PowerPC and early Intel Mach-O, universal and 32-bit binaries, Carbon, old bundle layouts |
+| 4 | 1.4 | **Old Android** | Dalvik/early ART, old API levels, 32-bit ARM/x86/MIPS native libraries, deprecated permissions and APIs |
+| 5 | 1.5 | **Newer generations** of waves 1–4, in the same order | Windows after 2010, newer Linux, newer Mac, newer Android: same tasks with the newer toolchains and environments |
+
+Host and target are different things: the host is where Reverse runs, the target is the analyzed program. Static analysis is host-independent; running old targets uses the environments of patch N, which may be emulators or virtual machines on any host. The statement that Linux is the first fully supported *host* profiling environment stays true.
+
+### Patch M — Compatibility diagnosis and legacy formats (1.1–1.5)
+
+Depends on E, F and G. Closes G-01, G-02, G-07, G-09.
+
+- [ ] First: authorized-use and legal scope policy in [SECURITY.md](SECURITY.md) and the agent rules (copy protection, dongles, licenses, user-supplied OS images are never bundled).
+- [ ] Target profile: required OS and era, CPU, bitness, ABI, runtime, installer and toolchain, with evidence for each field.
+- [ ] Compatibility diagnosis report: imported APIs and libraries against per-OS-version availability tables (data files, versioned, sourced); privilege and virtualization assumptions; CPU-speed-dependent timing; graphics, audio, driver and hardware dependencies; DPI and resolution; locale, path and registry/preference assumptions; address-space and date limits. Every cause is a finding with source, confidence and limitations; causes that need running the program are marked "needs N".
+- [ ] Format and toolchain detectors for the wave being delivered (table above), built on providers (for example Detect It Easy, rz-bin, Ghidra loaders) rather than new parsers where possible.
+- [ ] Target-platform and era matrix in [CAPABILITIES.md](CAPABILITIES.md); a check compares it with the registered detectors.
+- Wave deliverables: M1 Windows ≤ 2010, M2 old Linux, M3 old Mac, M4 old Android, M5 newer generations.
+
+### Patch N — Execution environments (1.1–1.5)
+
+Depends on G and M. Closes G-03.
+
+- [ ] `ExecutionEnvironment` provider contract: detect, prepare, snapshot, restore, run with limits, collect traces, shut down; availability is reported only when the emulator or VM is really present.
+- [ ] Adapters by wave: Wine and Windows VMs (QEMU, VirtualBox), DOSBox-class and 86Box-class emulators; old Linux userlands in containers or VMs; classic-Mac and PowerPC emulators; old-API Android emulator images; newer environments for wave 5.
+- [ ] Environment images are supplied by the user (licensing); Reverse records their hashes and configuration in the environment fingerprint.
+- [ ] Run the same target in several environments and produce a **works/fails matrix** with the first observable failure in each (missing library, refused system call, crash address, timing symptom).
+- [ ] System-call and API tracing per environment (Wine relay, strace/ltrace, Windows API tracing, ADB/logcat), through providers, under `CONTROLLED_EXECUTION`.
+
+### Patch O — Behavior capture and replay (1.1–1.5)
+
+Depends on I and N. Closes G-04 and, with P, G-10.
+
+- [ ] Behavior snapshot artifact: inputs, standard streams, files created or changed, registry/preferences, network exchanges, window and UI events (screenshots as hashes, accessibility trees where available), data files written and read.
+- [ ] Control of nondeterminism: fixed time, random seed, locale, window size, scripted input (AutoIt, UI Automation, xdotool, ADB input as providers).
+- [ ] Record and deterministic replay of scenarios; scenario corpus stored as fixtures.
+- [ ] Code coverage of the original during the scenarios (DynamoRIO/drcov, Frida Stalker, emulator tracing, as providers) so the agent sees which parts were never exercised.
+- [ ] Normalization rules and old-versus-new comparison, including programs whose results are visual or file-based.
+- [ ] Behavior-preservation report, levels L0–L2 (definitions in [ARCHITECTURE.md](ARCHITECTURE.md)).
+
+### Patch P — Function equivalence lab and migration advisor (1.1–1.5)
+
+Depends on O and J. Closes G-05, G-06 and the L3 level of G-10.
+
+- [ ] Equivalence lab: run the original function (emulation with Unicorn/Qiling-class providers, or in the original environment) and the replacement on the same large generated and recorded input sets; differential, property and fuzz tests; mismatch minimization.
+- [ ] Reconstruction checks: a function reconstructed from the binary is compiled and compared against the original bytes or behavior where the toolchain allows it.
+- [ ] Migration strategy advisor: ranked options (configuration or compatibility layer, wrapper, emulation or VM packaging, minimal binary patch, recompilation from a reconstruction, full rewrite), each with expected gain, risk, effort, required permissions and the evidence it rests on; the agent decides, Reverse supplies the data and enforces the safety modes.
+- [ ] Final report: what was found, why it fails today, the chosen strategy, the preservation level reached (L0–L3) with coverage and residual risk.
+- [ ] Wave trials: each wave ends with two scenarios on closed reference programs: a program that does not run today and is made to run, and a program rewritten or repackaged with a measured preservation level.
+
+**Version policy for the track.** 1.1 Windows ≤ 2010, 1.2 old Linux, 1.3 old Mac, 1.4 old Android, 1.5 newer generations. Patch L (agent integration and distribution) is independent of the track and may be released at any point after D and J.
 
 ---
 

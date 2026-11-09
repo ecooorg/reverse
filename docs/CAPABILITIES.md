@@ -13,6 +13,10 @@
 | Safety | `READ_ONLY`/`OBSERVE` by default; explicit `CONTROLLED_EXECUTION` scoped cgroup-v2 resource-limit API on delegated Linux hierarchies; ownership and identity checks before moving a process | No OS sandbox or filesystem/network isolation; Windows/macOS hard process quotas are not implemented; cgroup availability depends on delegation and permissions |
 | MCP | stdio JSON-RPC initialize, ping, tools/list, tools/call; request cancellation for process sampling | No HTTP transport, roots, resources, prompts, or OAuth |
 
+## Target platforms and eras
+
+Currently only the header recognition listed above exists, and it does not depend on the target era. There is **no** compatibility diagnosis, no detector for DOS/Win16, packers, Visual Basic 6, Delphi, classic Mac OS, old Android DEX/ABI or similar legacy formats, no execution environments and no behavior capture. These are planned in the legacy track (patches M–P) in the priority order Windows up to 2010, old Linux, old Mac, old Android, then their newer generations; see [ROADMAP.md](ROADMAP.md).
+
 ## Provider status
 
 `ghidra`, `rizin`, `frida`, `gdb`, `perf`, `ebpf`, `etw`, and `instruments` are **extension-point labels only**. No invocation adapter, parser, setup detection, or end-to-end integration is included. The `list_analyzers` output marks them `extension-point`; this is intentional.

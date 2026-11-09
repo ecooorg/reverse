@@ -15,6 +15,10 @@ Reverse is a local inspection tool, not a sandbox. It runs with the permissions 
 
 Only inspect software and processes you own or are authorized to examine. Treat binaries and their output as untrusted. Run benchmarks in a disposable working directory or OS sandbox where practical. Do not pass untrusted command strings or arguments. A timeout terminates the spawned child and every process it started (the process tree is snapshotted first; on Windows `taskkill /T /F` is used), but a process that escapes its parent before the snapshot cannot be found. CPU/RAM quotas are not enforced. Avoid elevated privileges.
 
+## Authorized use and scope (planned, first item of patch M)
+
+The legacy track will analyze old programs, some with copy protection, dongles or license checks. Reverse reports such mechanisms as facts and does not defeat them. Operating-system images and commercial tools are supplied by the user under their own licenses and are never bundled. Until the policy is written out in full in patch M, treat this paragraph as the binding summary.
+
 ## Known security gaps
 
 - No general OS sandbox, network isolation, or filesystem allowlist. Linux cgroup v2 CPU/memory limits are available only through the explicit scoped `withProcessResourceLimits` API on delegated hierarchies; no Windows Job Object or macOS hard-quota adapter exists.
