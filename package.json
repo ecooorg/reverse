@@ -1,6 +1,6 @@
 {
   "name": "reverse-compact",
-  "version": "0.2.0-beta.5",
+  "version": "0.2.0-beta.6",
   "private": false,
   "description": "A compact local analysis, profiling, benchmarking and evidence core with CLI and MCP interfaces.",
   "type": "module",
@@ -23,7 +23,11 @@
     "start:mcp": "node dist/mcp-server.js",
     "dev": "tsx src/cli-main.ts",
     "prepare": "npm run build",
-    "verify": "npm run build && tsc -p tsconfig.tests.json && node --test dist-tests/capabilities.check.js && node tests/capability-report.mjs dist-tests/capability-report.json"
+    "verify": "npm run build && tsc -p tsconfig.tests.json && node --test --test-concurrency=1 --test-reporter=spec --test-timeout=90000 dist-tests/capabilities.check.js && node tests/capability-report.mjs dist-tests/capability-report.json",
+    "test:coverage": "npm run build && tsc -p tsconfig.tests.json && node --experimental-test-coverage --test dist-tests/*.test.js",
+    "format:check": "node tests/format-check.mjs",
+    "size:check": "node tests/size-gate.mjs",
+    "quality": "npm run build && npm run format:check && npm run size:check && tsc -p tsconfig.tests.json"
   },
   "engines": {
     "node": ">=22"

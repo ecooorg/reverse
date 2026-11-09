@@ -1,6 +1,6 @@
 # Reverse
 
-Reverse is a compact, local-first analysis core for software investigation and optimization experiments. It provides a CLI and a standalone Model Context Protocol (MCP) stdio server. It focuses on deterministic observations, repeatable wall-clock benchmarks, behavior checks, and evidence rather than embedding an AI planner or reimplementing specialist reverse-engineering tools.
+Reverse is a compact, local-first analysis core for software investigation and optimization experiments. It provides a CLI and a standalone Model Context Protocol (MCP) stdio server. It focuses on deterministic observations, repeatable interleaved benchmarks, behavior checks, and typed, hash-chained research evidence rather than embedding an AI planner or reimplementing specialist reverse-engineering tools.
 
 > **MVP status:** this is an independently implemented starter release. Capabilities marked as extension points are not implemented integrations. Read [CAPABILITIES.md](docs/CAPABILITIES.md) before relying on a result.
 
@@ -50,6 +50,9 @@ reverse benchmark --command node --arg ./script.js --repeat 5 --timeout 30000 --
 # Check a command's exact output (arguments via --arg, expected values in a JSON file)
 reverse validate --command node --arg ./script.js --expected ./expected.json
 
+# Check local runtime and storage readiness
+reverse doctor
+
 # Start the MCP server
 reverse mcp
 ```
@@ -58,7 +61,7 @@ Output is always JSON; `--json` is accepted and has no effect. Reverse stores ev
 
 ## MCP connection
 
-Reverse implements the MCP JSON-RPC stdio transport and exposes tools including `inspect_target`, `analyze_binary`, `analyze_source`, `analyze_dependencies`, `get_inventory`, `inspect_process`, `profile_process`, `run_benchmark`, `compare_results`, `validate_changes`, `get_evidence`, and `list_analyzers`.
+Reverse implements the MCP JSON-RPC stdio transport and exposes 34 tools, including process inspection, interleaved benchmark suites, stored baselines, typed evidence, hash-chained research sessions, hypothesis promotion and artifact linking. Command-running tools require `REVERSE_MODE=CONTROLLED_EXECUTION` and a command allowlist. Process inventory supports offset pagination; tool results are capped at 1 MiB.
 
 Example client configuration:
 
@@ -83,7 +86,7 @@ The server writes protocol messages to stdout. Do not add logging to stdout; dia
 4. Commands execute locally. Reverse does not upload inspected binaries.
 5. Mutating operations are out of scope for this MVP. Benchmark/validation commands do execute user-supplied commands under the current user's permissions; over MCP they are off unless `REVERSE_MODE=CONTROLLED_EXECUTION` and `REVERSE_COMMAND_ALLOWLIST` are set (see docs/MCP.md).
 6. A timing improvement is not proof of semantic equivalence.
-7. Analogies and AI guesses are hypotheses, kept apart from facts and confirmed only by checks (planned).
+7. Analogies and AI guesses are hypotheses, kept apart from facts and promoted only by same-session Validation or Benchmark evidence.
 8. The legacy track is for open-source software or software whose developers and rights holders consent; see [SECURITY.md](docs/SECURITY.md).
 
 ## Documentation
