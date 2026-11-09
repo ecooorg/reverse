@@ -73,13 +73,15 @@ Closes **Advanced Process Inspector**, **Time-Series Performance Profiler** and 
 
 Capability checks added for identity/ownership, cancellation, resource-control reporting and the new MCP tool.
 
-### Patch C — Measurement engine and baselines (0.2) — in progress, parts 1 and 2 released (0.2.0-beta.3, 0.2.0-beta.4)
+### Patch C — Measurement engine and baselines (0.2) — in progress, parts 1–3 released (0.2.0-beta.3, 0.2.0-beta.4, 0.2.0-beta.5)
 
 **Done in 0.2.0-beta.3:** command-execution gate, allowlisted child environment and tool annotations (F-01); statistics, warm-up runs, failed-run exclusion and the `improved`/`regressed`/`no_significant_change`/`insufficient_evidence` verdict (F-04, most of R-13); environment fingerprint, comparability warning and `get_environment_fingerprint`; `noUnusedParameters`, `.gitattributes`, Node 22+ (F-14, R-16).
 
 **Done in 0.2.0-beta.4:** per-run CPU time and peak RAM (sampled: Linux `/proc`, macOS `ps`; Windows not sampled yet), binary size, cold/warm labels, per-metric comparison in `compare_results`.
 
-**Still open in patch C (not claimed):** Windows CPU time and peak RAM, interleaved A/B runs, environment-noise detection, baseline manager and `create_benchmark_suite` / `run_benchmark_suite` / `compare_benchmarks`, F-12 (identity-checked group kill), F-16 (test split, partly started with `tests/benchmark-stats.test.ts`), F-17 and R-02 (`untrustedContent` wrapper, adversarial fixtures), R-03, R-05, R-06, R-17 and the hyperfine-compatible export of R-12. The Benchmark 🚧 about missing CPU time and peak RAM is closed on Linux; on Windows a 🚧 remains until sampling exists there. Patch C is not done and the roadmap does not mark it so.
+**Done in 0.2.0-beta.5:** `untrustedContent` marker and string length cap on every MCP result, threat model text in SECURITY.md (F-17, R-02; adversarial fixture: oversized import name).
+
+**Still open in patch C (not claimed):** Windows CPU time and peak RAM, interleaved A/B runs, environment-noise detection, baseline manager and `create_benchmark_suite` / `run_benchmark_suite` / `compare_benchmarks`, F-12 (identity-checked group kill), F-16 (test split, partly started with `tests/benchmark-stats.test.ts`), R-03, R-05, R-06, R-17 and the hyperfine-compatible export of R-12. The Benchmark 🚧 about missing CPU time and peak RAM is closed on Linux; on Windows a 🚧 remains until sampling exists there. Patch C is not done and the roadmap does not mark it so.
 
 Closes **Advanced Benchmark Engine** (all items) and the baseline lifecycle.
 
@@ -244,14 +246,14 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-14 | Remaining: `.gitattributes`, `noUnusedParameters` | closed in 0.2.0-beta.3 |
 | F-15 | Documentation drift and the planned-tools check | closed in 0.2.0-beta.2 |
 | F-16 | Split the test suite into flat `tests/<area>.test.ts` files with pure fixtures; statistics, `CappedBuffer`, MCP error paths, `/proc` parser | **C** (statistics, capture) and **D** (the rest) |
-| F-17 | Threat model: agent as untrusted caller, prompt injection through target data | **C** |
+| F-17 | Threat model: agent as untrusted caller, prompt injection through target data | closed in 0.2.0-beta.5 |
 
 ### Recommendations
 
 | ID | Task | Patch |
 |---|---|---|
 | R-01 | Mutation testing (Stryker) on pure modules | **D**, extended to each later patch's pure modules |
-| R-02 | Threat model and prompt-injection hardening (`untrustedContent` wrapper, length caps, adversarial fixtures) | **C** |
+| R-02 | Threat model and prompt-injection hardening (`untrustedContent` wrapper, length caps, adversarial fixtures) | closed in 0.2.0-beta.5 (basic wrapper and caps) |
 | R-03 | Supply chain: npm provenance, pinned action SHAs, Dependabot, OpenSSF Scorecard, CycloneDX SBOM, `npm audit signatures`, `release-please` | **C** |
 | R-04 | Fuzz and property tests (`fast-check`, devDependency) for parsers | **D** (process parsers), **E** (binary parsers) |
 | R-05 | Static gates: linter and formatter, `knip`, `jscpd`, own-line size gate | **C** |
@@ -381,6 +383,12 @@ Depends on O and J. Closes G-05, G-06 and the L3 level of G-10.
 ## Release sections
 
 Sequencing principle: do not start with Ghidra and do not try to implement every external analyzer at once. First strengthen Reverse's ability to investigate running programs, detect real performance problems and collect evidence, because the main job of Reverse is to help an AI agent find the causes of excessive resource use and objectively verify optimization results. Linux is the first fully supported profiling environment, with interfaces for Windows and macOS designed in from the start.
+
+## 0.2.0-beta.5 — Patch C, part 3
+
+- [x] `src/core-untrusted.ts`: every MCP tool result gets `untrustedContent` and strings over 4096 characters are truncated (R-02). Tests: `tests/untrusted.test.ts`, capability check *Security — tool results carry untrustedContent…*.
+- [x] Threat model (agent as untrusted caller, prompt injection through target data) in `docs/SECURITY.md` (F-17).
+- Not done: filename/process-name fixtures beyond the long-string case; per-tool field allowlists.
 
 ## 0.2.0-beta.4 — Patch C, part 2
 
