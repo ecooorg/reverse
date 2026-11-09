@@ -12,7 +12,7 @@ name: Capabilities
 # Minute budget (see docs/GITHUB.md): macOS bills 10x and Windows 2x, so nothing expensive runs by itself.
 #   push / pull request : ONE job, Linux, Node 22 (unit tests + capability suite + report). No package job.
 #   workflow_dispatch   : the extended run you start by hand (Actions -> Capabilities -> Run workflow):
-#                         choose the operating system(s); Node 20, 22 and 24 each; plus the package job
+#                         choose the operating system(s); Node 22 and 24 each; plus the package job
 #                         and the merged capability matrix.
 # There is deliberately no schedule.
 
@@ -68,7 +68,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{ fromJSON(github.event_name == 'workflow_dispatch' && (inputs.os == 'all' && '["ubuntu-latest","macos-latest","windows-latest"]' || format('["{0}"]', inputs.os)) || '["ubuntu-latest"]') }}
-        node: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '[20,22,24]' || '[22]') }}
+        node: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '[22,24]' || '[22]') }}
     env:
       REVERSE_CAPABILITY_REPORT: capability-reports/${{ matrix.os }}-node${{ matrix.node }}.json
     steps:
