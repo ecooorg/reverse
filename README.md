@@ -93,3 +93,4 @@ The server writes protocol messages to stdout. Do not add logging to stdout; dia
 - [Benchmark methodology](docs/BENCHMARKS.md)
 - [GitHub publishing guide](docs/GITHUB.md)
 - [Roadmap](docs/ROADMAP.md)
+- [Audit log](docs/AUDIT.md) (newest audit first)

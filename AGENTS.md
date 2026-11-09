@@ -7,7 +7,7 @@ Reverse is a compact, local-first analysis core (CLI plus MCP stdio server) that
 Before reading code or making any change:
 
 1. Read `docs/ROADMAP.md` from the top. Its first section is the delivery plan (patches A–K): find the patch you are working on, what it closes, what it depends on, and its status. Do not start work that belongs to a later patch, and do not skip a dependency.
-2. Then read `docs/ARCHITECTURE.md` (what is implemented versus planned), `docs/CAPABILITIES.md` (what really works), `docs/MCP.md` and `docs/SECURITY.md`.
+2. Read the newest audit at the top of `docs/AUDIT.md`: findings addressed by your patch must be closed there (`Status: closed in <version>, <patch>`). Then read `docs/ARCHITECTURE.md` (what is implemented versus planned), `docs/CAPABILITIES.md` (what really works), `docs/MCP.md` and `docs/SECURITY.md`.
 3. If the user's request is not covered by the roadmap, say so and ask whether to add it to the roadmap before building it.
 4. When a patch is done, update the roadmap in the same change: mark the patch (and the checklist items it closes) done, add its release section, and move the matching items in `ARCHITECTURE.md` from *planned* to *implemented*.
 
