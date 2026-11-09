@@ -462,6 +462,18 @@ check('Profiling', 'caller cancellation stops sampling and returns a partial res
     assert.ok(r.findings[0].sampleCount >= 1);
   } finally { await killAndWait(child); }
 });
+check('Profiling', 'a cancellation that arrives before the first sample still returns that sample, and returns promptly', async () => {
+  const child = spawnIdle();
+  try {
+    await settle(100);
+    const t0 = Date.now();
+    const r: any = await profileProcess(child.pid!, 5000, 2000, 'Monitor', { signal: AbortSignal.abort() });
+    assert.equal(r.status, 'partial');
+    assert.ok(r.limitations.some((x: string) => /cancelled/i.test(x)));
+    assert.equal(r.findings[0].sampleCount, 1, 'the initial inspection is kept as the first sample');
+    assert.ok(Date.now() - t0 < 4000, 'an already-aborted signal must not wait out the sampling interval');
+  } finally { await killAndWait(child); }
+});
 check('Profiling', 'a vanished process yields partial with a recorded error', async () => {
   const child = spawnIdle(); const pid = child.pid!; await killAndWait(child); await settle(200);
   const r: any = await profileProcess(pid, 500, 100);
