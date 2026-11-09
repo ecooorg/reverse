@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';import { performance } from 'node:perf_hooks';import { result } from './core-types.js';import { saveJson } from './core-util.js';import { killProcessTree } from './process-tree.js';import { summarize, compareSamples } from './benchmark-stats.js';import { fingerprintComparison, getEnvironmentFingerprint, childEnv } from './benchmark-environment.js';
+import { spawn } from 'node:child_process';import { performance } from 'node:perf_hooks';import { result } from './core-types.js';import { saveJson } from './core-util.js';import { killProcessTree } from './process-tree.js';import { summarize, compareSamples, median } from './benchmark-stats.js';import { ResourceSampler, describeExecutable } from './benchmark-resources.js';import { fingerprintComparison, getEnvironmentFingerprint, childEnv } from './benchmark-environment.js';
 export interface RunSpec { command:string; args?:string[]; cwd?:string; timeoutMs?:number; repetitions?:number; warmupRuns?:number; label?:string; }
 const OUTPUT_CAP = 1024 * 1024; // BYTES kept per stream; the excess is dropped and flagged
 const KILL_GRACE_MS = 2000;     // how long to wait for stdio to close after the process tree was killed
@@ -27,10 +27,12 @@ function one(spec: RunSpec): Promise<any> {
     let timedOut = false, settled = false, terminated = 0;
     let timer: NodeJS.Timeout | undefined, grace: NodeJS.Timeout | undefined, killing: Promise<void> | undefined;
     const child = spawn(spec.command, spec.args ?? [], { cwd: spec.cwd, stdio: ['ignore', 'pipe', 'pipe'], shell: false, env: childEnv(), windowsHide: true });
+    const sampler = new ResourceSampler(child.pid); sampler.start();
     const finish = (extra: Record<string, unknown>) => {
       if (settled) return; settled = true;
       clearTimeout(timer); clearTimeout(grace);
-      resolve({ durationMs: performance.now() - start, timedOut, stdout: out.text(), stderr: err.text(), stdoutTruncated: out.truncated, stderrTruncated: err.truncated, processesTerminated: terminated, ...extra });
+      const usage = sampler.stop();
+      resolve({ durationMs: performance.now() - start, cpuTimeMs: usage.cpuTimeMs, peakRssBytes: usage.peakRssBytes, resources: usage, timedOut, stdout: out.text(), stderr: err.text(), stdoutTruncated: out.truncated, stderrTruncated: err.truncated, processesTerminated: terminated, ...extra });
     };
         child.stdout!.on('data', (d: Buffer) => out.push(d));
     child.stderr!.on('data', (d: Buffer) => err.push(d));
@@ -53,28 +55,46 @@ export async function runBenchmark(spec: RunSpec) {
   if (!spec.command?.trim()) throw new Error('A command is required.');
   const n = clampInt(spec.repetitions, 1, MAX_RUNS, 3), warmup = clampInt(spec.warmupRuns, 0, MAX_WARMUP, 0);
   const warmups: any[] = [], runs: any[] = [];
+  let executed = 0; // the very first process of this invocation is the cold run; every later one is warm
+  const temp = () => (executed++ === 0 ? 'cold' : 'warm');
   // Warm-up runs are executed and recorded but never enter the statistics.
-  for (let i = 0; i < warmup; i++) { const r = await one(spec); warmups.push({ ...r, index: i + 1, phase: 'warmup' }); if (r.error || r.timedOut) break; }
+  for (let i = 0; i < warmup; i++) { const r = await one(spec); warmups.push({ ...r, index: i + 1, phase: 'warmup', temperature: temp() }); if (r.error || r.timedOut) break; }
   const warmupFailed = warmups.some(x => x.error || x.timedOut);
   for (let i = 0; !warmupFailed && i < n; i++) {
-    const r = await one(spec); runs.push({ ...r, index: i + 1, phase: 'measured' });
+    const r = await one(spec); runs.push({ ...r, index: i + 1, phase: 'measured', temperature: temp() });
     if (r.error || r.timedOut) break;
   }
   // Failed runs (error, timeout, non-zero exit) are excluded from the timing statistics.
   const good = runs.filter(x => !x.error && !x.timedOut && x.exitCode === 0);
   const times = good.map(x => x.durationMs), stats = summarize(times);
+  const num = (k: string) => good.map(x => x[k]).filter((v: unknown): v is number => typeof v === 'number' && Number.isFinite(v));
+  const cpu = summarize(num('cpuTimeMs')), rss = summarize(num('peakRssBytes'));
+  const usage = [...warmups, ...runs].map(x => x.resources).filter(Boolean);
+  const method = usage.find((u: any) => u.method !== 'none')?.method ?? 'none';
+  const withData = good.filter(x => x.resources?.available).length;
+  const reason = usage.find((u: any) => !u.available)?.reason;
+  const exe = await describeExecutable(spec.command, spec.cwd);
+  const cold = [...warmups, ...runs].find(x => x.temperature === 'cold');
+  const warmTimes = good.filter(x => x.temperature === 'warm').map(x => x.durationMs);
   const summary = {
     label: spec.label ?? 'benchmark', command: spec.command, args: spec.args ?? [], cwd: spec.cwd ?? process.cwd(),
     repetitionsRequested: n, repetitionsCompleted: runs.length, warmupRequested: warmup, warmupCompleted: warmups.length, successfulRuns: good.length,
     meanDurationMs: stats?.mean ?? null, medianDurationMs: stats?.median ?? null, minDurationMs: stats?.min ?? null, maxDurationMs: stats?.max ?? null,
     p95DurationMs: stats?.p95 ?? null, stddevMs: stats?.stddev ?? null, madMs: stats?.mad ?? null, outlierDurationsMs: stats?.outliers ?? [], ci95MeanMs: stats?.ci95 ?? null,
+    meanCpuTimeMs: cpu?.mean ?? null, medianCpuTimeMs: cpu?.median ?? null, maxCpuTimeMs: cpu?.max ?? null,
+    medianPeakRssBytes: rss?.median ?? null, maxPeakRssBytes: rss?.max ?? null,
+    resourceMetrics: { method, runsWithData: withData, runsMeasured: good.length, available: withData > 0, ...(reason && withData === 0 ? { reason } : {}) },
+    binaryPath: exe?.path ?? null, binarySizeBytes: exe?.sizeBytes ?? null,
+    coldDurationMs: cold && !cold.error && !cold.timedOut ? cold.durationMs : null, coldPhase: cold?.phase ?? null, warmMedianDurationMs: median(warmTimes),
     environment: getEnvironmentFingerprint(spec), warmups, runs,
   };
   const failed = runs.some(x => x.error || x.timedOut) || warmupFailed;
   const r = result(spec.command, 'benchmark', [summary], {
     status: failed ? 'partial' : 'completed',
     limitations: [
-      'Wall-clock duration only per run; CPU time, peak RAM, disk/network I/O and hardware normalization are not yet measured.',
+      'Per run: wall-clock duration, CPU time and peak RAM of the direct child. CPU time and RSS are SAMPLED (Linux /proc every 5 ms, macOS/POSIX `ps` every 25 ms), so they are lower bounds and very short runs may have no sample; Windows is not sampled yet. Disk/network I/O and hardware normalization are not measured.',
+      'Cold/warm: the first process started by one benchmark call is labelled `cold`, all later ones `warm`; the operating system file cache is not dropped, so `cold` means first start in this call, not a flushed cache.',
+      'Binary size is the size of the resolved command file (for an interpreter such as node it is the interpreter, not the script).',
       'Statistics cover successful runs only (exit code 0, no timeout); warm-up runs are recorded but excluded. Fewer than 5 successful runs give no confidence-based verdict.',
       'stdout/stderr are captured up to 1 MiB per stream (bytes); the excess is dropped and flagged as truncated.',
       'On timeout the whole process tree is terminated, not only the direct child.',
@@ -89,6 +109,9 @@ export async function runBenchmark(spec: RunSpec) {
 
 const durationsOf = (f: any): number[] => (Array.isArray(f?.runs) ? f.runs.filter((x: any) => !x.error && !x.timedOut && x.exitCode === 0).map((x: any) => x.durationMs) : []);
 
+const runValues = (f: any, key: string): number[] => (Array.isArray(f?.runs) ? f.runs.filter((x: any) => !x.error && !x.timedOut && x.exitCode === 0).map((x: any) => x[key]).filter((v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)) : []);
+const metricChange = (b: unknown, a: unknown) => { const x = Number(b), y = Number(a); return b == null || a == null || !Number.isFinite(x) || !Number.isFinite(y) ? null : { before: x, after: y, delta: y - x, changePercent: x === 0 ? null : ((y - x) / x) * 100 }; };
+
 /** Compares two benchmark envelopes. A verdict needs repeated successful runs on both sides; means alone never produce `improved`. */
 export async function compareBenchmarks(before: any, after: any) {
   const fb = before?.findings?.[0], fa = after?.findings?.[0];
@@ -99,7 +122,12 @@ export async function compareBenchmarks(before: any, after: any) {
   const warnings = env.comparable === false ? [`The environment fingerprints differ (${env.differences.join(', ')}); the comparison may be invalid.`] : env.comparable === null ? ['At least one input has no environment fingerprint; comparability is unknown.'] : [];
   return result('benchmark-pair', 'benchmark_comparison', [{
     beforeMeanMs: a, afterMeanMs: b, deltaMs: delta, changePercent: (delta / a) * 100,
+    metrics: {
+      cpuTimeMedianMs: metricChange(fb?.medianCpuTimeMs, fa?.medianCpuTimeMs), cpuTimeVerdict: runValues(fb, 'cpuTimeMs').length && runValues(fa, 'cpuTimeMs').length ? compareSamples(runValues(fb, 'cpuTimeMs'), runValues(fa, 'cpuTimeMs')).verdict : null,
+      peakRssMedianBytes: metricChange(fb?.medianPeakRssBytes, fa?.medianPeakRssBytes), peakRssVerdict: runValues(fb, 'peakRssBytes').length && runValues(fa, 'peakRssBytes').length ? compareSamples(runValues(fb, 'peakRssBytes'), runValues(fa, 'peakRssBytes')).verdict : null,
+      binarySizeBytes: metricChange(fb?.binarySizeBytes, fa?.binarySizeBytes),
+    },
     improved: verdict.verdict === 'improved', ...verdict, environmentComparable: env.comparable, environmentDifferences: env.differences, warnings,
     interpretation: verdict.verdict === 'improved' ? 'A statistically supported speedup was observed in these runs.' : verdict.verdict === 'regressed' ? 'A statistically supported slowdown was observed in these runs.' : verdict.verdict === 'no_significant_change' ? 'The runs do not show a significant difference.' : 'Not enough repeated runs to claim any difference; the mean change is descriptive only.',
-  }], { limitations: ['A timing difference alone does not establish causality or functional equivalence.', 'Compare repeated runs under equivalent hardware, load, inputs and configuration.', 'Verdict: two-sided Mann-Whitney test (alpha 0.05) plus a bootstrap interval of the median shift that must exclude zero; at least 5 successful runs per side.'], status: warnings.length ? 'partial' : 'completed' });
+  }], { limitations: ['A timing difference alone does not establish causality or functional equivalence.', 'Compare repeated runs under equivalent hardware, load, inputs and configuration.', 'Verdict: two-sided Mann-Whitney test (alpha 0.05) plus a bootstrap interval of the median shift that must exclude zero; at least 5 successful runs per side. The headline verdict is about wall-clock time; CPU time and peak RAM have their own verdicts under `metrics`, null when a side has no samples. Binary size is a plain difference.'], status: warnings.length ? 'partial' : 'completed' });
 }

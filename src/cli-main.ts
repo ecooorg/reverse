@@ -32,7 +32,7 @@ Commands:
   process <pid>                 Inspect one process
   profile <pid> [--duration MS] [--interval MS]   Sample CPU/RSS
   benchmark --command CMD [--arg A]... [--cwd DIR] [--timeout MS] [--repeat N] [--label L]
-                                Run repeated wall-clock benchmark
+                                Run repeated benchmark (time, CPU, peak RAM)
   compare <before.json> <after.json>
   validate --command CMD [--arg A]... --expected FILE.json [--cwd DIR] [--timeout MS] [--repeat N]
   analyzers                     List adapters and extension points
