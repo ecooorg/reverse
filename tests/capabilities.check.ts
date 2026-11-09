@@ -128,8 +128,8 @@ function runCli(args: string[], input?: string) {
   return { code: r.status, stdout: r.stdout ?? '', stderr: r.stderr ?? '' };
 }
 
-function startMcp(args: string[] = [MCP]) {
-  const child = spawn(NODE, args, { stdio: ['pipe', 'pipe', 'pipe'], env: process.env });
+function startMcp(args: string[] = [MCP], extraEnv: Record<string, string> = {}) {
+  const child = spawn(NODE, args, { stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, ...extraEnv } });
   const pending = new Map<number, (m: any) => void>();
   const unsolicited: any[] = [];
   const rl = readline.createInterface({ input: child.stdout! });
@@ -564,7 +564,8 @@ check('Benchmark', 'honors cwd and records the non-zero exit code', async () => 
 });
 check('Benchmark', 'compareBenchmarks computes delta and percent change and validates input', async () => {
   const imp: any = await compareBenchmarks({ findings: [{ meanDurationMs: 200 }] }, { findings: [{ meanDurationMs: 150 }] });
-  assert.deepEqual([imp.findings[0].deltaMs, imp.findings[0].changePercent, imp.findings[0].improved], [-50, -25, true]);
+  // Means alone are descriptive: no claim of improvement without repeated runs (AUDIT F-04).
+  assert.deepEqual([imp.findings[0].deltaMs, imp.findings[0].changePercent, imp.findings[0].improved, imp.findings[0].verdict], [-50, -25, false, 'insufficient_evidence']);
   const reg: any = await compareBenchmarks({ findings: [{ meanDurationMs: 100 }] }, { findings: [{ meanDurationMs: 120 }] });
   assert.equal(reg.findings[0].improved, false);
   await assert.rejects(compareBenchmarks({}, {}), /positive meanDurationMs/);
@@ -599,10 +600,11 @@ check('Benchmark', 'a timeout returns promptly even when a grandchild holds the 
   const r: any = await runBenchmark({ command: NODE, args: nodeEval(code), timeoutMs: 500, repetitions: 1 });
   assert.ok(Date.now() - t0 < 8000, `took ${Date.now() - t0} ms`); assert.equal(r.findings[0].runs[0].timedOut, true);
 });
-check('Benchmark', 'only wall-clock time is measured (no CPU time, RAM, I/O, warm-up, percentiles)', async c => {
+check('Benchmark', 'reports P95, std-dev, MAD, outliers, CI and environment; CPU time and peak RAM are still not measured', async c => {
   const f: any = ((await runBenchmark({ command: NODE, args: nodeEval('0'), repetitions: 2 })) as any).findings[0];
-  for (const k of ['cpuTimeMs', 'peakRssKb', 'p95DurationMs', 'stdDevMs', 'madMs', 'warmupRuns', 'environment']) assert.equal(f[k], undefined, k);
-  c.limit('no CPU time, peak RAM, P95, std-dev, MAD, warm-up/cold split or environment fingerprint');
+  for (const k of ['p95DurationMs', 'stddevMs', 'madMs', 'outlierDurationsMs', 'ci95MeanMs', 'environment', 'warmupCompleted']) assert.notEqual(f[k], undefined, k);
+  for (const k of ['cpuTimeMs', 'peakRssKb']) assert.equal(f[k], undefined, k);
+  c.limit('no per-run CPU time and peak RAM, no cold/warm classification (patch C, open)');
 });
 
 // ---------------------------------------------------------------- 8. validation
@@ -758,11 +760,11 @@ check('CLI', 'profile <pid> --duration --interval', async () => {
   finally { await killAndWait(child); }
 });
 check('CLI', 'benchmark -> compare workflow through files', async () => {
-  const mk = (ms: number) => runCli(['benchmark', '--command', NODE, '--arg', '-e', '--arg', `setTimeout(()=>{},${ms})`, '--repeat', '2', '--label', `t${ms}`]).stdout;
+  const mk = (ms: number) => runCli(['benchmark', '--command', NODE, '--arg', '-e', '--arg', `setTimeout(()=>{},${ms})`, '--repeat', '6', '--label', `t${ms}`]).stdout;
   const before = path.join(cliDir, 'before.json'), after = path.join(cliDir, 'after.json');
   await writeFile(before, mk(250)); await writeFile(after, mk(1));
   const cmp = JSON.parse(runCli(['compare', before, after]).stdout);
-  assert.equal(cmp.findings[0].improved, true);
+  assert.equal(cmp.findings[0].verdict, 'improved');
 });
 check('CLI', 'validate --expected works for argument-less commands', async () => {
   const exp = path.join(cliDir, 'exp.json'); await writeFile(exp, j({ exitCode: 0, stdout: '' }));
@@ -789,8 +791,9 @@ check('CLI', '--json is accepted, documented as having no effect, and output is 
   assert.match(runCli(['--help']).stdout, /always JSON on stdout; --json is accepted and has no effect/);
 });
 // ---------------------------------------------------------------- 12. MCP server
+const GATE_ENV = { REVERSE_MODE: 'CONTROLLED_EXECUTION', REVERSE_COMMAND_ALLOWLIST: NODE };
 const DOCUMENTED_TOOLS = ['inspect_target', 'analyze_binary', 'analyze_source', 'analyze_dependencies', 'get_inventory', 'list_processes', 'inspect_process', 'profile_process',
-  'monitor_process', 'get_process_metrics', 'get_process_tree', 'analyze_memory', 'analyze_cpu', 'analyze_io', 'detect_resource_anomalies', 'get_resource_control_status',
+  'monitor_process', 'get_process_metrics', 'get_process_tree', 'analyze_memory', 'analyze_cpu', 'analyze_io', 'detect_resource_anomalies', 'get_resource_control_status', 'get_environment_fingerprint',
   'capture_baseline', 'run_benchmark', 'compare_results', 'validate_changes', 'get_evidence', 'list_analyzers'];
 
 check('MCP', 'handshake: initialize, ping and tools/list', async () => {
@@ -827,8 +830,8 @@ check('MCP', 'protocol errors: unknown method, unknown tool (-32602), garbage in
     assert.equal(s.unsolicited[0].error.code, -32700); assert.equal(s.unsolicited[0].id, null);
   } finally { s.close(); }
 });
-check('MCP', 'all 22 tools can be called and return parseable JSON results', async () => {
-  const s = startMcp();
+check('MCP', 'all 23 tools can be called and return parseable JSON results', async () => {
+  const s = startMcp([MCP], GATE_ENV);
   const child = spawnIdle();
   try {
     await s.req('initialize', {});
@@ -856,7 +859,9 @@ check('MCP', 'all 22 tools can be called and return parseable JSON results', asy
     assert.equal(base.value.findings[0].label, 'baseline');
     const b1 = await ok('run_benchmark', { command: NODE, args: nodeEval('setTimeout(()=>{},200)'), repetitions: 2 });
     const b2 = await ok('run_benchmark', { command: NODE, args: nodeEval('0'), repetitions: 2 });
-    assert.equal((await ok('compare_results', { before: b1.value, after: b2.value })).value.findings[0].improved, true);
+    const cmpv = (await ok('compare_results', { before: b1.value, after: b2.value })).value.findings[0];
+    assert.equal(cmpv.improved, false); assert.equal(cmpv.verdict, 'insufficient_evidence'); // two runs per side are not enough
+    assert.equal((await ok('get_environment_fingerprint', {})).value.operation, 'environment_fingerprint');
     const val = await ok('validate_changes', { command: NODE, args: nodeEval('process.stdout.write("v")'), expected: { stdout: 'v' } });
     assert.equal(val.value.findings[0].passed, true);
     const ev = await ok('get_evidence', { id: bin.value.evidence[0].id }); assert.equal(ev.value.found, true);
@@ -889,7 +894,7 @@ check('MCP', 'tool errors (missing file, bad PID) surface as isError results, no
 });
 check('MCP', '"reverse mcp" starts the same stdio server', async () => {
   const s = startMcp([CLI, 'mcp']);
-  try { assert.equal((await s.req('tools/list')).result.tools.length, 22); } finally { s.close(); }
+  try { assert.equal((await s.req('tools/list')).result.tools.length, 23); } finally { s.close(); }
 });
 check('Docs', 'docs/MCP.md says tools return structuredContent', async c => {
   const doc = path.join(ROOT, 'docs', 'MCP.md');
@@ -947,4 +952,64 @@ check('Platform', `host summary: ${process.platform}/${process.arch}, Node ${pro
   const dir = await readdir(HOME).catch(() => []);
   c.note(`artifact kinds written this run: ${dir.join(', ') || 'none'}`);
   assert.ok((await stat(HOME)).isDirectory());
+});
+
+// ---------------------------------------------------------------- patch C: measurement engine and gate
+check('Benchmark', 'warm-up runs are recorded but excluded; failed runs are excluded from the statistics (AUDIT F-04)', async () => {
+  const w: any = await runBenchmark({ command: NODE, args: nodeEval('0'), repetitions: 3, warmupRuns: 2 });
+  const f = w.findings[0];
+  assert.equal(f.warmupCompleted, 2); assert.equal(f.runs.length, 3); assert.ok(f.warmups.every((x: any) => x.phase === 'warmup'));
+  assert.equal(f.successfulRuns, 3); assert.ok(f.p95DurationMs >= f.medianDurationMs && f.ci95MeanMs.length === 2 && f.stddevMs >= 0);
+  const bad: any = await runBenchmark({ command: NODE, args: nodeEval('process.exit(2)'), repetitions: 3 });
+  assert.equal(bad.findings[0].successfulRuns, 0); assert.equal(bad.findings[0].meanDurationMs, null);
+});
+check('Benchmark', 'children receive an allowlisted environment: secrets of the parent are not inherited', async () => {
+  process.env.REVERSE_TEST_SECRET = 'top-secret'; process.env.REVERSE_CHILD_ENV = 'REVERSE_TEST_PASS'; process.env.REVERSE_TEST_PASS = 'visible';
+  try {
+    const r: any = await runBenchmark({ command: NODE, args: nodeEval('process.stdout.write(String(process.env.REVERSE_TEST_SECRET)+\"|\"+process.env.REVERSE_TEST_PASS)'), repetitions: 1 });
+    assert.equal(r.findings[0].runs[0].stdout, 'undefined|visible');
+  } finally { delete process.env.REVERSE_TEST_SECRET; delete process.env.REVERSE_CHILD_ENV; delete process.env.REVERSE_TEST_PASS; }
+});
+check('Benchmark', 'the environment fingerprint is recorded, holds no secrets, and different fingerprints warn about comparability', async () => {
+  const { getEnvironmentFingerprint } = await import('../dist/benchmark-environment.js');
+  process.env.REVERSE_TEST_SECRET = 'top-secret';
+  try { assert.ok(!JSON.stringify(getEnvironmentFingerprint()).includes('top-secret')); } finally { delete process.env.REVERSE_TEST_SECRET; }
+  const a: any = await runBenchmark({ command: NODE, args: nodeEval('0'), repetitions: 1 });
+  const b: any = JSON.parse(JSON.stringify(a)); b.findings[0].environment.cpu.cores += 1;
+  const same: any = await compareBenchmarks(a, a), diff: any = await compareBenchmarks(a, b);
+  assert.equal(same.findings[0].environmentComparable, true); assert.equal(diff.findings[0].environmentComparable, false);
+  assert.ok(diff.findings[0].warnings[0].includes('cpu')); assert.equal(diff.status, 'partial');
+});
+check('Benchmark', 'compareBenchmarks gives a significance verdict from repeated runs, never from means alone (AUDIT F-04)', async () => {
+  const mk = (ds: number[]) => ({ findings: [{ meanDurationMs: ds.reduce((x, y) => x + y) / ds.length, runs: ds.map(d => ({ durationMs: d, exitCode: 0 })) }] });
+  const slow = mk([200, 202, 198, 201, 199, 203]), fast = mk([100, 101, 99, 102, 98, 100]);
+  assert.equal(((await compareBenchmarks(slow, fast)) as any).findings[0].verdict, 'improved');
+  assert.equal(((await compareBenchmarks(fast, slow)) as any).findings[0].verdict, 'regressed');
+  assert.equal(((await compareBenchmarks(mk([100, 120, 90, 110, 95]), mk([105, 99, 118, 92, 108]))) as any).findings[0].verdict, 'no_significant_change');
+  assert.equal(((await compareBenchmarks(mk([200, 201]), mk([100, 99]))) as any).findings[0].verdict, 'insufficient_evidence');
+});
+check('MCP', 'command-running tools are refused by default and gated by mode, allowlist and cwd root (AUDIT F-01)', async () => {
+  const body = { command: NODE, args: nodeEval('process.stdout.write("x")'), repetitions: 1 };
+  const refused = async (env: Record<string, string>, args: any = body) => {
+    const s = startMcp([MCP], env);
+    try { const m = await s.req('tools/call', { name: 'run_benchmark', arguments: args }); return m.result; } finally { s.close(); }
+  };
+  const off = await refused({}); assert.equal(off.isError, true); assert.match(off.content[0].text, /disabled/);
+  for (const tool of ['capture_baseline', 'validate_changes']) {
+    const s = startMcp();
+    try { const m = await s.req('tools/call', { name: tool, arguments: { ...body, expected: {} } }); assert.equal(m.result.isError, true, tool); } finally { s.close(); }
+  }
+  const noList = await refused({ REVERSE_MODE: 'CONTROLLED_EXECUTION' }); assert.match(noList.content[0].text, /ALLOWLIST/);
+  const wrong = await refused({ REVERSE_MODE: 'CONTROLLED_EXECUTION', REVERSE_COMMAND_ALLOWLIST: 'other-tool' }); assert.match(wrong.content[0].text, /not on/);
+  const outside = await refused({ ...GATE_ENV, REVERSE_CWD_ROOT: path.join(WORK, 'cwd') }, { ...body, cwd: WORK }); assert.match(outside.content[0].text, /outside/);
+  const okr = await refused(GATE_ENV); assert.equal(okr.isError, false);
+});
+check('MCP', 'tools carry annotations: command-running tools are not read-only', async () => {
+  const s = startMcp();
+  try {
+    const tools = (await s.req('tools/list')).result.tools;
+    for (const t of tools) assert.equal(typeof t.annotations.readOnlyHint, 'boolean', t.name);
+    for (const n of ['capture_baseline', 'run_benchmark', 'validate_changes']) assert.equal(tools.find((t: any) => t.name === n).annotations.readOnlyHint, false, n);
+    assert.equal(tools.find((t: any) => t.name === 'inspect_process').annotations.readOnlyHint, true);
+  } finally { s.close(); }
 });
