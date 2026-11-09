@@ -297,7 +297,7 @@ Trials are required on three kinds of application defined by the original specif
 
 ## Core development order and completion criteria
 
-Overall order: audit the source REA and build a dependency graph; extract a minimal portable core; assemble a standalone version with MCP; implement profiling; implement Benchmark and Validation; integrate with the external AI agent (MCP connection, instructions and skills, context passing, control of experiment sequence and re-checks); verify on real applications. Do not try to build everything at once; build a working compact core first and extend it gradually.
+Overall order: assemble a standalone version with MCP; implement profiling; implement Benchmark and Validation; integrate with the external AI agent (MCP connection, instructions and skills, context passing, control of experiment sequence and re-checks); verify on real applications. Do not try to build everything at once; build a working compact core first and extend it gradually.
 
 The core is considered ready for first production use when it:
 
