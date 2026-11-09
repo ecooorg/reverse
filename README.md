@@ -6,7 +6,7 @@ Reverse is a compact, local-first analysis core for software investigation and o
 
 ## Requirements
 
-- Node.js 20.11 or newer
+- Node.js 22 or newer
 - npm
 - Optional: `ps` on Unix-like systems for process inventory and sampling
 
@@ -81,7 +81,7 @@ The server writes protocol messages to stdout. Do not add logging to stdout; dia
 2. Findings carry status, timestamp, host, coverage, limitations, and evidence references.
 3. External analysis engines are providers, never silently simulated.
 4. Commands execute locally. Reverse does not upload inspected binaries.
-5. Mutating operations are out of scope for this MVP. Benchmark/validation commands do execute user-supplied commands under the current user's permissions.
+5. Mutating operations are out of scope for this MVP. Benchmark/validation commands do execute user-supplied commands under the current user's permissions; over MCP they are off unless `REVERSE_MODE=CONTROLLED_EXECUTION` and `REVERSE_COMMAND_ALLOWLIST` are set (see docs/MCP.md).
 6. A timing improvement is not proof of semantic equivalence.
 7. Analogies and AI guesses are hypotheses, kept apart from facts and confirmed only by checks (planned).
 8. The legacy track is for open-source software or software whose developers and rights holders consent; see [SECURITY.md](docs/SECURITY.md).

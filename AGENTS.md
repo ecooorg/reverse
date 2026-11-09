@@ -36,7 +36,7 @@ A change is finished only when all of these hold, and you have actually run them
 3. `node tests/check-structure.mjs --built` passes.
 4. MCP and CLI stay backward compatible: existing tool names, arguments and commands keep working. Tools listed in `docs/MCP.md` must match `tools/list` exactly.
 5. Documentation is updated in the same change (`README.md`, `docs/*.md`, help text). The package version is bumped according to the roadmap, and `src/core-version.ts`, `package.json` and `package-lock.json` agree.
-6. The workflow `.github/workflows/capabilities.yml` is green on Linux, macOS and Windows (Node 20, 22 and 24). To save paid runner minutes, a push or pull request runs only one Linux job (Node 22); the full matrix and the package check are started by hand (Actions → Capabilities → Run workflow, `workflow_dispatch`). Before declaring a patch done, run that manual workflow with `os: all`. If you could only run Linux locally, say so explicitly; never claim macOS or Windows results you did not see.
+6. The workflow `.github/workflows/capabilities.yml` is green on Linux, macOS and Windows (Node 22 and 24). To save paid runner minutes, a push or pull request runs only one Linux job (Node 22); the full matrix and the package check are started by hand (Actions → Capabilities → Run workflow, `workflow_dispatch`). Before declaring a patch done, run that manual workflow with `os: all`. If you could only run Linux locally, say so explicitly; never claim macOS or Windows results you did not see.
 
 Never weaken, skip or delete a test or a check to make a run pass. If a check is wrong, fix the check and explain why. If the product is wrong, fix the product.
 
@@ -60,7 +60,7 @@ Never weaken, skip or delete a test or a check to make a run pass. If a check is
 
 ## 7. Engineering rules
 
-- TypeScript `strict`, ESM, Node 20 or newer, **zero runtime dependencies**. Adding a dependency needs a written justification and the user's approval; devDependencies are acceptable when needed for build or tests.
+- TypeScript `strict`, ESM, Node 22 or newer, **zero runtime dependencies**. Adding a dependency needs a written justification and the user's approval; devDependencies are acceptable when needed for build or tests.
 - Own code stays compact (target 20–30 thousand lines, never above 50 thousand). Do not reimplement what a specialist tool does (disassembler, debugger, instrumentation); wrap it behind an `AnalyzerProvider`. Never remove evidence, validation or safety code just to save lines.
 - Every operation returns the `Result` envelope from `src/core-types.ts` with honest `status`, `coverage`, `limitations` and `errors`. Return `partial` instead of throwing for bad input files or an absent process; throw only for programmer errors such as an invalid PID.
 - Cross-platform from the start: Linux, macOS and Windows. Do not add POSIX-only or Windows-only code without a branch for the other systems or a recorded limitation. Use `path`, never hard-coded separators.
