@@ -6,7 +6,7 @@ Reverse is a compact, local-first analysis core (CLI plus MCP stdio server) that
 
 Before reading code or making any change:
 
-1. Read `docs/ROADMAP.md` from the top. Its first section is the delivery plan (patches A–K, plus L after 1.0): find the patch you are working on, what it closes, what it depends on, and its status. Do not start work that belongs to a later patch, and do not skip a dependency.
+1. Read `docs/ROADMAP.md` from the top. Its first section is the delivery plan (patches A–K, then L and the legacy track M–P after 1.0; the track follows the platform-wave order: Windows up to 2010, old Linux, old Mac, old Android, then the newer generations): find the patch you are working on, what it closes, what it depends on, and its status. Do not start work that belongs to a later patch, and do not skip a dependency.
 2. Read the newest audit at the top of `docs/AUDIT.md`: findings addressed by your patch must be closed there (`Status: closed in <version>, <patch>`). Then read `docs/ARCHITECTURE.md` (what is implemented versus planned), `docs/CAPABILITIES.md` (what really works), `docs/MCP.md` and `docs/SECURITY.md`.
 3. If the user's request is not covered by the roadmap, say so and ask whether to add it to the roadmap before building it.
 4. Audit tasks are project tasks: the "Approved audit backlog" table in the roadmap lists every finding and recommendation with its patch. Work the rows of your patch, and close the matching findings in `docs/AUDIT.md`. A new audit is added at the top of `docs/AUDIT.md` and its IDs are appended to that table in the same change.
