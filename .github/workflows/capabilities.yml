@@ -334,7 +334,7 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v7.0.1
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           pattern: ci-parts-report-*
           path: reports
