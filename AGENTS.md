@@ -35,7 +35,7 @@ A change is finished only when all of these hold, and you have actually run them
 3. `node tests/check-structure.mjs --built` passes.
 4. MCP and CLI stay backward compatible: existing tool names, arguments and commands keep working. Tools listed in `docs/MCP.md` must match `tools/list` exactly.
 5. Documentation is updated in the same change (`README.md`, `docs/*.md`, help text). The package version is bumped according to the roadmap, and `src/core-version.ts`, `package.json` and `package-lock.json` agree.
-6. The workflow `.github/workflows/capabilities.yml` is green on Linux, macOS and Windows (Node 20, 22 and 24). If you could only run Linux locally, say so explicitly; never claim macOS or Windows results you did not see.
+6. The workflow `.github/workflows/capabilities.yml` is green on Linux, macOS and Windows (Node 20, 22 and 24). To save paid runner minutes, pull requests run only Linux on Node 20/22/24 plus one Windows and one macOS cell (Node 22); the full matrix runs on pushes to `main`/`develop` and on manual dispatch (`workflow_dispatch`). Before declaring a patch done, run the full matrix through `workflow_dispatch` on the branch. If you could only run Linux locally, say so explicitly; never claim macOS or Windows results you did not see.
 
 Never weaken, skip or delete a test or a check to make a run pass. If a check is wrong, fix the check and explain why. If the product is wrong, fix the product.
 
