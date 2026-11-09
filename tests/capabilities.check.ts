@@ -600,11 +600,40 @@ check('Benchmark', 'a timeout returns promptly even when a grandchild holds the 
   const r: any = await runBenchmark({ command: NODE, args: nodeEval(code), timeoutMs: 500, repetitions: 1 });
   assert.ok(Date.now() - t0 < 8000, `took ${Date.now() - t0} ms`); assert.equal(r.findings[0].runs[0].timedOut, true);
 });
-check('Benchmark', 'reports P95, std-dev, MAD, outliers, CI and environment; CPU time and peak RAM are still not measured', async c => {
+check('Benchmark', 'reports P95, std-dev, MAD, outliers, CI, environment, binary size and cold/warm labels', async () => {
   const f: any = ((await runBenchmark({ command: NODE, args: nodeEval('0'), repetitions: 2 })) as any).findings[0];
-  for (const k of ['p95DurationMs', 'stddevMs', 'madMs', 'outlierDurationsMs', 'ci95MeanMs', 'environment', 'warmupCompleted']) assert.notEqual(f[k], undefined, k);
-  for (const k of ['cpuTimeMs', 'peakRssKb']) assert.equal(f[k], undefined, k);
-  c.limit('no per-run CPU time and peak RAM, no cold/warm classification (patch C, open)');
+  for (const k of ['p95DurationMs', 'stddevMs', 'madMs', 'outlierDurationsMs', 'ci95MeanMs', 'environment', 'warmupCompleted', 'resourceMetrics', 'binarySizeBytes', 'coldDurationMs', 'warmMedianDurationMs']) assert.notEqual(f[k], undefined, k);
+  assert.ok(f.binarySizeBytes > 1000, `binary size ${f.binarySizeBytes}`);
+  assert.deepEqual(f.runs.map((x: any) => x.temperature), ['cold', 'warm']);
+  assert.equal(f.coldPhase, 'measured');
+  const w: any = ((await runBenchmark({ command: NODE, args: nodeEval('0'), repetitions: 1, warmupRuns: 1 })) as any).findings[0];
+  assert.equal(w.warmups[0].temperature, 'cold'); assert.equal(w.runs[0].temperature, 'warm'); assert.equal(w.coldPhase, 'warmup');
+});
+check('Benchmark', 'per-run CPU time and peak RAM of the child are measured (Linux /proc, macOS ps); Windows is not sampled', async c => {
+  // A child that holds ~80 MB and burns CPU for a moment, so that sampling has something to see.
+  const code = 'const a=Buffer.alloc(80*1024*1024,1);let x=0;const t=Date.now();while(Date.now()-t<400)x+=Math.sqrt(x+1);process.stdout.write(String(a.length))';
+  const f: any = ((await runBenchmark({ command: NODE, args: nodeEval(code), repetitions: 3 })) as any).findings[0];
+  if (process.platform === 'win32') {
+    assert.equal(f.resourceMetrics.available, false); assert.equal(f.medianCpuTimeMs, null); assert.equal(f.medianPeakRssBytes, null);
+    c.limit('Windows: per-run CPU time and peak RAM are not sampled yet (binary size and cold/warm labels are)');
+    return;
+  }
+  if (!f.resourceMetrics.available) { c.limit(`resource sampling produced no data on ${process.platform}: ${f.resourceMetrics.reason ?? 'unknown'}`); return; }
+  assert.ok(f.runs.every((x: any) => x.cpuTimeMs !== null && x.peakRssBytes !== null), 'every successful run carries CPU time and peak RSS');
+  assert.ok(f.medianCpuTimeMs >= 150, `CPU time ${f.medianCpuTimeMs} ms for a 400 ms busy loop`);
+  assert.ok(f.medianCpuTimeMs <= f.medianDurationMs * 2 + 100, 'CPU time is plausible against wall-clock time');
+  assert.ok(f.medianPeakRssBytes >= 60 * 1024 * 1024, `peak RSS ${f.medianPeakRssBytes} bytes for an 80 MiB buffer`);
+  assert.ok(f.maxPeakRssBytes >= f.medianPeakRssBytes);
+});
+check('Benchmark', 'compare_results reports CPU time, peak RAM and binary size changes per metric', async () => {
+  const mk = (cpu: number[], rss: number[], size: number) => ({ findings: [{ meanDurationMs: 100, binarySizeBytes: size, medianCpuTimeMs: cpu[0], medianPeakRssBytes: rss[0], runs: cpu.map((v, i) => ({ durationMs: 100, exitCode: 0, cpuTimeMs: v, peakRssBytes: rss[i] })) }] });
+  const r: any = await compareBenchmarks(mk([100, 101, 99, 100, 102, 98], [50e6, 50e6, 50e6, 50e6, 50e6, 50e6], 1000), mk([50, 51, 49, 50, 52, 48], [40e6, 40e6, 40e6, 40e6, 40e6, 40e6], 900));
+  const m = r.findings[0].metrics;
+  assert.equal(m.binarySizeBytes.delta, -100); assert.equal(m.binarySizeBytes.changePercent, -10);
+  assert.ok(m.cpuTimeMedianMs.changePercent < -40); assert.equal(m.cpuTimeVerdict, 'improved');
+  assert.equal(m.peakRssMedianBytes.changePercent, -20);
+  const none: any = await compareBenchmarks({ findings: [{ meanDurationMs: 100 }] }, { findings: [{ meanDurationMs: 90 }] });
+  assert.equal(none.findings[0].metrics.cpuTimeMedianMs, null); assert.equal(none.findings[0].metrics.cpuTimeVerdict, null);
 });
 
 // ---------------------------------------------------------------- 8. validation
