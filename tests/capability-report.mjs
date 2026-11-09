@@ -5,10 +5,15 @@
 //   node tests/capability-report.mjs report1.json [report2.json ...]
 //
 // Output goes to $GITHUB_STEP_SUMMARY when set, otherwise to stdout.
-import { readFileSync, appendFileSync } from 'node:fs';
+import { readFileSync, appendFileSync, existsSync } from 'node:fs';
 
 const files = process.argv.slice(2);
 if (!files.length) { console.error('usage: capability-report.mjs <report.json>...'); process.exit(2); }
+const missing = files.filter(f => !existsSync(f));
+if (missing.length) {
+  console.error(`No capability report found: ${missing.join(', ')}. The capability jobs did not produce a report (check their logs).`);
+  process.exit(2);
+}
 
 const ICON = { verified: '✅', limitation: '🚧', drift: '⚠️', failed: '❌' };
 const reports = files.map(f => {

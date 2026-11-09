@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts from 'typescript-api';
 import { readFile } from 'node:fs/promises';
 
 // Only files touched by this patch are subject to the formatter gate. Older
