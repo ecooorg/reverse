@@ -1,8 +1,42 @@
-import { promisify } from 'node:util';import { execFile } from 'node:child_process';import { result } from './core-types.js';import { execTimeoutMs } from './core-util.js';
-const exec=promisify(execFile);
-export async function profileProcess(pid:number,durationMs=3000,intervalMs=250){
- if(!Number.isInteger(pid)||pid<=0)throw new Error('PID must be a positive integer.');const duration=Math.max(500,Math.min(30000,durationMs)),interval=Math.max(100,Math.min(2000,intervalMs));const samples:{at:string;cpuPercent?:number;rssKb?:number;state?:string}[]=[];let errors:string[]=[];
- const end=Date.now()+duration;while(Date.now()<end){try{if(process.platform==='win32'){const {stdout}=await exec('powershell.exe',['-NoProfile','-Command',`$p=Get-Process -Id ${pid} -ErrorAction Stop; [pscustomobject]@{cpu=$p.CPU;rss=$p.WorkingSet64;threads=$p.Threads.Count}|ConvertTo-Json -Compress`],{timeout:execTimeoutMs(10000),windowsHide:true});const x=JSON.parse(stdout);samples.push({at:new Date().toISOString(),rssKb:Math.round(x.rss/1024),cpuPercent:undefined});}else{const {stdout}=await exec('ps',['-p',String(pid),'-o','%cpu=,rss=,state='],{timeout:execTimeoutMs(3000)});const m=stdout.trim().match(/^([\d.]+)\s+(\d+)\s+(\S+)/);if(!m)throw new Error('Process is no longer visible.');samples.push({at:new Date().toISOString(),cpuPercent:+m[1],rssKb:+m[2],state:m[3]});}}catch(e){errors.push(e instanceof Error?e.message:String(e));break;}await new Promise(r=>setTimeout(r,interval));}
- const rss=samples.map(s=>s.rssKb).filter((x):x is number=>x!==undefined),cpu=samples.map(s=>s.cpuPercent).filter((x):x is number=>x!==undefined);const findings=[{pid,durationMs:Date.now()-(end-duration),sampleCount:samples.length,averageCpuPercent:cpu.length?cpu.reduce((a,b)=>a+b,0)/cpu.length:null,peakCpuPercent:cpu.length?Math.max(...cpu):null,averageRssKb:rss.length?rss.reduce((a,b)=>a+b,0)/rss.length:null,peakRssKb:rss.length?Math.max(...rss):null,samples}];
- return result('pid:'+pid,'process_profile',findings,{status:errors.length?'partial':'completed',errors,limitations:[process.platform==='win32'?'Windows CPU percentage is omitted in this MVP; RSS is sampled.':'CPU percentage is the OS ps snapshot value, not a function-level profile.','Sampling has overhead and may miss short-lived peaks.','No function-level hotspots, disk I/O, network I/O, or child-process aggregation.'],coverage:{examined:samples.length>0,complete:false,notes:['Only the selected process is sampled.','Sampling interval and duration are bounded by the implementation.']}});
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { randomUUID } from 'node:crypto';
+import { result } from './core-types.js';
+import { inspectProcess } from './process-inspector.js';
+export type ProfileMode='Snapshot'|'Monitor'|'Diagnostic'|'Compare';
+export interface ProfileOptions { durationMs?:number; intervalMs?:number; mode?:ProfileMode; }
+export async function profileProcess(pid:number,durationMs=3000,intervalMs=250,mode:ProfileMode='Monitor'){
+ if(!Number.isInteger(pid)||pid<=0)throw new Error('PID must be a positive integer.');
+ const duration=Math.max(500,Math.min(30000,durationMs)),interval=Math.max(100,Math.min(2000,intervalMs));
+ const samples:any[]=[],errors:string[]=[];let previous:any=null;const started=Date.now();
+ do {
+  const r:any=await inspectProcess(pid);const p=r.findings[0];
+  if(!p){errors.push(...r.limitations,'Process vanished or is not visible.');break;}
+  const cpuDelta=previous&&p.cpuTimeMs!==undefined&&previous.cpuTimeMs!==undefined?(p.cpuTimeMs-previous.cpuTimeMs):undefined;
+  const elapsed=previous?Date.parse(new Date().toISOString())-Date.parse(previous.at):undefined;
+  const cpuPercent=cpuDelta!==undefined&&elapsed&&elapsed>0?Math.max(0,cpuDelta/elapsed*100/Math.max(1,(await import('node:os')).cpus().length)):p.cpuPercent;
+  samples.push({at:new Date().toISOString(),cpuPercent,rssBytes:p.rssBytes,vmsBytes:p.vmsBytes,cpuTimeMs:p.cpuTimeMs,diskReadBytes:p.diskReadBytes,diskWriteBytes:p.diskWriteBytes,threads:p.threads,ppid:p.ppid,children:p.children,identity:{name:p.name,executable:p.executable}});
+  previous={...p,at:samples[samples.length-1].at};
+  if(mode==='Snapshot')break;
+  if(Date.now()-started>=duration)break;
+  await new Promise(r=>setTimeout(r,Math.min(interval,duration-(Date.now()-started))));
+ }while(Date.now()-started<duration);
+ const avg=(key:string)=>{const a=samples.map(x=>x[key]).filter((x:number)=>Number.isFinite(x));return a.length?a.reduce((x:number,y:number)=>x+y,0)/a.length:null;};
+ const peak=(key:string)=>{const a=samples.map(x=>x[key]).filter((x:number)=>Number.isFinite(x));return a.length?Math.max(...a):null;};
+ const first=samples[0],last=samples.at(-1);
+ const finding={pid,mode,durationMs:Date.now()-started,sampleCount:samples.length,averageCpuPercent:avg('cpuPercent'),peakCpuPercent:peak('cpuPercent'),averageRssBytes:avg('rssBytes'),peakRssBytes:peak('rssBytes'),memoryChangeBytes:first&&last&&first.rssBytes!==undefined&&last.rssBytes!==undefined?last.rssBytes-first.rssBytes:null,readBytesDelta:first&&last?Math.max(0,(last.diskReadBytes??0)-(first.diskReadBytes??0)):null,writeBytesDelta:first&&last?Math.max(0,(last.diskWriteBytes??0)-(first.diskWriteBytes??0)):null,peakThreads:peak('threads'),samples};
+ const home=process.env.REVERSE_HOME||path.join(process.env.HOME||process.env.USERPROFILE||'.','.reverse');const dir=path.join(home,'profiles');await mkdir(dir,{recursive:true});
+ const artifactPath=path.join(dir,`${randomUUID()}.json`);await writeFile(artifactPath,JSON.stringify({schemaVersion:1,generatedAt:new Date().toISOString(),finding},null,2)+'\n','utf8');
+ return result('pid:'+pid,'process_profile',[{...finding,artifactPath}],{status:errors.length||!samples.length?'partial':'completed',errors,limitations:['Process-level sampling; no function-level hotspots or network metrics.','Metrics depend on operating-system permissions and provider availability.'],coverage:{examined:samples.length>0,complete:false,notes:['Sampling duration and interval are bounded.','CPU utilization is derived from process CPU-time deltas where available.','Profile is persisted as structured JSON.']}});
+}
+export async function monitorProcess(pid:number,options:ProfileOptions={}){return profileProcess(pid,options.durationMs,options.intervalMs,options.mode??'Monitor');}
+export async function detectResourceAnomalies(series:any[]){
+ const findings:any[]=[];for(const p of series){const s=Array.isArray(p.samples)?p.samples:[];if(!s.length)continue;
+ const cpu=s.map((x:any)=>x.cpuPercent).filter(Number.isFinite),rss=s.map((x:any)=>x.rssBytes).filter(Number.isFinite);
+ const avg=(a:number[])=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
+ if(cpu.length&&avg(cpu)>80)findings.push({pid:p.pid,type:'sustained_cpu',severity:'high',averageCpuPercent:avg(cpu),threshold:80});
+ if(rss.length>=3&&rss.at(-1)>rss[0]*1.2)findings.push({pid:p.pid,type:'growing_memory',severity:'medium',growthBytes:rss.at(-1)-rss[0],growthRatio:rss.at(-1)/Math.max(1,rss[0])});
+ if(cpu.length&&Math.max(...cpu)>95)findings.push({pid:p.pid,type:'cpu_spike',severity:'medium',peakCpuPercent:Math.max(...cpu),threshold:95});
+ }
+ return result('local-host','resource_anomalies',findings,{coverage:{examined:true,complete:true,notes:['Deterministic thresholds: sustained CPU >80%, spike >95%, RSS growth >20%.']}});
 }
