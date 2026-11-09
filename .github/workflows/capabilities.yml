@@ -95,6 +95,10 @@ jobs:
           {
           npm ci --ignore-scripts
           } > ci-logs/02-npm-ci-ignore-scripts.log 2>&1
+      - name: Static quality gates (format and own-line budget)
+        run: |
+          npm run format:check
+          npm run size:check
       - name: Build library, CLI and MCP server
         run: |
           mkdir -p ci-logs
