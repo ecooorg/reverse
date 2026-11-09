@@ -1,6 +1,6 @@
-# CREA — Compact Reverse Engineer Anything
+# Reverse — Compact Reverse Engineer Anything
 
-CREA is a compact, local-first analysis core for software investigation and optimization experiments. It provides a CLI and a standalone Model Context Protocol (MCP) stdio server. It focuses on deterministic observations, repeatable wall-clock benchmarks, behavior checks, and evidence rather than embedding an AI planner or reimplementing specialist reverse-engineering tools.
+Reverse is a compact, local-first analysis core for software investigation and optimization experiments. It provides a CLI and a standalone Model Context Protocol (MCP) stdio server. It focuses on deterministic observations, repeatable wall-clock benchmarks, behavior checks, and evidence rather than embedding an AI planner or reimplementing specialist reverse-engineering tools.
 
 > **MVP status:** this is an independently implemented starter release. Capabilities marked as extension points are not implemented integrations. Read [CAPABILITIES.md](docs/CAPABILITIES.md) before relying on a result.
 
@@ -15,13 +15,13 @@ No Ghidra, Frida, Rizin, GDB, perf, eBPF, ETW, Instruments, or native compiler i
 ## Install from source
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/crea.git
-cd crea
+git clone https://github.com/YOUR-USERNAME/reverse.git
+cd reverse
 npm install
 npm run build
 npm test
 npm link
-crea --help
+reverse --help
 ```
 
 Run without linking: `node dist/cli-main.js --help`.
@@ -30,41 +30,41 @@ Run without linking: `node dist/cli-main.js --help`.
 
 ```bash
 # Inspect a native executable header (ELF, PE, Mach-O)
-crea binary ./path/to/program --json
+reverse binary ./path/to/program --json
 
 # Inventory source files and textual imports
-crea source ./my-project --json
+reverse source ./my-project --json
 
 # Read direct npm dependencies
-crea dependencies ./my-project --json
+reverse dependencies ./my-project --json
 
 # List visible processes
-crea processes --limit 100 --json
+reverse processes --limit 100 --json
 
 # Sample one process for 3 seconds
-crea profile 1234 --duration 3000 --interval 250 --json
+reverse profile 1234 --duration 3000 --interval 250 --json
 
 # Benchmark a command (no shell; use --arg once per argument)
-crea benchmark --command node --arg ./script.js --repeat 5 --timeout 30000 --json
+reverse benchmark --command node --arg ./script.js --repeat 5 --timeout 30000 --json
 
 # Start the MCP server
-crea mcp
+reverse mcp
 ```
 
-CREA stores evidence and benchmark artifacts under `~/.crea` by default. Set `CREA_HOME` to choose another local storage directory.
+Reverse stores evidence and benchmark artifacts under `~/.reverse` by default. Set `REVERSE_HOME` to choose another local storage directory.
 
 ## MCP connection
 
-CREA implements the MCP JSON-RPC stdio transport and exposes tools including `inspect_target`, `analyze_binary`, `analyze_source`, `analyze_dependencies`, `get_inventory`, `inspect_process`, `profile_process`, `run_benchmark`, `compare_results`, `validate_changes`, `get_evidence`, and `list_analyzers`.
+Reverse implements the MCP JSON-RPC stdio transport and exposes tools including `inspect_target`, `analyze_binary`, `analyze_source`, `analyze_dependencies`, `get_inventory`, `inspect_process`, `profile_process`, `run_benchmark`, `compare_results`, `validate_changes`, `get_evidence`, and `list_analyzers`.
 
 Example client configuration:
 
 ```json
 {
   "mcpServers": {
-    "crea": {
+    "reverse": {
       "command": "node",
-      "args": ["/absolute/path/to/crea/dist/mcp-server.js"]
+      "args": ["/absolute/path/to/reverse/dist/mcp-server.js"]
     }
   }
 }
@@ -74,10 +74,10 @@ The server writes protocol messages to stdout. Do not add logging to stdout; dia
 
 ## Design principles
 
-1. The model proposes hypotheses; CREA reports observations and measurements.
+1. The model proposes hypotheses; Reverse reports observations and measurements.
 2. Findings carry status, timestamp, host, coverage, limitations, and evidence references.
 3. External analysis engines are providers, never silently simulated.
-4. Commands execute locally. CREA does not upload inspected binaries.
+4. Commands execute locally. Reverse does not upload inspected binaries.
 5. Mutating operations are out of scope for this MVP. Benchmark/validation commands do execute user-supplied commands under the current user's permissions.
 6. A timing improvement is not proof of semantic equivalence.
 

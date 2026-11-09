@@ -1,11 +1,11 @@
 {
-  "name": "crea-compact-reverse-engineer-anything",
+  "name": "reverse-engineer-anything",
   "version": "0.1.0",
   "private": false,
   "description": "A compact local analysis, profiling, benchmarking and evidence core with CLI and MCP interfaces.",
   "type": "module",
   "bin": {
-    "crea": "dist/cli-main.js"
+    "reverse": "dist/cli-main.js"
   },
   "exports": {
     ".": {
