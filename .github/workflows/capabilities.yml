@@ -210,7 +210,7 @@ jobs:
           } > ci-logs/09-capability-report-single-run.log 2>&1
       - name: Upload capability report and JUnit timings
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ci-parts-report-${{ matrix.os }}-node${{ matrix.node }}
           path: |
@@ -221,7 +221,7 @@ jobs:
 
       - name: Upload job logs (merged later, ci-quiet)
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ci-parts-logs-capabilities-${{ matrix.os }}-node${{ matrix.node }}
           path: |
@@ -319,7 +319,7 @@ jobs:
 
       - name: Upload job logs (merged later, ci-quiet)
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ci-parts-logs-package-${{ matrix.os }}
           path: |
@@ -350,7 +350,7 @@ jobs:
 
       - name: Upload job logs (merged later, ci-quiet)
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ci-parts-logs-summary
           path: |
@@ -365,7 +365,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/upload-artifact/merge@v6
+      - uses: actions/upload-artifact/merge@v7
         with:
           name: ${{ github.workflow }}
           pattern: ci-parts-*
