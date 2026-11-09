@@ -72,7 +72,7 @@ jobs:
     env:
       REVERSE_CAPABILITY_REPORT: capability-reports/${{ matrix.os }}-node${{ matrix.node }}.json
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7.0.1
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node }}
@@ -240,7 +240,7 @@ jobs:
       matrix:
         os: ${{ fromJSON(inputs.os == 'all' && '["ubuntu-latest","windows-latest"]' || format('["{0}"]', inputs.os)) }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7.0.1
       - uses: actions/setup-node@v5
         with:
           node-version: 22
@@ -333,7 +333,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7.0.1
       - uses: actions/download-artifact@v7
         with:
           pattern: ci-parts-report-*
