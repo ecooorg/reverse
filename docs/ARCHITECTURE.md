@@ -70,7 +70,7 @@ Copy protection, dongles and license checks are reported as facts but are not de
 
 - **Analysis Core:** bounded file/header inspection, source inventory, direct manifest dependency inventory.
 - **Process Core:** point-in-time process inventory and selected-process inspection.
-- **Measurement Core:** bounded OS process sampling and repeated wall-clock command benchmarks.
+- **Measurement Core:** bounded OS process sampling and repeated command benchmarks (wall-clock, sampled CPU time and peak RAM, binary size).
 - **Validation Core:** exact caller-supplied stdout/stderr/exit-code checks. This is not semantic equivalence checking.
 - **Evidence Core:** timestamped, source-linked evidence records and local JSON artifacts.
 - **AI Interface:** CLI and an independent MCP stdio server over the same TypeScript functions.

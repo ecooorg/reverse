@@ -73,11 +73,13 @@ Closes **Advanced Process Inspector**, **Time-Series Performance Profiler** and 
 
 Capability checks added for identity/ownership, cancellation, resource-control reporting and the new MCP tool.
 
-### Patch C — Measurement engine and baselines (0.2) — in progress, first part released as 0.2.0-beta.3
+### Patch C — Measurement engine and baselines (0.2) — in progress, parts 1 and 2 released (0.2.0-beta.3, 0.2.0-beta.4)
 
 **Done in 0.2.0-beta.3:** command-execution gate, allowlisted child environment and tool annotations (F-01); statistics, warm-up runs, failed-run exclusion and the `improved`/`regressed`/`no_significant_change`/`insufficient_evidence` verdict (F-04, most of R-13); environment fingerprint, comparability warning and `get_environment_fingerprint`; `noUnusedParameters`, `.gitattributes`, Node 22+ (F-14, R-16).
 
-**Still open in patch C (not claimed):** per-run CPU time and peak RAM, binary size, cold/warm classification, interleaved A/B runs, environment-noise detection, baseline manager and `create_benchmark_suite` / `run_benchmark_suite` / `compare_benchmarks`, F-12 (identity-checked group kill), F-16 (test split, partly started with `tests/benchmark-stats.test.ts`), F-17 and R-02 (`untrustedContent` wrapper, adversarial fixtures), R-03, R-05, R-06, R-17 and the hyperfine-compatible export of R-12. The checks *Benchmark — reports P95…* stays 🚧 until CPU time and peak RAM exist. Patch C is not done and the roadmap does not mark it so.
+**Done in 0.2.0-beta.4:** per-run CPU time and peak RAM (sampled: Linux `/proc`, macOS `ps`; Windows not sampled yet), binary size, cold/warm labels, per-metric comparison in `compare_results`.
+
+**Still open in patch C (not claimed):** Windows CPU time and peak RAM, interleaved A/B runs, environment-noise detection, baseline manager and `create_benchmark_suite` / `run_benchmark_suite` / `compare_benchmarks`, F-12 (identity-checked group kill), F-16 (test split, partly started with `tests/benchmark-stats.test.ts`), F-17 and R-02 (`untrustedContent` wrapper, adversarial fixtures), R-03, R-05, R-06, R-17 and the hyperfine-compatible export of R-12. The Benchmark 🚧 about missing CPU time and peak RAM is closed on Linux; on Windows a 🚧 remains until sampling exists there. Patch C is not done and the roadmap does not mark it so.
 
 Closes **Advanced Benchmark Engine** (all items) and the baseline lifecycle.
 
@@ -90,7 +92,7 @@ Closes **Advanced Benchmark Engine** (all items) and the baseline lifecycle.
 - Baseline manager: create, store, re-measure, compare, report; a lower mean alone is never reported as a significant improvement.
 - `create_benchmark_suite`, `run_benchmark_suite`, `compare_benchmarks`, `get_environment_fingerprint`.
 
-Capability checks that flip: *Benchmark — only wall-clock time is measured* becomes ✅.
+Capability checks that flip: *Benchmark — only wall-clock time is measured* becomes ✅ (Linux and macOS since 0.2.0-beta.4; Windows pending).
 
 ### Patch D — Evidence engine, research sessions and MCP surface (0.2)
 
@@ -380,6 +382,13 @@ Depends on O and J. Closes G-05, G-06 and the L3 level of G-10.
 
 Sequencing principle: do not start with Ghidra and do not try to implement every external analyzer at once. First strengthen Reverse's ability to investigate running programs, detect real performance problems and collect evidence, because the main job of Reverse is to help an AI agent find the causes of excessive resource use and objectively verify optimization results. Linux is the first fully supported profiling environment, with interfaces for Windows and macOS designed in from the start.
 
+## 0.2.0-beta.4 — Patch C, part 2
+
+- [x] Per-run CPU time and peak RAM of the benchmark child, sampled (Linux `/proc` every 5 ms, macOS/POSIX `ps` every 25 ms); fields are `null` where nothing could be sampled, never zero. Windows is not sampled yet.
+- [x] Binary size of the command, cold/warm labels (`temperature`, `coldDurationMs`, `warmMedianDurationMs`).
+- [x] `compare_results` reports CPU time, peak RAM (own verdicts, 5-run minimum) and binary size per metric; the headline verdict stays wall-clock.
+- [x] New module `src/benchmark-resources.ts`; parsers are unit-tested with fixtures on every platform (`tests/benchmark-resources.test.ts`).
+
 ## 0.2.0-beta.3 — Patch C, part 1
 
 - [x] Command-running MCP tools refuse unless `REVERSE_MODE=CONTROLLED_EXECUTION` and `REVERSE_COMMAND_ALLOWLIST` are set; optional `REVERSE_CWD_ROOT`; allowlisted child environment; tool annotations (F-01). **Breaking default**, announced here.
@@ -444,9 +453,9 @@ Priorities: Process Manager, Performance Profiler, Evidence Engine and Benchmark
 - [x] Reported as process-level monitoring, not as hot-function detection
 
 **Advanced Benchmark Engine**
-- [ ] Warm-up, cold/warm separation, alternating runs
+- [x] Warm-up and cold/warm labels (0.2.0-beta.3/4); [ ] alternating runs
 - [ ] Mean, median, min/max, P95, standard deviation, MAD, outlier detection, variance and confidence intervals
-- [ ] CPU time, peak RAM and binary-size comparison
+- [x] CPU time, peak RAM and binary-size comparison (0.2.0-beta.4; Windows CPU/RAM sampling still open)
 - [ ] Baseline metadata and hardware/environment fingerprints (OS, CPU, cores, RAM, Node.js/Reverse/target versions, arguments, non-secret environment, benchmark parameters)
 - [ ] Warning about limited comparability when environments differ
 - [ ] No statistical-significance claim from a lower mean alone

@@ -25,7 +25,7 @@ Each tool returns its result as JSON text in `content[0].text` and as the same d
 | `detect_resource_anomalies` | `series` | Detect sustained CPU, CPU spikes and growing RSS in supplied profiles |
 | `get_resource_control_status` | none | Report OS resource-control availability without changing a process |
 | `capture_baseline` | `command` | Persist a named baseline benchmark artifact |
-| `run_benchmark` | `command` | Run command; optional `args`, `cwd`, `timeoutMs`, `repetitions` (1–20), `warmupRuns` (0–5), `label` |
+| `run_benchmark` | `command` | Run command, measure time, CPU time, peak RAM, binary size (0.2.0-beta.4); optional `args`, `cwd`, `timeoutMs`, `repetitions` (1–20), `warmupRuns` (0–5), `label` |
 | `compare_results` | `before`, `after` | Compare Reverse benchmark envelopes |
 | `validate_changes` | `command`, `expected` | Compare exact expected outputs; optional `args`, `cwd`, `timeoutMs`, `repetitions` |
 | `get_environment_fingerprint` | none | Non-secret environment fingerprint (OS, CPU, memory, Node.js, Reverse version) |
