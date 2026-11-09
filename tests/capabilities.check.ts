@@ -26,6 +26,8 @@ import { analyzeSource } from '../dist/analysis-source.js';
 import { analyzeDependencies } from '../dist/analysis-dependencies.js';
 import { listProcesses, inspectProcess } from '../dist/process-inspector.js';
 import { profileProcess } from '../dist/profiling-profiler.js';
+import { getProcessIdentity, verifyProcessIdentity, verifyProcessOwnership } from '../dist/process-inspector.js';
+import { getResourceControlStatus, withProcessResourceLimits } from '../dist/process-safety.js';
 import { runBenchmark, compareBenchmarks } from '../dist/benchmark-engine.js';
 import { validateBehavior } from '../dist/benchmark-validation.js';
 import { EvidenceEngine } from '../dist/evidence-engine.js';
@@ -136,14 +138,14 @@ function startMcp(args: string[] = [MCP]) {
     if (p) { pending.delete(m.id); p(m); } else unsolicited.push(m);
   });
   let n = 0;
-  const req = (method: string, params?: unknown) => new Promise<any>((resolve, reject) => {
-    const id = ++n;
+  const req = (method: string, params?: unknown, requestId?: number) => new Promise<any>((resolve, reject) => {
+    const id = requestId ?? ++n;
     const t = setTimeout(() => reject(new Error(`MCP timeout waiting for ${method}`)), 90000);
     pending.set(id, m => { clearTimeout(t); resolve(m); });
     child.stdin!.write(j({ jsonrpc: '2.0', id, method, params }) + '\n');
   });
   const raw = (s: string) => child.stdin!.write(s + '\n');
-  const notify = (method: string) => raw(j({ jsonrpc: '2.0', method }));
+  const notify = (method: string, params?: unknown) => raw(j({ jsonrpc: '2.0', method, ...(params === undefined ? {} : { params }) }));
   const call = async (name: string, args: unknown) => {
     const m = await req('tools/call', { name, arguments: args });
     if (m.error) throw new Error(`tool ${name}: ${m.error.message}`);
@@ -363,6 +365,21 @@ check('Processes', 'collects thread, memory, I/O and child-process metadata wher
   assert.ok(p.threads === undefined || p.threads >= 0);
 });
 
+check('Processes', 'exposes stable process identity and verifies ownership where the OS provides it', async () => {
+  const identity = await getProcessIdentity(process.pid);
+  assert.ok(identity?.identityToken, 'current process has a start-time identity token');
+  assert.equal(await verifyProcessIdentity(process.pid, identity.identityToken), true);
+  const owner = await verifyProcessOwnership(process.pid);
+  if (process.platform !== 'win32') { assert.equal(owner.known, true); assert.equal(owner.owned, true); }
+});
+check('Safety', 'resource-control status is reported without claiming isolation', async () => {
+  const r: any = await getResourceControlStatus();
+  assert.equal(r.operation, 'resource_control_status');
+  assert.ok(r.findings.length === 1);
+  await assert.rejects(withProcessResourceLimits(process.pid, { memoryMaxBytes: 64 * 1024 * 1024 }, 'READ_ONLY', true, async () => true), /CONTROLLED_EXECUTION/);
+  await assert.rejects(withProcessResourceLimits(process.pid, { memoryMaxBytes: 64 * 1024 * 1024 }, 'CONTROLLED_EXECUTION', false, async () => true), /confirm=true/);
+});
+
 // ---------------------------------------------------------------- 6. profiling
 check('Profiling', 'samples CPU/RSS of a live process and aggregates average/peak', async c => {
   // A busy loop gives non-zero CPU% on POSIX. On Windows CPU is not collected, and a spinning child
@@ -392,6 +409,24 @@ check('Profiling', 'duration and interval are clamped to safe bounds', async () 
     const r: any = await profileProcess(child.pid!, 1, 1);
     assert.ok(Date.now() - t0 >= 450, 'duration below 500ms must be raised to 500ms');
     assert.ok(r.findings[0].sampleCount <= 6, 'interval below 100ms must be raised to 100ms');
+  } finally { await killAndWait(child); }
+});
+check('Profiling', 'rejects a mismatched expected process identity before sampling', async () => {
+  const r: any = await profileProcess(process.pid, 500, 100, 'Monitor', { expectedIdentityToken: 'not-the-current-process-token' });
+  assert.equal(r.status, 'partial');
+  assert.ok(r.errors.some((x: string) => /identity does not match/i.test(x)));
+  assert.equal(r.findings.length, 0);
+});
+check('Profiling', 'caller cancellation stops sampling and returns a partial result', async () => {
+  const child = spawnIdle(); const controller = new AbortController();
+  try {
+    await settle(100);
+    const pending = profileProcess(child.pid!, 2500, 100, 'Monitor', { signal: controller.signal });
+    setTimeout(() => controller.abort(), 250);
+    const r: any = await pending;
+    assert.equal(r.status, 'partial');
+    assert.ok(r.limitations.some((x: string) => /cancelled/i.test(x)));
+    assert.ok(r.findings[0].sampleCount >= 1);
   } finally { await killAndWait(child); }
 });
 check('Profiling', 'a vanished process yields partial with a recorded error', async () => {
@@ -657,7 +692,7 @@ check('CLI', '--json is accepted, documented as having no effect, and output is 
 });
 // ---------------------------------------------------------------- 12. MCP server
 const DOCUMENTED_TOOLS = ['inspect_target', 'analyze_binary', 'analyze_source', 'analyze_dependencies', 'get_inventory', 'list_processes', 'inspect_process', 'profile_process',
-  'monitor_process', 'get_process_metrics', 'get_process_tree', 'analyze_memory', 'analyze_cpu', 'analyze_io', 'detect_resource_anomalies',
+  'monitor_process', 'get_process_metrics', 'get_process_tree', 'analyze_memory', 'analyze_cpu', 'analyze_io', 'detect_resource_anomalies', 'get_resource_control_status',
   'capture_baseline', 'run_benchmark', 'compare_results', 'validate_changes', 'get_evidence', 'list_analyzers'];
 
 check('MCP', 'handshake: initialize, ping and tools/list', async () => {
@@ -692,7 +727,7 @@ check('MCP', 'protocol errors: unknown method, unknown tool, garbage input, noti
     assert.deepEqual(s.unsolicited, [], 'notifications and garbage must not produce responses');
   } finally { s.close(); }
 });
-check('MCP', 'all 21 tools can be called and return parseable JSON results', async () => {
+check('MCP', 'all 22 tools can be called and return parseable JSON results', async () => {
   const s = startMcp();
   const child = spawnIdle();
   try {
@@ -727,6 +762,19 @@ check('MCP', 'all 21 tools can be called and return parseable JSON results', asy
     const ev = await ok('get_evidence', { id: bin.value.evidence[0].id }); assert.equal(ev.value.found, true);
     assert.equal((await ok('get_evidence', { id: 'nope' })).value.found, false);
     assert.ok((await ok('list_analyzers', {})).value.length >= 9);
+    assert.equal((await ok('get_resource_control_status', {})).value.operation, 'resource_control_status');
+  } finally { s.close(); await killAndWait(child); }
+});
+check('MCP', 'notifications/cancelled stops a running process profile request', async () => {
+  const s = startMcp(); const child = spawnIdle(); const requestId = 424242;
+  try {
+    const pending = s.req('tools/call', { name: 'monitor_process', arguments: { pid: child.pid, durationMs: 2500, intervalMs: 100 } }, requestId);
+    await settle(300);
+    s.notify('notifications/cancelled', { requestId });
+    const response = await pending;
+    const value = JSON.parse(response.result.content[0].text);
+    assert.equal(value.status, 'partial');
+    assert.ok(value.limitations.some((x: string) => /cancelled/i.test(x)));
   } finally { s.close(); await killAndWait(child); }
 });
 check('MCP', 'tool errors (missing file, bad PID) surface as JSON-RPC errors, not crashes', async () => {
@@ -739,7 +787,7 @@ check('MCP', 'tool errors (missing file, bad PID) surface as JSON-RPC errors, no
 });
 check('MCP', '"reverse mcp" starts the same stdio server', async () => {
   const s = startMcp([CLI, 'mcp']);
-  try { assert.equal((await s.req('tools/list')).result.tools.length, 21); } finally { s.close(); }
+  try { assert.equal((await s.req('tools/list')).result.tools.length, 22); } finally { s.close(); }
 });
 check('Docs', 'docs/MCP.md says tools return structuredContent', async c => {
   const doc = path.join(ROOT, 'docs', 'MCP.md');
