@@ -69,7 +69,7 @@ function transform(text) {
   }
   closeJob();
   out.push('', '  logs:', '    name: all logs (one artifact)', `    needs: [${jobs.join(', ')}]`, '    if: always()', '    runs-on: ubuntu-latest', '    timeout-minutes: 3', '    steps:',
-    '      - uses: actions/upload-artifact/merge@v6', '        with:', '          name: ci-logs', '          pattern: ci-parts-*', '          separate-directories: true', '          delete-merged: true', '          retention-days: 14');
+    '      - uses: actions/upload-artifact/merge@v6', '        with:', '          name: ${{ github.workflow }}', '          pattern: ci-parts-*', '          separate-directories: true', '          delete-merged: true', '          retention-days: 14');
   return out.join('\n').replace(/\n*$/, '\n').replace(/capability-report-(\$\{\{ matrix\.os|\*)/g, 'ci-parts-report-$1');
 }
 
