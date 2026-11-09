@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Rewrites workflows so that no `run` step prints to the Actions console:
 //   every step writes to ci-logs/NN-name.log (and ci-logs/NN-name.exit on failure),
-//   a final step puts log tails into the Job summary, one artifact per job carries ci-logs/.
+//   GITHUB_STEP_SUMMARY is redirected into ci-logs/NN-name.summary.md, so the run page shows no text at all;
+//   each job uploads its ci-logs/ as a part.
+// A final job `logs` merges every ci-parts-* artifact into ONE artifact `ci-logs` (a single zip per run) and deletes the parts.
 // Idempotent: a workflow that already contains "ci-quiet" markers is left unchanged.
 // Usage: node tests/ci-quiet.mjs .github/workflows/*.yml
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -11,43 +13,20 @@ const ind = n => ' '.repeat(n);
 
 function wrap(body, nn, name, dir) {
   const f = `${dir}/${nn}-${name}`;
-  return [`mkdir -p ${dir}`, `trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ${f}.exit' EXIT`, '{', ...body, `} > ${f}.log 2>&1`];
-}
-
-function summaryStep(job) {
-  return {
-    name: 'Job summary with log tails (ci-quiet)',
-    cond: 'if: always()',
-    body: [
-      'set +e +o pipefail',
-      '{',
-      `  echo "### CI logs: ${job}"; echo`,
-      '  for f in ci-logs/*.log; do',
-      '    [ -f "$f" ] || continue',
-      '    b=${f%.log}; if [ -f "$b.exit" ]; then mark="❌ exit $(cat "$b.exit")"; open=" open"; else mark="✅"; open=""; fi',
-      '    echo "<details$open><summary>$mark $(basename "$b") ($(wc -l < "$f") lines)</summary>"; echo',
-      '    echo "~~~~text"; tail -n 25 "$f" | cut -c1-300 | tr -d "\\r"; echo "~~~~"; echo "</details>"; echo',
-      '  done',
-      '  a=$(grep -h -E "^::(warning|error)" ci-logs/*.log 2>/dev/null | tr -d "\\r" | head -30)',
-      '  if [ -n "$a" ]; then echo "#### Annotations found in logs"; echo; echo "$a" | sed -E "s/^::(warning|error)[^:]*::/- \\1: /"; echo; fi',
-      '} >> "$GITHUB_STEP_SUMMARY"',
-    ],
-  };
+  return [`mkdir -p ${dir}`, `export GITHUB_STEP_SUMMARY=${f}.summary.md`, `trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ${f}.exit' EXIT`, '{', ...body, `} > ${f}.log 2>&1`];
 }
 
 function transform(text) {
   if (text.includes('ci-quiet')) return text;
   const lines = text.split('\n');
   const out = [];
-  let job = null, nn = 0, i = 0, jobIndent = 4;
+  let job = null, nn = 0, i = 0;
+  const jobs = [];
   const closeJob = () => {
     if (!job) return;
-    const s = summaryStep(job);
     const pad = ind(6);
-    const body = wrap(s.body, String(++nn).padStart(2, '0'), 'job-summary', 'ci-logs');
-    out.push(`${pad}- name: ${s.name}`, `${pad}  ${s.cond}`, `${pad}  run: |`, ...body.map(l => `${pad}    ${l}`));
-    out.push(`${pad}- name: Upload logs (one artifact, ci-quiet)`, `${pad}  if: always()`, `${pad}  uses: actions/upload-artifact@v6`, `${pad}  with:`,
-      `${pad}    name: ci-logs-${job}${job === 'capabilities' ? '-\${{ matrix.os }}-node\${{ matrix.node }}' : job === 'structure' || job === 'package' ? '-\${{ matrix.os }}' : ''}`,
+    out.push(`${pad}- name: Upload job logs (merged later, ci-quiet)`, `${pad}  if: always()`, `${pad}  uses: actions/upload-artifact@v6`, `${pad}  with:`,
+      `${pad}    name: ci-parts-logs-${job}${job === 'capabilities' ? '-\${{ matrix.os }}-node\${{ matrix.node }}' : job === 'structure' || job === 'package' ? '-\${{ matrix.os }}' : ''}`,
       `${pad}    path: |`, `${pad}      ci-logs/`, ...(job === 'structure' ? [`${pad}      structure-output.txt`] : []),
       `${pad}    retention-days: 14`, `${pad}    if-no-files-found: ignore`);
     job = null; nn = 0;
@@ -55,7 +34,7 @@ function transform(text) {
   while (i < lines.length) {
     const l = lines[i];
     const jm = l.match(/^  ([a-z][\w-]*):\s*$/);
-    if (jm && out.some(x => x === 'jobs:')) { closeJob(); job = jm[1]; nn = 0; out.push(l); i++; continue; }
+    if (jm && out.some(x => x === 'jobs:')) { closeJob(); job = jm[1]; jobs.push(job); nn = 0; out.push(l); i++; continue; }
     if (l === 'jobs:') { out.push(l); i++; continue; }
     if (job && /^\S/.test(l) && l.trim()) { closeJob(); }
     if (job && l.startsWith('      - ') ) {
@@ -89,7 +68,9 @@ function transform(text) {
     out.push(l); i++;
   }
   closeJob();
-  return out.join('\n').replace(/\n*$/, '\n');
+  out.push('', '  logs:', '    name: all logs (one artifact)', `    needs: [${jobs.join(', ')}]`, '    if: always()', '    runs-on: ubuntu-latest', '    timeout-minutes: 3', '    steps:',
+    '      - uses: actions/upload-artifact/merge@v6', '        with:', '          name: ci-logs', '          pattern: ci-parts-*', '          separate-directories: true', '          delete-merged: true', '          retention-days: 14');
+  return out.join('\n').replace(/\n*$/, '\n').replace(/capability-report-(\$\{\{ matrix\.os|\*)/g, 'ci-parts-report-$1');
 }
 
 for (const f of process.argv.slice(2)) writeFileSync(f, transform(readFileSync(f, 'utf8')));
