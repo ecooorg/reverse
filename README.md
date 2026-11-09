@@ -1,4 +1,4 @@
-# Reverse
+# Reverse — Compact Reverse Engineer Anything
 
 Reverse is a compact, local-first analysis core for software investigation and optimization experiments. It provides a CLI and a standalone Model Context Protocol (MCP) stdio server. It focuses on deterministic observations, repeatable wall-clock benchmarks, behavior checks, and evidence rather than embedding an AI planner or reimplementing specialist reverse-engineering tools.
 
@@ -47,11 +47,14 @@ reverse profile 1234 --duration 3000 --interval 250 --json
 # Benchmark a command (no shell; use --arg once per argument)
 reverse benchmark --command node --arg ./script.js --repeat 5 --timeout 30000 --json
 
+# Check a command's exact output (arguments via --arg, expected values in a JSON file)
+reverse validate --command node --arg ./script.js --expected ./expected.json
+
 # Start the MCP server
 reverse mcp
 ```
 
-Reverse stores evidence and benchmark artifacts under `~/.reverse` by default. Set `REVERSE_HOME` to choose another local storage directory.
+Output is always JSON; `--json` is accepted and has no effect. Reverse stores evidence and benchmark artifacts under `~/.reverse` by default. Set `REVERSE_HOME` to choose another local storage directory, and `REVERSE_EXEC_TIMEOUT_MS` to change the timeout of the helper executables (`ps`, `tasklist`, `powershell`).
 
 ## MCP connection
 

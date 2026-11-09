@@ -1,6 +1,6 @@
 {
-  "name": "reverse-engineer-anything",
-  "version": "0.1.0",
+  "name": "reverse-compact",
+  "version": "0.1.1",
   "private": false,
   "description": "A compact local analysis, profiling, benchmarking and evidence core with CLI and MCP interfaces.",
   "type": "module",
