@@ -9,3 +9,5 @@ export async function saveJson(kind: string, value: unknown): Promise<string> { 
 export async function readJson(file: string): Promise<any> { return JSON.parse(await readFile(file,'utf8')); }
 export async function fileEvidence(file: string) { const s=await stat(file); const isFile=s.isFile(); const b=isFile?await readFile(file):undefined; const ref={ id: randomUUID(), kind:isFile?'file':'directory', source:path.resolve(file), observedAt:now(), ...(b?{sha256:sha256(b)}:{}), details:{sizeBytes:s.size,mtime:s.mtime.toISOString()} }; const stored=await saveJson('evidence',ref); return {...ref,details:{...ref.details,artifactPath:stored}}; }
 export function safeNumber(n: unknown): number|undefined { return typeof n==='number' && Number.isFinite(n) ? n : undefined; }
+/** Timeout for helper executables (ps, tasklist, powershell). Override with REVERSE_EXEC_TIMEOUT_MS (1..120000). */
+export const execTimeoutMs = (fallback: number) => { const v = Number(process.env.REVERSE_EXEC_TIMEOUT_MS); return Number.isFinite(v) && v > 0 ? Math.min(v, 120000) : fallback; };
