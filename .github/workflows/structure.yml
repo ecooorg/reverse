@@ -1,0 +1,27 @@
+name: Structure
+
+# Flat layout, Markdown links and the import graph. Needs no dependencies and finishes in seconds, so it
+# runs on every change, including documentation-only ones that capabilities.yml skips.
+# The package.json targets (built tree) are checked in capabilities.yml after the build.
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  structure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Layout, links and import graph (source tree)
+        run: node tests/check-structure.mjs

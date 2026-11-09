@@ -1,23 +1,49 @@
 name: Capabilities
 
 # Verifies what Reverse can REALLY do (not what the docs say), on Linux, macOS and Windows.
-#   structure     - flat layout, Markdown links, import graph, package.json targets
-#   capabilities  - tests/capabilities.check.ts against the built library, CLI and MCP server
+#   capabilities  - unit tests (Linux) + tests/capabilities.check.ts against the built library, CLI and MCP server
 #   package       - npm pack -> install the tarball in a clean project -> run the installed `reverse`
 #   summary       - merges all reports into one capability-by-platform matrix (job summary + annotations)
+# Repository layout and Markdown links are checked by structure.yml (cheap, always on).
 #
 # Outcomes per check: verified / limitation (a documented limit is real) / drift (docs vs behaviour,
 # defects) / failed. Only "failed" turns the workflow red; drift appears as warnings.
+#
+# Minute budget (see docs/GITHUB.md): macOS bills 10x and Windows 2x, so the full OS x Node matrix runs
+# only where it gates a release: push to main/develop and manual dispatch. Pull requests run all Node
+# versions on Linux plus one Windows and one macOS cell. The weekly schedule runs the newest Node on
+# all three systems, which is what it exists for (new runner images and Node releases).
 
 on:
   push:
+    branches: [main, develop]
+    # Documentation that no check reads. docs/MCP.md and docs/CAPABILITIES.md are NOT listed on
+    # purpose: capabilities.check.ts compares them with the real tool list and provider list.
+    paths-ignore:
+      - README.md
+      - AGENTS.md
+      - .gitignore
+      - docs/ARCHITECTURE.md
+      - docs/BENCHMARKS.md
+      - docs/GITHUB.md
+      - docs/ROADMAP.md
+      - docs/SECURITY.md
   pull_request:
+    paths-ignore:
+      - README.md
+      - AGENTS.md
+      - .gitignore
+      - docs/ARCHITECTURE.md
+      - docs/BENCHMARKS.md
+      - docs/GITHUB.md
+      - docs/ROADMAP.md
+      - docs/SECURITY.md
   workflow_dispatch:
   schedule:
-    - cron: '17 4 * * 1'   # weekly: catches new runner images and Node releases
+    - cron: '17 4 * * 1'   # weekly
 
 concurrency:
-  group: capabilities-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -28,32 +54,17 @@ defaults:
     shell: bash
 
 jobs:
-  structure:
-    name: structure
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - name: Layout, links and import graph (source tree)
-        run: node tests/check-structure.mjs
-      - run: npm ci
-      - run: npm run build
-      - name: package.json targets (built tree)
-        run: node tests/check-structure.mjs --built
-
   capabilities:
     name: capabilities (${{ matrix.os }}, node ${{ matrix.node }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 10
     strategy:
       fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        node: [20, 22, 24]
+      matrix: >-
+        ${{ fromJSON(
+        github.event_name == 'pull_request' && '{"include":[{"os":"ubuntu-latest","node":20},{"os":"ubuntu-latest","node":22},{"os":"ubuntu-latest","node":24},{"os":"windows-latest","node":22},{"os":"macos-latest","node":22}]}'
+        || github.event_name == 'schedule' && '{"os":["ubuntu-latest","macos-latest","windows-latest"],"node":[24]}'
+        || '{"os":["ubuntu-latest","macos-latest","windows-latest"],"node":[20,22,24]}') }}
     env:
       REVERSE_CAPABILITY_REPORT: capability-reports/${{ matrix.os }}-node${{ matrix.node }}.json
     steps:
@@ -62,11 +73,18 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: npm
-      - run: npm ci
+      # --ignore-scripts: the `prepare` hook would build once here and the next step builds again.
+      - run: npm ci --ignore-scripts
       - name: Build library, CLI and MCP server
         run: npm run build
+      - name: Package targets (built tree)
+        if: runner.os == 'Linux'
+        run: node tests/check-structure.mjs --built
       - name: Build the verification suite
         run: npx tsc -p tsconfig.tests.json
+      - name: Unit tests
+        if: runner.os == 'Linux'
+        run: node --test dist-tests/*.test.js
       - name: Exercise every capability (library API, CLI, MCP stdio)
         run: node --test --test-reporter=spec dist-tests/capabilities.check.js
       - name: Upload capability report
@@ -80,18 +98,21 @@ jobs:
   package:
     name: package (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 8
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        # The tarball is plain JavaScript, so Linux proves its contents. Windows is added only where
+        # it gates a release, for the installed `reverse` command shim. macOS adds nothing here.
+        os: ${{ fromJSON((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && '["ubuntu-latest","windows-latest"]' || '["ubuntu-latest"]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      # `npm pack` runs the `prepare` hook, which builds dist/ exactly once.
+      - run: npm ci --ignore-scripts
       - name: Pack the tarball and inspect its contents
         run: |
           mkdir -p .tmp-pack
@@ -136,7 +157,7 @@ jobs:
     needs: capabilities
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
