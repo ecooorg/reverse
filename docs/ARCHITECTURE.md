@@ -247,15 +247,6 @@ Remaining planned additions for 0.2 (not yet implemented):
 
 | Tool | Purpose |
 |---|---|
-| `list_processes` | List of processes |
-| `inspect_process` | Detailed information (exists today as a point-in-time inspection) |
-| `monitor_process` | Observation of a process |
-| `get_process_metrics` | Retrieval of metrics |
-| `get_process_tree` | Process tree |
-| `analyze_memory` | Memory analysis |
-| `analyze_cpu` | CPU analysis |
-| `analyze_io` | I/O analysis |
-| `detect_resource_anomalies` | Anomaly detection |
 | `create_benchmark_suite` | Create a set of measurements |
 | `run_benchmark_suite` | Run the measurements |
 | `compare_benchmarks` | Compare results |

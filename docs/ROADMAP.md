@@ -71,6 +71,9 @@ Capability checks added for identity/ownership, cancellation, resource-control r
 
 Closes **Advanced Benchmark Engine** (all items) and the baseline lifecycle.
 
+- First item, before any new tool: the command-execution gate from [AUDIT.md](AUDIT.md) F-01 (command-running MCP tools off unless the operator sets `CONTROLLED_EXECUTION`, command allowlist, environment allowlist, tool annotations). This changes a documented default and is announced in the release notes.
+- Audit items F-04 (no significance claim from means) and F-12 (identity-checked process-group kill).
+
 - Warm-up runs, cold/warm separation, alternating runs; mean, median, min/max, P95, standard deviation, MAD, outlier detection, variance and confidence intervals.
 - CPU time, peak RAM and binary-size measurement per run, not wall-clock only.
 - Environment fingerprint (OS, CPU, cores, RAM, Node.js, Reverse and target versions, arguments, non-secret environment, benchmark parameters) and the comparability warning when two fingerprints differ.
@@ -85,7 +88,7 @@ Closes **Advanced Evidence Engine**, the remaining MCP tools of 0.2 and the **0.
 
 - Evidence types Process, Memory, CPU, I/O, Binary, Benchmark and Validation, with `evidence_id`, `target_id`, `type`, `source`, `timestamp`, `measurement`, `confidence`, `limitations` and `hash`.
 - Research sessions that link target, observations, profile, baseline, optimization, new benchmark, comparison, validation and the final evidence report; `get_research_session`.
-- Remaining MCP tools: `list_processes`, `monitor_process`, `get_process_metrics`, `get_process_tree`, `analyze_memory`, `analyze_cpu`, `analyze_io`.
+- Remaining MCP tool: `get_research_session` (the process-data tools shipped with patch B).
 - Trials on the three reference applications (small, large with dependencies, closed binary) and verification of all twelve 0.2 acceptance criteria.
 
 Capability checks that flip: the *Evidence* limitation (no session link, confidence or limitations fields) becomes ✅ except for signing, which belongs to patch I.
@@ -197,6 +200,16 @@ Closes the remaining **Later** items.
 ## Release sections
 
 Sequencing principle: do not start with Ghidra and do not try to implement every external analyzer at once. First strengthen Reverse's ability to investigate running programs, detect real performance problems and collect evidence, because the main job of Reverse is to help an AI agent find the causes of excessive resource use and objectively verify optimization results. Linux is the first fully supported profiling environment, with interfaces for Windows and macOS designed in from the start.
+
+## 0.2.0-beta.2 — hotfix from audit 1
+
+- [x] Benchmark median is correct for even sample counts (F-02); captured output is capped in bytes, not characters (F-03).
+- [x] `validate_changes` never matches truncated output; a clean mismatch is `completed` with `passed: false`, `partial` means the comparison could not be made in full (F-05).
+- [x] MCP: parse errors answer `-32700`, a failing tool returns `isError: true`, unknown tools and missing names are `-32602` (F-06 a–c).
+- [x] Source inventory: 2 MiB per-file read cap, exact 5000-file cap, `lstat`, `.wasm` no longer read as text (F-09 caps).
+- [x] `noUnusedLocals` and `noImplicitReturns` enabled; unused symbols removed; stale planned-tool table fixed (F-14, F-15).
+
+Everything else in [AUDIT.md](AUDIT.md) stays open and is assigned to patches C, D and E.
 
 ## 0.2.0-beta.1 — Patch B: Process intelligence and safety
 

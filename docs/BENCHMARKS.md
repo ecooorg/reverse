@@ -1,6 +1,6 @@
 # Benchmark methodology
 
-Reverse measures wall-clock duration for fresh child-process executions. It records command, arguments, working directory, repetition count, per-run duration, exit status, signal, timeout flag, and stdout/stderr bounded to 1 MiB per stream (a `stdoutTruncated`/`stderrTruncated` flag marks dropped output). A timeout terminates the whole process tree.
+Reverse measures wall-clock duration for fresh child-process executions. It records command, arguments, working directory, repetition count, per-run duration, exit status, signal, timeout flag, and stdout/stderr bounded to 1 MiB (bytes) per stream (a `stdoutTruncated`/`stderrTruncated` flag marks dropped output). A timeout terminates the whole process tree.
 
 ## Recommended protocol
 
@@ -12,5 +12,7 @@ Reverse measures wall-clock duration for fresh child-process executions. It reco
 6. Compare medians and distributions, not a single run.
 7. Repeat on the same hardware and under comparable system load.
 8. Run functional checks separately and retain their expected fixtures.
+
+The median of an even number of runs is the mean of the two middle values.
 
 A negative `changePercent` means the candidate had lower mean wall-clock time. This is an observation, not proof of causal improvement. The current comparator does not calculate confidence intervals or reject noisy samples. Profiling overhead and external system load can materially affect results.

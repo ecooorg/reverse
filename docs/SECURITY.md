@@ -8,7 +8,7 @@ Reverse is a local inspection tool, not a sandbox. It runs with the permissions 
 - Process inspection is observational and limited to data exposed by the OS.
 - No target is uploaded to an external service.
 - Benchmark and validation commands are explicitly supplied by the caller and run without a shell (`spawn(command, args)`).
-- Command duration is bounded; output capture is capped at exactly 1 MiB per stream (excess output is dropped and the run is flagged `stdoutTruncated` / `stderrTruncated`).
+- Command duration is bounded; output capture is capped at exactly 1 MiB (bytes) per stream (excess output is dropped and the run is flagged `stdoutTruncated` / `stderrTruncated`).
 - Reverse does not patch binaries, change target configuration, inject into processes, or kill arbitrary target processes.
 
 ## Operator responsibilities

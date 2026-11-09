@@ -36,6 +36,23 @@ Severity: **High** = wrong results or a safety/honesty violation of [AGENTS.md](
 | F-16 | Low | Tests | `tests/core.test.ts` has 5 smoke tests; almost everything is in the 893-line `capabilities.check.ts`, which mixes unit-level and end-to-end concerns. There are no tests for statistics, `appendCapped`, MCP error paths, or the Linux parser with fixtures (`/proc/<pid>/stat` with `)` in the name is correct but untested). | `tests/` | Split into `tests/<area>.test.ts` files (flat) with pure-function fixtures; keep `capabilities.check.ts` for black-box checks. | C/D |
 | F-17 | Low | Security docs | [SECURITY.md](SECURITY.md) states commands are "explicitly supplied by the caller"; through MCP the caller is the model. The threat model should name the agent as an untrusted caller and prompt injection from analyzed targets (strings, filenames, process names returned in results) as an attack path. | docs | Add a "Threat model" section (see Recommendation R-02). | C |
 
+
+### A2. Status after hotfix 0.2.0-beta.2
+
+| ID | Status |
+|---|---|
+| F-02 median | closed in 0.2.0-beta.2 (`median()` exported and tested for n = 0, 1, 2, 3, 4) |
+| F-03 byte cap | closed in 0.2.0-beta.2 (`CappedBuffer`, checked with 2-byte characters) |
+| F-05 validation | closed in 0.2.0-beta.2 (truncation fails the check; mismatch is `completed`, `passed:false`). Normalization rules stay in patch I |
+| F-06 MCP | (a) `-32700`, (b) `isError`, (c) `-32602` closed in 0.2.0-beta.2. (d) newer protocol revisions, `outputSchema`, `title`, annotations and the SDK contract tests remain open (patch D) |
+| F-09 source | file/size caps, `lstat`, `.wasm` closed in 0.2.0-beta.2. Parser (AST) remains open (patch E) |
+| F-13 | unused `magic` removed; Mach-O CPU type, fat slices and PE `e_lfanew` remain open (patch E) |
+| F-14 | stale `dist/` is not part of the hotfix archive; `noUnusedLocals`, `noImplicitReturns` enabled; unused symbols removed. `.gitattributes` and `noUnusedParameters` remain open |
+| F-15 | (a) and (b) closed in 0.2.0-beta.2 with a check that compares the planned-tools table with `tools/list`; (c) closed; (d) closed together with F-06 |
+| F-01, F-04, F-07, F-08, F-10, F-11, F-12, F-16, F-17 | open, scheduled as in section D |
+
+Behavior changes users can notice: MCP tool failures now arrive as `isError` results instead of JSON-RPC errors; a non-JSON line now gets a `-32700` reply; `validate_changes` returns `completed` for a clean mismatch; `.wasm` files are no longer counted by `analyze_source`.
+
 ### B. What is correct and should be kept
 
 - Flat layout, `Result` envelope, honest `limitations`/`coverage`, extension points never reported as available — consistent with [AGENTS.md](../AGENTS.md) §5.
@@ -95,11 +112,11 @@ Sources: the architecture and tooling of [morluto/rea](https://github.com/morlut
 - **R-19 Windows and macOS parity.** Replace PowerShell/`ps` fork-per-sample with a persistent helper or `typeperf`/ETW provider (Windows) and `libproc` via a tiny helper (macOS); until then keep the "metrics not at parity" limitation visible in tool output, not only in docs.
 - **R-20 Sandbox for executed targets.** For `CONTROLLED_EXECUTION`: `bwrap`/`firejail` or `unshare -n` on Linux, `sandbox-exec` on macOS (deprecated but available), Job Objects/AppContainer on Windows, or a container provider; read-only bind mounts, no network by default, scratch directory, rlimits via `prlimit`.
 
-### F. Open questions for the maintainer
+### F. Open questions for the maintainer — decisions taken
 
-1. Should the command-running MCP tools be **off by default** (F-01)? The audit recommends yes; this changes the default behavior documented in [README.md](../README.md).
-2. May `0.2.0-beta.2` precede Patch C as a hotfix release (section D)? The audit recommends yes.
-3. Is a devDependency on the official MCP SDK acceptable for contract tests only (F-06)?
+1. **Command-running MCP tools off by default (F-01): yes, in patch C.** It is a breaking default, so it is not part of a hotfix; it ships as the first item of patch C with an operator switch (`REVERSE_MODE=CONTROLLED_EXECUTION`), an allowlist and release notes. Until then [SECURITY.md](SECURITY.md) must be read as "do not attach Reverse to an untrusted agent".
+2. **Hotfix before patch C: yes** — released as `0.2.0-beta.2` (see [ROADMAP.md](ROADMAP.md)).
+3. **Official MCP SDK as a devDependency for contract tests only: yes, in patch D.** The runtime stays dependency-free; the SDK client validates `tools/list`, `outputSchema` and error shapes against the specification.
 
 ### G. Not covered (explicit)
 
