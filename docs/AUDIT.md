@@ -2,7 +2,32 @@
 
 This file is permanent. **New audits are added at the top** (newest first); older audits are never edited except to mark a finding as closed (`Status: closed in <version>, <patch>`). Each audit lists findings with an ID, severity, evidence and a recommended fix, then improvement proposals. Findings that are accepted are copied into [ROADMAP.md](ROADMAP.md) under the patch named in the "Patch" column; this file stays the record of *why*.
 
-IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap. Severity: **High** = wrong results or a safety/honesty violation of [AGENTS.md](../AGENTS.md); **Medium** = incorrect or fragile behavior with limited blast radius; **Low** = hygiene, docs, polish.
+IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H** hypothesis and authorization gap. Severity: **High** = wrong results or a safety/honesty violation of [AGENTS.md](../AGENTS.md); **Medium** = incorrect or fragile behavior with limited blast radius; **Low** = hygiene, docs, polish.
+
+---
+
+## Audit 3 — 2026-11-09 — AI hypothesis engine and pattern-based archaeology proposals (design audit)
+
+**Scope.** Not a code review. Two proposal documents (analogy-based reverse engineering, a "Hypothesis Core" module and patches to ARCHITECTURE.md and ROADMAP.md) were compared with the project principles in [ARCHITECTURE.md](ARCHITECTURE.md), the roadmap dependencies and [AGENTS.md](../AGENTS.md). Source code was not run or changed.
+
+**Verdict.** The idea is accepted: analogies are a valid source of hypotheses. The form is changed. A separate `HYPOTHESIS CORE` module with its own signature database and a prompt builder conflicts with the rules against duplicated AI logic and embedded knowledge bases, so it is replaced by a hypothesis ledger (a record type beside Evidence) and similarity providers. Rejected or reworded: a "fact category 5" next to the existing category 3; the phrase shifting the barrier to "semantic equivalence"; synthesis of unreadable code without an oracle; "training the agent" inside Reverse; analogy claims for things that parsers can establish as facts. The maintainer added the authorized-use rule: open-source software or full consent of developers and rights holders only.
+
+**Approval.** Approved by the maintainer on 2026-11-09.
+
+| ID | Sev | Gap | Task | Patch |
+|---|---|---|---|---|
+| H-01 | **High** | Hypotheses have no storage that keeps them apart from facts | Hypothesis ledger with provenance, confidence, status and the promotion rule | D |
+| H-02 | **High** | Fact category 3 says hypotheses are not stored; the proposal added a conflicting category | Redefine category 3; `kind: "hypothesis"` in MCP output | D |
+| H-03 | Medium | Proposed matcher duplicates existing tools | `SimilarityProvider` contract over Ghidra Function ID/BSim and others; no embedded corpus | F, M |
+| H-04 | Medium | Deterministic facts presented as analogies | Delphi, MFC, VB6, toolchain and documented-format detectors first; analogy tag with confidence | M |
+| H-05 | **High** | Legal scope not tied to rights holders | Open-source or full-consent policy; declared basis required for legacy operations | M |
+| H-06 | **High** | Source of the similarity corpus undefined | Hashes and signatures only, source and license per entry, local lookups, no bundled binaries | F, M |
+| H-07 | **High** | Synthesis of unreadable code cannot be verified | Oracle rule; no level above L0 without an oracle; provenance for generated code | N, P |
+| H-08 | Medium | Matcher quality is unmeasured | Reference corpus with ground truth; precision, recall and confidence calibration | M, L |
+| H-09 | Medium | "Train the agent" is not an available mechanism | Prompts, skill section and evaluation harness | L |
+| H-10 | Medium | Consent is not recorded | Authorization record in sessions and reports | M |
+
+Tasks H-01…H-10 are tracked in the [approved audit backlog](ROADMAP.md#approved-audit-backlog-audit-1-approved-2026-11-09). Audit 2 follows.
 
 ---
 

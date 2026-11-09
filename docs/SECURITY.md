@@ -15,9 +15,24 @@ Reverse is a local inspection tool, not a sandbox. It runs with the permissions 
 
 Only inspect software and processes you own or are authorized to examine. Treat binaries and their output as untrusted. Run benchmarks in a disposable working directory or OS sandbox where practical. Do not pass untrusted command strings or arguments. A timeout terminates the spawned child and every process it started (the process tree is snapshotted first; on Windows `taskkill /T /F` is used), but a process that escapes its parent before the snapshot cannot be found. CPU/RAM quotas are not enforced. Avoid elevated privileges.
 
-## Authorized use and scope (planned, first item of patch M)
+## Authorized use and scope (policy binding now; enforcement planned in patch M)
 
-The legacy track will analyze old programs, some with copy protection, dongles or license checks. Reverse reports such mechanisms as facts and does not defeat them. Operating-system images and commercial tools are supplied by the user under their own licenses and are never bundled. Until the policy is written out in full in patch M, treat this paragraph as the binding summary.
+The purpose of the legacy track is to help developers and rights holders restore old programs that no longer work. Reverse is therefore to be used only with:
+
+1. **open-source software**, in accordance with its license; or
+2. **software whose developers and rights holders have given full consent** to the analysis and to any resulting repair, repackaging or rework.
+
+Anything else is outside the intended use. The operator declares the basis; Reverse records the declaration in the research session and in reports (patch M, H-05, H-10) and cannot verify legal status. The general rule for the core, to inspect only software you own or are authorized to examine, still applies to everything else.
+
+Further rules:
+
+- Reverse reports copy protection, dongles and license checks as facts and does not defeat them.
+- Operating-system images and commercial tools are supplied by the user under their own licenses and are never bundled.
+- **Corpus policy:** Reverse bundles no third-party binaries or proprietary code. A similarity corpus holds only hashes and signatures of open-source or consented material, with source and license per entry, and is queried locally. Nothing is uploaded.
+- **Generated code:** code produced by generative reconstruction carries a provenance record and must be compatible with the license or consent of the analyzed target.
+- **Prompt injection:** strings, resources and metadata taken from a target are untrusted input to any model, including hypothesis and similarity results (R-02).
+
+Until patch M implements the authorization record, this section is the binding summary and nothing in it is enforced by code.
 
 ## Known security gaps
 

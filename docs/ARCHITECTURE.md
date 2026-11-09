@@ -12,6 +12,8 @@ Responsibilities are split deliberately:
 - **The Reverse core** is the toolset: access to programs, deterministic analysis, measurement, safe execution, evidence and verification.
 - **External analyzers** (Ghidra, Rizin, Frida, GDB, perf, eBPF, ETW, Instruments, Valgrind) do the heavy specialist work behind providers.
 
+- **Analogy produces candidates, never facts.** The agent may use semantic intuition and cross-domain analogy (a dead binary compared with documented software of the same era and domain) to form hypotheses. Reverse keeps those hypotheses apart from measured and statically derived facts, in a hypothesis ledger with provenance. A hypothesis becomes a confirmed result only through a deterministic check run by Reverse (execution, differential testing, measurement). Analogy never raises a behavior-preservation level.
+
 The model must not invent technical facts about a target. It receives facts from the core, forms hypotheses and requests further investigation. The model proposes an optimization; its effectiveness is confirmed by measurement and its correctness by independent checks.
 
 Development rules:
@@ -26,18 +28,22 @@ Development rules:
 
 **Goal.** Reverse must let an agent fully analyze modern **and old** programs without source, find why they do not work or work badly on modern hardware and in a modern environment, and propose concrete improvements or a full rework with the highest verifiable preservation of functionality. Patches A–K build the general core; patches M–P (after 1.0) add the legacy and compatibility capabilities below. Nothing in this section is implemented.
 
+**Authorized use only.** The legacy track exists to help developers and rights holders restore old programs that no longer work. Reverse therefore works only with (a) open-source software, under its license, or (b) software whose developers and rights holders have given full consent to the analysis and any resulting rework. The basis is declared by the operator and recorded in the research session; Reverse cannot verify legal status and does not claim to. See [SECURITY.md](SECURITY.md).
+
 **Host versus target.** The *host* is the machine Reverse runs on; the *target* is the analyzed program and its era. Static analysis does not depend on the host. Running an old target uses an execution environment (emulator, compatibility layer or virtual machine) that may live on any host.
 
 **Target platform priority.** Windows up to 2010 first, then old Linux, old Mac, old Android, and then the newer generations of the same four, each as a vertical slice through M, N, O and P (see the wave table in [ROADMAP.md](ROADMAP.md)).
 
 ### Components
 
-- **Target Profile.** Required OS and era, CPU, bitness, ABI, runtime, installer and toolchain, each field with evidence (patch M).
+- **Target Profile.** Required OS and era, CPU, bitness, ABI, runtime, installer and toolchain, each field with evidence (patch M). It may carry an **analogy tag** (for example `Accounting-Software-Late-90s`), always with a confidence value and the deterministic features it rests on (RTTI, import table, compiler strings), never as a bare label.
 - **Compatibility Diagnosis.** Turns the profile and static facts into a list of probable causes of failure on a modern system: removed or changed APIs, missing libraries, privilege and virtualization assumptions, timing tied to CPU speed, graphics/audio/driver dependencies, DPI and locale assumptions, address-space and date limits. Causes that only running the program can confirm are marked as needing an execution environment (patch M). Version tables are data files with sources, not code.
 - **Execution Environments.** An `ExecutionEnvironment` provider contract (detect, prepare, snapshot, restore, run with limits, trace, shut down) with adapters for Wine, DOSBox-class emulators, QEMU and other virtual machines, old-userland containers and old-API Android images. Reverse never ships operating-system images; the user supplies them and Reverse records their hashes in the environment fingerprint. The result is a works/fails matrix across environments (patch N).
 - **Behavior Capture and Replay.** Records what a program does (inputs, outputs, files, registry/preferences, network, UI events), controls time and randomness, replays deterministically, measures code coverage of the original and compares old against new after normalization (patch O).
 - **Equivalence Lab.** Runs an original function and its replacement on the same input sets in emulation or in the original environment, with differential, property and fuzz testing (patch P).
-- **Migration Advisor.** Ranks the options from a configuration or compatibility-layer change to a full rewrite, with gain, risk, effort, permissions and supporting evidence. The agent chooses; Reverse supplies facts and enforces safety (patch P).
+- **Migration Advisor.** Ranks the options from a configuration or compatibility-layer change to a full rewrite, with gain, risk, effort, permissions and supporting evidence. The agent chooses; Reverse supplies facts and enforces safety (patch P). **Generative reconstruction** (a modern equivalent of a function designed by the agent from behavioral analogies) is allowed only when an oracle exists: the original function runnable in emulation or its original environment, or recorded data files. Without an oracle the option is marked `unverifiable` and capped at L0.
+- **Hypothesis Ledger.** Records the agent's and providers' hypotheses with provenance, confidence and status (patch D). Not a separate engine: a record type next to Evidence.
+- **Similarity Providers.** Function and structure similarity (Ghidra BSim and Function ID, FLIRT, capa, YARA-X, Detect It Easy, optionally local ML similarity models) behind `AnalyzerProvider` (patches F and M). Reverse ships no corpus of third-party binaries (see Corpus policy).
 
 ### Behavior-preservation levels
 
@@ -50,11 +56,15 @@ Full preservation cannot be proven for real programs, so Reverse reports a level
 | L2 | L1 and the scenarios cover a stated, measured share of the original's code, with uncovered regions listed |
 | L3 | L2 and replaced functions were compared with the original on large generated and recorded input sets without differences |
 
-L4 (formal proof of equivalence) is out of scope. A report always states the level, the coverage, the number of scenarios and inputs, the environments used and the residual risk.
+L4 (formal proof of equivalence) is out of scope. The level depends only on checks Reverse ran. How a candidate was produced (analogy, agent synthesis, decompilation) does not change it, and a candidate without an oracle never exceeds L0. A report always states the level, the coverage, the number of scenarios and inputs, the environments used and the residual risk.
 
 ### Scope and legal limits
 
-Analysis is for software the user owns or is authorized to examine. Copy protection, dongles and license checks are reported as facts but are not defeated by Reverse; operating-system images and commercial tools are supplied by the user. See [SECURITY.md](SECURITY.md).
+Analysis is limited to open-source software and to software whose developers and rights holders have given full consent (see *Authorized use only* above and [SECURITY.md](SECURITY.md)).
+
+**Corpus policy.** Reverse bundles no third-party binaries and no proprietary code. Any similarity corpus consists of hashes and signatures derived from open-source software or from material the consent holder supplied, and each entry carries source and license. Similarity lookups run locally; nothing is uploaded. Code produced by generative reconstruction carries a provenance record and must be compatible with the license or consent under which the target was analyzed.
+
+Copy protection, dongles and license checks are reported as facts but are not defeated by Reverse; operating-system images and commercial tools are supplied by the user. See [SECURITY.md](SECURITY.md).
 
 ## Layers (0.1.0)
 
@@ -78,7 +88,7 @@ Every response must make clear which kind of statement it carries, and a model a
 
 1. **Measured facts** — observations from sampling, benchmarks and process inspection.
 2. **Static analysis results** — facts derived from files, headers, manifests and, later, disassembly.
-3. **Assumptions and hypotheses of the AI** — held by the agent, not stored as evidence.
+3. **Hypotheses and analogies** — proposed by the agent or a similarity provider. They are stored only in the **hypothesis ledger**, never as evidence and never inside a `measured` or `static` finding. Fields: `hypothesis_id`, `statement`, `origin` (agent, provider, analogy), `analogy_ref` with provenance and license of the source, `confidence`, `status` (`proposed`, `testing`, `confirmed`, `refuted`), `supporting_evidence_ids`. Promotion to `confirmed` requires a reference to Validation or Benchmark evidence produced by Reverse; refuted hypotheses are kept. MCP responses mark them `kind: "hypothesis"`. Hypotheses may steer the analyzer but are *unverified* until promoted.
 4. **Confirmed optimization results** — a before/after comparison backed by measurements and validation.
 
 Every finding should carry its source, the target identifier, the time of observation, status, coverage, limitations, errors, supporting evidence, and a way to request more detail on demand. MCP responses stay compact; detailed evidence is returned on request.
@@ -98,6 +108,7 @@ Reverse
 │   ├── Binary Analyzer
 │   ├── Source Analyzer
 │   ├── Dependency Analyzer
+│   ├── Similarity Providers (via Provider Registry)
 │   └── Provider Registry
 │
 ├── PROCESS INTELLIGENCE
@@ -128,6 +139,7 @@ Reverse
 │   ├── Evidence Engine
 │   ├── Evidence Storage
 │   ├── Evidence Integrity
+│   ├── Hypothesis Ledger
 │   └── Research Sessions
 │
 ├── INTERFACE

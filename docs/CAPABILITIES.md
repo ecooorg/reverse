@@ -17,6 +17,10 @@
 
 Currently only the header recognition listed above exists, and it does not depend on the target era. There is **no** compatibility diagnosis, no detector for DOS/Win16, packers, Visual Basic 6, Delphi, classic Mac OS, old Android DEX/ABI or similar legacy formats, no execution environments and no behavior capture. These are planned in the legacy track (patches M–P) in the priority order Windows up to 2010, old Linux, old Mac, old Android, then their newer generations; see [ROADMAP.md](ROADMAP.md).
 
+## Hypotheses, similarity and authorization
+
+Not implemented. There is no hypothesis ledger, no similarity provider, no authorization record and no reference corpus. They are planned in patches D, F, L and M (see the Audit 3 table in [ROADMAP.md](ROADMAP.md)). Until then, hypotheses stay with the agent and are not stored as evidence. The authorized-use policy in [SECURITY.md](SECURITY.md) is a documented rule, not an enforced check.
+
 ## Provider status
 
 `ghidra`, `rizin`, `frida`, `gdb`, `perf`, `ebpf`, `etw`, and `instruments` are **extension-point labels only**. No invocation adapter, parser, setup detection, or end-to-end integration is included. The `list_analyzers` output marks them `extension-point`; this is intentional.

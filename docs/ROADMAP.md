@@ -94,6 +94,7 @@ Closes **Advanced Evidence Engine**, the remaining MCP tools of 0.2 and the **0.
 
 - Evidence types Process, Memory, CPU, I/O, Binary, Benchmark and Validation, with `evidence_id`, `target_id`, `type`, `source`, `timestamp`, `measurement`, `confidence`, `limitations` and `hash`.
 - Research sessions that link target, observations, profile, baseline, optimization, new benchmark, comparison, validation and the final evidence report; `get_research_session`.
+- Hypothesis ledger (H-01, H-02): record type `hypothesis` beside Evidence (fields in [ARCHITECTURE.md](ARCHITECTURE.md), fact category 3), hash-chained with the session, promotion only by reference to Validation or Benchmark evidence, refuted hypotheses kept; MCP output marks `kind: "hypothesis"` and never mixes it into measured or static findings.
 - Remaining MCP tool: `get_research_session` (the process-data tools shipped with patch B).
 - Trials on the three reference applications (small, large with dependencies, closed binary) and verification of all twelve 0.2 acceptance criteria.
 
@@ -121,6 +122,7 @@ Closes the second half of the 0.3 section and the **Plugin loading and provider 
 - Opt-in Ghidra adapter (main deep-analysis engine) and Rizin adapter (alternative) with integration tests against real installations; results are normalized into the common `Result` envelope with explicit coverage and limitations.
 - Opt-in JADX and Apktool static providers behind `AnalyzerProvider` for DEX/Smali/resources; Ghidra remains responsible for native `.so` libraries.
 - Disassembly, decompilation and cross-reference data are available through the adapters, never faked when the tool is absent.
+- `SimilarityProvider` contract on top of `AnalyzerProvider` (H-03): function and structure similarity with explicit confidence, coverage and limitations; first adapters Ghidra Function ID and BSim where installed. No corpus is bundled (H-06).
 
 Capability checks that flip: *Providers — Ghidra and Rizin are labels only* becomes ✅ for these two; the remaining extension points keep their 🚧 until their own patch.
 
@@ -187,6 +189,7 @@ Closes the remaining **Later** items.
 Closes audit tasks R-08 and R-18. It does not block 1.0.
 
 - MCP prompts for the research cycle and MCP resources for evidence records and research sessions (`reverse://evidence/<id>`).
+- Hypothesis discipline for agents (H-09): a prompt that packages target facts, era and similarity results with the `untrustedContent` wrapper (R-02), a skill-file section on proposing, testing and retiring hypotheses, and an evaluation harness that scores an agent on the reference corpus of H-08.
 - `reverse setup`: registers the server in the supported agents after showing the diff, with a dry run and backups; installs the investigation skill file.
 - Distribution: `npx` entry point, install scripts that check Node and print the MCP configuration, an optional single-file binary, `server.json` for MCP registries.
 
@@ -208,6 +211,7 @@ Closes audit tasks R-08 and R-18. It does not block 1.0.
 | Later: function hotspots, disk/network I/O | H |
 | Later: JS/Electron, .NET, WASM, plugin loading, HTTP MCP, extensions | F (plugin loading), K (the rest) |
 | Core readiness criteria and the two trial scenarios | J |
+| Hypothesis ledger, similarity providers, authorization, oracles (Audit 3) | D, F, L, M, N, P (see the Audit 3 table) |
 | Product goal for old and modern programs: compatibility diagnosis, environments, behavior preservation, migration | M–P by platform wave (see the legacy track) |
 
 ## Approved audit backlog (Audit 1, approved 2026-11-09)
@@ -276,11 +280,30 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | G-09 | Target-platform and era support matrix in `CAPABILITIES.md` | **M** |
 | G-10 | Behavior-preservation report with levels L0–L3 | **O**, **P** |
 
+### Hypotheses, analogy and authorization (Audit 3, approved 2026-11-09)
+
+| ID | Task | Patch |
+|---|---|---|
+| H-01 | Hypothesis ledger record type with provenance, confidence, status and the promotion rule | **D** |
+| H-02 | Fact category 3 redefined; MCP marks `kind: "hypothesis"`; hypotheses never stored as evidence or mixed into measured or static findings | **D** |
+| H-03 | `SimilarityProvider` contract; Ghidra Function ID and BSim adapters; no embedded corpus | **F** (contract), **M** (further adapters) |
+| H-04 | Deterministic legacy detectors first; analogy tag only with confidence and deterministic basis | **M** |
+| H-05 | Authorized-use policy: open-source software or full consent of developers and rights holders only | **M** (first item; text already in [SECURITY.md](SECURITY.md)) |
+| H-06 | Corpus policy: hashes and signatures only, source and license per entry, no third-party binaries, local lookups | **F**, **M** |
+| H-07 | Oracle rule: no synthesis or reconstruction above L0 without an oracle; provenance for generated code | **N** (oracle report), **P** |
+| H-08 | Reference corpus with ground truth and matcher precision/recall/calibration metrics | **M** (per wave), **L** (agent evaluation) |
+| H-09 | Agent prompts, skill section and evaluation harness for hypothesis discipline | **L** |
+| H-10 | Authorization record stored in research sessions and reports | **M** |
+
 ---
 
 ## Legacy and compatibility track (patches M–P, after 1.0)
 
 This track delivers the product goal stated in [ARCHITECTURE.md](ARCHITECTURE.md): analyze modern and old programs without source, find why they fail or run badly today, and support an improvement or full rework with the **highest verifiable preservation of behavior**. It starts after patch J, because it reuses the controlled change loop, evidence, providers and validation.
+
+**Pattern-based archaeology.** Era and domain analogies speed up the search for candidates (compiler idioms, framework structures, file formats). Deterministic detection comes first and yields facts; analogy yields only hypotheses in the ledger (patch D); confirmation needs an oracle and the checks of patches N–P. Analogy does not lower the bar of the L0–L3 levels.
+
+**Authorized use (H-05).** The track works only with open-source software or software whose developers and rights holders have given full consent, because its purpose is to help them restore old programs that no longer work. Details in [SECURITY.md](SECURITY.md).
 
 ### Platform waves (priority order set by the maintainer)
 
@@ -301,7 +324,12 @@ Host and target are different things: the host is where Reverse runs, the target
 Depends on E, F and G. Closes G-01, G-02, G-07, G-09.
 
 - [ ] First: authorized-use and legal scope policy in [SECURITY.md](SECURITY.md) and the agent rules (copy protection, dongles, licenses, user-supplied OS images are never bundled).
-- [ ] Target profile: required OS and era, CPU, bitness, ABI, runtime, installer and toolchain, with evidence for each field.
+- [ ] Authorization record (H-05, H-10): each legacy research session requires a declared basis (open-source license, or written consent of the developers and rights holders), stored in the session and in every report; without it the legacy operations refuse. The record is a declaration, not a legal verification.
+- [ ] Corpus policy (H-06): a similarity corpus holds only hashes and signatures of open-source or consented material, each with source and license; no third-party binaries are bundled.
+- [ ] Target profile: required OS and era, CPU, bitness, ABI, runtime, installer and toolchain, with evidence for each field; an optional analogy tag with confidence and its deterministic basis.
+- [ ] Deterministic detectors first (H-04): Delphi RTTI/DFM, MFC message maps, Visual Basic 6 headers, Borland and other toolchain markers, dBASE/.dbf and similar documented formats are reported as static facts. Only what they cannot explain becomes a hypothesis.
+- [ ] Similarity adapters (H-03) feed hypotheses with confidence and provenance to the ledger.
+- [ ] Reference corpus with ground truth (H-08): open-source programs built with period compilers; measures precision and recall of detectors and similarity matches and the calibration of confidence values. Hypothesis features do not ship until this exists for the wave.
 - [ ] Compatibility diagnosis report: imported APIs and libraries against per-OS-version availability tables (data files, versioned, sourced); privilege and virtualization assumptions; CPU-speed-dependent timing; graphics, audio, driver and hardware dependencies; DPI and resolution; locale, path and registry/preference assumptions; address-space and date limits. Every cause is a finding with source, confidence and limitations; causes that need running the program are marked "needs N".
 - [ ] Format and toolchain detectors for the wave being delivered (table above), built on providers (for example Detect It Easy, rz-bin, Ghidra loaders) rather than new parsers where possible.
 - [ ] Target-platform and era matrix in [CAPABILITIES.md](CAPABILITIES.md); a check compares it with the registered detectors.
@@ -315,6 +343,7 @@ Depends on G and M. Closes G-03.
 - [ ] Adapters by wave: Wine and Windows VMs (QEMU, VirtualBox), DOSBox-class and 86Box-class emulators; old Linux userlands in containers or VMs; classic-Mac and PowerPC emulators; old-API Android emulator images; newer environments for wave 5.
 - [ ] Environment images are supplied by the user (licensing); Reverse records their hashes and configuration in the environment fingerprint.
 - [ ] Run the same target in several environments and produce a **works/fails matrix** with the first observable failure in each (missing library, refused system call, crash address, timing symptom).
+- [ ] Oracle availability (H-07): each environment reports whether the original can be executed there, so later patches know which functions have an oracle.
 - [ ] System-call and API tracing per environment (Wine relay, strace/ltrace, Windows API tracing, ADB/logcat), through providers, under `CONTROLLED_EXECUTION`.
 
 ### Patch O — Behavior capture and replay (1.1–1.5)
@@ -333,6 +362,7 @@ Depends on I and N. Closes G-04 and, with P, G-10.
 Depends on O and J. Closes G-05, G-06 and the L3 level of G-10.
 
 - [ ] Equivalence lab: run the original function (emulation with Unicorn/Qiling-class providers, or in the original environment) and the replacement on the same large generated and recorded input sets; differential, property and fuzz tests; mismatch minimization.
+- [ ] Candidate synthesis (H-07): an agent-designed replacement of a function, including one based on behavioral analogies, is accepted for validation only when an oracle exists (original function in emulation or its environment, or recorded data files such as samples of a documented file format). It then goes through the differential, property and fuzz tests above; the preservation level comes from those tests alone. Candidates without an oracle are marked `unverifiable`, capped at L0, and never presented as reconstruction. Every generated function carries a provenance record and must fit the license or consent of the target.
 - [ ] Reconstruction checks: a function reconstructed from the binary is compiled and compared against the original bytes or behavior where the toolchain allows it.
 - [ ] Migration strategy advisor: ranked options (configuration or compatibility layer, wrapper, emulation or VM packaging, minimal binary patch, recompilation from a reconstruction, full rewrite), each with expected gain, risk, effort, required permissions and the evidence it rests on; the agent decides, Reverse supplies the data and enforces the safety modes.
 - [ ] Final report: what was found, why it fails today, the chosen strategy, the preservation level reached (L0–L3) with coverage and residual risk.
