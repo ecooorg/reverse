@@ -1,4 +1,4 @@
-import { readFile, readdir, readlink, stat } from 'node:fs/promises';
+import { readFile, readdir, readlink } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { result } from './core-types.js';
