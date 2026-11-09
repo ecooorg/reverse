@@ -347,19 +347,20 @@ check('Processes', 'any live process can be inspected, even beyond the 500-row d
     }
   } finally { await killAndWait(child); }
 });
-check('Processes', 'helper-executable timeout is configurable through REVERSE_EXEC_TIMEOUT_MS', async () => {
+check('Processes', 'process enumeration respects helper timeout where a helper is used', async c => {
   const prev = process.env.REVERSE_EXEC_TIMEOUT_MS;
   process.env.REVERSE_EXEC_TIMEOUT_MS = '1';
   try {
     const r: any = await listProcesses(5);
-    assert.equal(r.status, 'partial'); assert.match(r.limitations.join(' '), /enumeration failed/i);
+    if (process.platform === 'linux') { assert.equal(r.status, 'completed'); c.note('Linux /proc enumeration does not spawn a helper.'); }
+    else { assert.equal(r.status, 'partial'); assert.match(r.limitations.join(' '), /enumeration failed/i); }
   } finally { if (prev === undefined) delete process.env.REVERSE_EXEC_TIMEOUT_MS; else process.env.REVERSE_EXEC_TIMEOUT_MS = prev; }
   assert.equal(((await listProcesses(5)) as any).status, 'completed');
 });
-check('Processes', 'no memory maps, handles, threads, per-process I/O or process tree', async c => {
+check('Processes', 'collects thread, memory, I/O and child-process metadata where supported', async () => {
   const p: any = ((await listProcesses(5)) as any).findings[0];
-  assert.equal(p.threads, undefined); assert.equal(p.rssKb, undefined); assert.equal(p.children, undefined);
-  c.limit('inspector exposes pid/ppid/name/command only');
+  if (process.platform === 'linux') { assert.ok(p.rssBytes >= 0); assert.ok(p.vmsBytes >= 0); assert.ok(Array.isArray(p.children)); assert.ok(p.openFileDescriptors >= 0); }
+  assert.ok(p.threads === undefined || p.threads >= 0);
 });
 
 // ---------------------------------------------------------------- 6. profiling
@@ -377,7 +378,7 @@ check('Profiling', 'samples CPU/RSS of a live process and aggregates average/pea
     }
     assert.equal(r.status, 'completed', j(r.errors));
     assert.ok(f.sampleCount >= (WIN ? 1 : 2), `samples: ${f.sampleCount}`);
-    assert.ok(f.peakRssKb > 0 && f.averageRssKb > 0);
+    assert.ok(f.peakRssBytes > 0 && f.averageRssBytes > 0);
     if (WIN) { assert.equal(f.averageCpuPercent, null); c.limit('Windows: CPU percentage is not collected, RSS only'); }
     else { assert.ok(f.peakCpuPercent >= 0); assert.ok(f.peakCpuPercent >= f.averageCpuPercent); }
     assert.ok(f.samples.every((s: any) => !Number.isNaN(Date.parse(s.at))));
@@ -401,13 +402,14 @@ check('Profiling', 'a vanished process yields partial with a recorded error', as
 check('Profiling', 'invalid PID is rejected', async () => {
   await assert.rejects(profileProcess(0), /positive integer/);
 });
-check('Profiling', 'process-level only (no hot functions, I/O, network, child aggregation)', async c => {
+check('Profiling', 'time-series includes memory, threads, child and disk I/O metrics', async () => {
   const child = spawnIdle();
   try {
     await settle(100);
     const f: any = ((await profileProcess(child.pid!, 500, 100)) as any).findings[0];
-    for (const k of ['hotspots', 'functions', 'diskReadBytes', 'diskWriteBytes', 'threads', 'children']) assert.equal(f[k], undefined, k);
-    c.limit('only CPU%/RSS of one process; no function hotspots, disk/network I/O, thread count or child aggregation');
+    assert.ok(f.sampleCount >= 1); assert.ok(f.samples.every((x: any) => 'rssBytes' in x));
+    if (process.platform === 'linux') assert.ok(f.samples.every((x: any) => 'diskReadBytes' in x && 'threads' in x && 'children' in x));
+    assert.ok(existsSync(f.artifactPath));
   } finally { await killAndWait(child); }
 });
 
@@ -654,7 +656,8 @@ check('CLI', '--json is accepted, documented as having no effect, and output is 
   assert.match(runCli(['--help']).stdout, /always JSON on stdout; --json is accepted and has no effect/);
 });
 // ---------------------------------------------------------------- 12. MCP server
-const DOCUMENTED_TOOLS = ['inspect_target', 'analyze_binary', 'analyze_source', 'analyze_dependencies', 'get_inventory', 'inspect_process', 'profile_process',
+const DOCUMENTED_TOOLS = ['inspect_target', 'analyze_binary', 'analyze_source', 'analyze_dependencies', 'get_inventory', 'list_processes', 'inspect_process', 'profile_process',
+  'monitor_process', 'get_process_metrics', 'get_process_tree', 'analyze_memory', 'analyze_cpu', 'analyze_io', 'detect_resource_anomalies',
   'capture_baseline', 'run_benchmark', 'compare_results', 'validate_changes', 'get_evidence', 'list_analyzers'];
 
 check('MCP', 'handshake: initialize, ping and tools/list', async () => {
@@ -689,7 +692,7 @@ check('MCP', 'protocol errors: unknown method, unknown tool, garbage input, noti
     assert.deepEqual(s.unsolicited, [], 'notifications and garbage must not produce responses');
   } finally { s.close(); }
 });
-check('MCP', 'all 13 tools can be called and return parseable JSON results', async () => {
+check('MCP', 'all 21 tools can be called and return parseable JSON results', async () => {
   const s = startMcp();
   const child = spawnIdle();
   try {
@@ -702,9 +705,18 @@ check('MCP', 'all 13 tools can be called and return parseable JSON results', asy
     assert.equal((await ok('analyze_source', { directory: SRC })).value.findings[0].fileCount, 5);
     assert.equal((await ok('analyze_dependencies', { directory: path.join(WORK, 'deps') })).value.findings.length, 3);
     assert.ok((await ok('get_inventory', { limit: 5 })).value.findings.length <= 5);
+    assert.ok((await ok('list_processes', { limit: 5 })).value.findings.length <= 5);
+    assert.equal((await ok('get_process_metrics', { pid: process.pid })).value.operation, 'process_inspection');
+    assert.equal((await ok('get_process_tree', { pid: process.pid })).value.operation, 'process_tree');
+    assert.equal((await ok('analyze_memory', { pid: process.pid })).value.operation, 'memory_analysis');
+    assert.equal((await ok('analyze_cpu', { pid: process.pid })).value.operation, 'cpu_analysis');
+    assert.equal((await ok('analyze_io', { pid: process.pid })).value.operation, 'io_analysis');
     assert.equal((await ok('inspect_process', { pid: process.pid })).value.operation, 'process_inspection');
     await settle(100);
-    assert.equal((await ok('profile_process', { pid: child.pid, durationMs: 500, intervalMs: 100 })).value.operation, 'process_profile');
+    const profile = await ok('profile_process', { pid: child.pid, durationMs: 500, intervalMs: 100 });
+    assert.equal(profile.value.operation, 'process_profile');
+    assert.equal((await ok('monitor_process', { pid: child.pid, durationMs: 500, intervalMs: 100 })).value.operation, 'process_profile');
+    assert.equal((await ok('detect_resource_anomalies', { series: profile.value.findings })).value.operation, 'resource_anomalies');
     const base = await ok('capture_baseline', { command: NODE, args: nodeEval('0'), repetitions: 2 });
     assert.equal(base.value.findings[0].label, 'baseline');
     const b1 = await ok('run_benchmark', { command: NODE, args: nodeEval('setTimeout(()=>{},200)'), repetitions: 2 });
@@ -727,7 +739,7 @@ check('MCP', 'tool errors (missing file, bad PID) surface as JSON-RPC errors, no
 });
 check('MCP', '"reverse mcp" starts the same stdio server', async () => {
   const s = startMcp([CLI, 'mcp']);
-  try { assert.equal((await s.req('tools/list')).result.tools.length, 13); } finally { s.close(); }
+  try { assert.equal((await s.req('tools/list')).result.tools.length, 21); } finally { s.close(); }
 });
 check('Docs', 'docs/MCP.md says tools return structuredContent', async c => {
   const doc = path.join(ROOT, 'docs', 'MCP.md');
