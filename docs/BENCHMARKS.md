@@ -1,11 +1,11 @@
 # Benchmark methodology
 
-CREA 0.1.0 measures wall-clock duration for fresh child-process executions. It records command, arguments, working directory, repetition count, per-run duration, exit status, signal, timeout flag, and bounded stdout/stderr.
+Reverse 0.1.0 measures wall-clock duration for fresh child-process executions. It records command, arguments, working directory, repetition count, per-run duration, exit status, signal, timeout flag, and bounded stdout/stderr.
 
 ## Recommended protocol
 
 1. Use identical input files and arguments for baseline and candidate.
-2. Record executable version, build identifier, host, OS, architecture, power mode, and background load outside CREA.
+2. Record executable version, build identifier, host, OS, architecture, power mode, and background load outside Reverse.
 3. Use at least 5-10 repetitions for exploratory comparisons; increase repetitions for noisy workloads.
 4. Separate cold-start and warmed-up experiments manually; this release does not classify them.
 5. Alternate baseline/candidate runs where practical to reduce drift.

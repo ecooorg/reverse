@@ -17,7 +17,7 @@ Each tool returns JSON text and `structuredContent`. Errors are returned as JSON
 | `profile_process` | `pid` | CPU/RSS sampling; optional `durationMs`, `intervalMs` |
 | `capture_baseline` | `command` | Persist a named baseline benchmark artifact |
 | `run_benchmark` | `command` | Run command; optional `args`, `cwd`, `timeoutMs`, `repetitions`, `label` |
-| `compare_results` | `before`, `after` | Compare CREA benchmark envelopes |
+| `compare_results` | `before`, `after` | Compare Reverse benchmark envelopes |
 | `validate_changes` | `command`, `expected` | Compare exact expected outputs; optional `args`, `cwd`, `timeoutMs`, `repetitions` |
 | `get_evidence` | `id` | Retrieve a persisted evidence record by ID |
 | `list_analyzers` | none | Distinguish built-ins from extension points |

@@ -4,12 +4,12 @@ Sections marked **(0.1.0)** describe what exists in the current release. Section
 
 ## Purpose and design principles
 
-CREA is a compact, standalone analysis core that serves an AI research agent for software optimization. It gives the agent verifiable facts about third-party programs, libraries and running processes, so the agent can find the causes of excessive resource use, propose optimizations, and prove — by measurement — that a change helped and did not break behavior. It works with programs whose source is available and with closed binaries; for closed programs, the changes that can be made are limited to those technically possible without source.
+Reverse is a compact, standalone analysis core that serves an AI research agent for software optimization. It gives the agent verifiable facts about third-party programs, libraries and running processes, so the agent can find the causes of excessive resource use, propose optimizations, and prove — by measurement — that a change helped and did not break behavior. It works with programs whose source is available and with closed binaries; for closed programs, the changes that can be made are limited to those technically possible without source.
 
 Responsibilities are split deliberately:
 
 - **The AI agent** is the intelligence: research, analysis, hypotheses, planning, solution design, experiment control and interpretation of results.
-- **The CREA core** is the toolset: access to programs, deterministic analysis, measurement, safe execution, evidence and verification.
+- **The Reverse core** is the toolset: access to programs, deterministic analysis, measurement, safe execution, evidence and verification.
 - **External analyzers** (Ghidra, Rizin, Frida, GDB, perf, eBPF, ETW, Instruments, Valgrind) do the heavy specialist work behind providers.
 
 The model must not invent technical facts about a target. It receives facts from the core, forms hypotheses and requests further investigation. The model proposes an optimization; its effectiveness is confirmed by measurement and its correctness by independent checks.
@@ -52,7 +52,7 @@ Every finding should carry its source, the target identifier, the time of observ
 ## Target architecture (planned)
 
 ```text
-CREA
+Reverse
 │
 ├── CORE
 │   ├── Contracts
@@ -127,7 +127,7 @@ Specialist analysis beyond the built-in analyzers (native, JavaScript/Electron, 
 
 Results are stored in a structured format so the agent can answer: does RAM grow continuously? does CPU periodically reach 100%? does an idle process keep consuming resources? does load grow after a particular event? which child process creates the main load?
 
-**Limitation.** This is process-level monitoring, not hot-function detection. Without Frida, perf, eBPF or another suitable profiler, CREA can reliably identify resource-intensive processes, but not specific functions inside them. Function-level data is reported only when produced by a real external profiler through a provider.
+**Limitation.** This is process-level monitoring, not hot-function detection. Without Frida, perf, eBPF or another suitable profiler, Reverse can reliably identify resource-intensive processes, but not specific functions inside them. Function-level data is reported only when produced by a real external profiler through a provider.
 
 ## Benchmark methodology (0.1.0 and planned, 0.2)
 
@@ -148,7 +148,7 @@ Measurement quality rules:
 
 ### Environment fingerprint (planned, 0.2)
 
-To judge whether two measurements are comparable, each experiment records: OS and version, CPU architecture, CPU core count, total RAM, Node.js version, CREA version, target application version, launch arguments, environment variables (excluding secrets), time of the study, and benchmark parameters. If hardware or configuration differs materially, CREA warns that comparability of the results is limited.
+To judge whether two measurements are comparable, each experiment records: OS and version, CPU architecture, CPU core count, total RAM, Node.js version, Reverse version, target application version, launch arguments, environment variables (excluding secrets), time of the study, and benchmark parameters. If hardware or configuration differs materially, Reverse warns that comparability of the results is limited.
 
 ## Evidence model (0.1.0 and planned, 0.2)
 
@@ -196,7 +196,7 @@ Tamper-evident integrity (a manifest and optional signing) is a later step; see 
 6. **Decision** — accept if performance improved and correctness is preserved; roll back if results worsened; investigate further if data is insufficient; reject if functionality is broken.
 7. **Report** — what was found and changed and why, the metrics before and after, the improvement, residual risks and what can be optimized next.
 
-The orchestration of this cycle belongs to the agent. CREA provides the deterministic steps and does not ship its own workflow engine.
+The orchestration of this cycle belongs to the agent. Reverse provides the deterministic steps and does not ship its own workflow engine.
 
 ## Safety and process control
 
@@ -206,7 +206,7 @@ The orchestration of this cycle belongs to the agent. CREA provides the determin
 
 - Check that a PID exists; verify process identity before any operation; guard against PID reuse.
 - Timeouts for launched target processes; capped stdout/stderr size.
-- Control of child-process launches; clean termination of CREA's own test processes.
+- Control of child-process launches; clean termination of Reverse's own test processes.
 - Cancellation of investigations; safe removal of temporary files.
 - Preserve the original state of the program and allow recovery after a failed change; operations that may change the target, its configuration or the environment require separate permission.
 
@@ -261,8 +261,8 @@ The compact core is sized for planning, not as a measure of quality: roughly 20,
 
 ## Product direction
 
-CREA is intended to become a software performance research system, not merely an MCP wrapper over system commands, built on three strengths:
+Reverse is intended to become a software performance research system, not merely an MCP wrapper over system commands, built on three strengths:
 
-- **Deep Observation:** CREA knows what happens inside the studied system at the level of the available system metrics.
-- **Scientific Benchmarking:** CREA objectively measures the effect of changes.
-- **Verifiable Evidence:** CREA can show where data came from and what conclusions rest on it.
+- **Deep Observation:** Reverse knows what happens inside the studied system at the level of the available system metrics.
+- **Scientific Benchmarking:** Reverse objectively measures the effect of changes.
+- **Verifiable Evidence:** Reverse can show where data came from and what conclusions rest on it.
