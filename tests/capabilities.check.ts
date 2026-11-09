@@ -933,8 +933,20 @@ check('Docs', 'docs/MCP.md says tools return structuredContent', async c => {
     const obj = await s.call('get_inventory', { limit: 3 });
     assert.deepEqual(obj.envelope.structuredContent, obj.value);
     const arr = await s.call('list_analyzers', {});
-    assert.deepEqual(arr.envelope.structuredContent, { items: arr.value }, 'arrays are wrapped because structuredContent must be an object');
+    assert.deepEqual(arr.envelope.structuredContent, { items: arr.value, untrustedContent: arr.envelope.structuredContent.untrustedContent }, 'arrays are wrapped because structuredContent must be an object');
     assert.equal(arr.envelope.isError, false);
+  } finally { s.close(); }
+});
+check('Security', 'tool results carry untrustedContent and cap oversized target strings', async () => {
+  const s = startMcp();
+  try {
+    const dir = await mkdtemp(path.join(WORK, 'inj-'));
+    await writeFile(path.join(dir, 'a.js'), `import x from '${'x'.repeat(5000)}';\n`);
+    const r = await s.call('analyze_source', { directory: dir });
+    const u = r.envelope.structuredContent.untrustedContent;
+    assert.match(u.notice, /untrusted/); assert.ok(u.truncatedStrings >= 1, 'long import name must be truncated');
+    assert.ok(!r.envelope.content[0].text.includes('x'.repeat(4200)));
+    assert.ok(r.value.untrustedContent, 'object results carry the marker in text too');
   } finally { s.close(); }
 });
 check('MCP', 'initialize negotiates the protocol version and reports the product version', async () => {
