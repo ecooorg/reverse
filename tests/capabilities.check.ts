@@ -150,6 +150,7 @@ function startMcp(args: string[] = [MCP]) {
   const call = async (name: string, args: unknown) => {
     const m = await req('tools/call', { name, arguments: args });
     if (m.error) throw new Error(`tool ${name}: ${m.error.message}`);
+    if (m.result?.isError) throw new Error(`tool ${name}: ${m.result.content[0].text}`);
     return { envelope: m.result, value: JSON.parse(m.result.content[0].text) };
   };
   const close = () => { try { child.stdin!.end(); } catch { /* ignore */ } child.kill(); };
@@ -537,17 +538,20 @@ check('Benchmark', 'stdin is closed (child sees EOF) and stdout/stderr are captu
   });
   assert.equal(r.findings[0].runs[0].stdout, 'eof'); assert.equal(r.findings[0].runs[0].stderr, 'err');
 });
-check('Benchmark', 'captured output never exceeds 1 MiB per stream, whatever the chunk size, and is flagged', async () => {
+check('Benchmark', 'captured output never exceeds 1 MiB (bytes) per stream, whatever the chunk size, and is flagged', async () => {
   const CAP = 1024 * 1024;
   const small: any = await runBenchmark({
     command: NODE, repetitions: 1, timeoutMs: 60000,
     args: nodeEval('const c="x".repeat(16384);let n=0;(function w(){while(n<250){n++;if(!process.stdout.write(c))return process.stdout.once("drain",w);}})()'),
   });
   const s = small.findings[0].runs[0];
-  assert.equal(s.stdout.length, CAP, 'small chunks'); assert.equal(s.stdoutTruncated, true);
+  assert.equal(Buffer.byteLength(s.stdout), CAP, 'small chunks'); assert.equal(s.stdoutTruncated, true);
   const big: any = await runBenchmark({ command: NODE, args: nodeEval('process.stdout.write("x".repeat(4e6));process.stderr.write("y".repeat(3e6))'), repetitions: 1, timeoutMs: 60000 });
   const b = big.findings[0].runs[0];
-  assert.equal(b.stdout.length, CAP, 'one huge chunk'); assert.equal(b.stderr.length, CAP);
+  assert.equal(Buffer.byteLength(b.stdout), CAP, 'one huge chunk'); assert.equal(Buffer.byteLength(b.stderr), CAP);
+  const wide: any = await runBenchmark({ command: NODE, args: nodeEval('process.stdout.write("é".repeat(1100000))'), repetitions: 1, timeoutMs: 60000 });
+  assert.ok(Buffer.byteLength(wide.findings[0].runs[0].stdout) <= CAP, 'multi-byte text is capped in bytes, not characters');
+  assert.equal(wide.findings[0].runs[0].stdoutTruncated, true);
   assert.equal(b.stdoutTruncated, true); assert.equal(b.stderrTruncated, true);
   const ok: any = await runBenchmark({ command: NODE, args: nodeEval('process.stdout.write("small")'), repetitions: 1 });
   assert.equal(ok.findings[0].runs[0].stdoutTruncated, false);
@@ -609,7 +613,7 @@ check('Validation', 'passes when exit code, stdout and stderr match exactly', as
 });
 check('Validation', 'detects a stdout mismatch, a wrong exit code and an unexpected non-zero exit', async () => {
   const a: any = await validateBehavior({ command: NODE, args: nodeEval('process.stdout.write("actual")') }, { stdout: 'expected' });
-  assert.equal(a.findings[0].passed, false); assert.equal(a.status, 'partial');
+  assert.equal(a.findings[0].passed, false); assert.equal(a.status, 'completed', 'a clean mismatch is a completed check with passed=false');
   assert.equal(a.findings[0].checks.find((x: any) => x.name === 'stdout').passed, false);
   const b: any = await validateBehavior({ command: NODE, args: nodeEval('process.exit(2)') }, { exitCode: 2 });
   assert.equal(b.findings[0].passed, true);
@@ -624,6 +628,47 @@ check('Validation', 'exact-match only (no semantic equivalence, test discovery o
   const r: any = await validateBehavior({ command: NODE, args: nodeEval('process.stdout.write("a  b")') }, { stdout: 'a b' });
   assert.equal(r.findings[0].passed, false);
   c.limit('whitespace-only differences fail; there is no normalization, fixture discovery or test-runner adapter');
+});
+
+
+// ---------------------------------------------------------------- hotfix 0.2.0-beta.2 checks
+check('Benchmark', 'median is the mean of the two middle values for even counts (AUDIT F-02)', async () => {
+  const { median } = await import('../dist/benchmark-engine.js');
+  assert.equal(median([]), null); assert.equal(median([5]), 5); assert.equal(median([9, 1]), 5);
+  assert.equal(median([3, 1, 2]), 2); assert.equal(median([4, 1, 3, 2]), 2.5);
+});
+check('Validation', 'output cut at the capture cap never counts as a match (AUDIT F-05)', async () => {
+  const r: any = await validateBehavior({ command: NODE, args: nodeEval('process.stdout.write("x".repeat(2e6))') }, { stdout: 'x'.repeat(1024 * 1024) });
+  assert.equal(r.findings[0].passed, false); assert.equal(r.status, 'partial');
+  assert.ok(r.findings[0].checks.some((x: any) => x.name === 'outputNotTruncated' && !x.passed));
+});
+check('MCP', 'a failing tool returns a result with isError:true and the message, not a protocol error (AUDIT F-06)', async () => {
+  const s = startMcp();
+  try {
+    const m = await s.req('tools/call', { name: 'analyze_binary', arguments: { file: path.join(WORK, 'does-not-exist') } });
+    assert.equal(m.error, undefined); assert.equal(m.result.isError, true); assert.match(m.result.content[0].text, /ENOENT/);
+    assert.deepEqual((await s.req('ping')).result, {});
+  } finally { s.close(); }
+});
+check('Source', 'files above the size cap are counted but not read; the file cap is exact (AUDIT F-09)', async () => {
+  const d = path.join(WORK, 'bigfile'); await mkdir(d, { recursive: true });
+  await writeFile(path.join(d, 'huge.js'), Buffer.alloc(3 * 1024 * 1024, 'a'));
+  await writeFile(path.join(d, 'blob.wasm'), Buffer.from([0, 0x61, 0x73, 0x6d]));
+  const r: any = await analyzeSource(d);
+  assert.equal(r.findings[0].fileCount, 1, '.wasm is not text source'); assert.ok(r.coverage.notes.some((n: string) => /not read/.test(n)));
+  const many = path.join(WORK, 'many'); await mkdir(many, { recursive: true });
+  await Promise.all(Array.from({ length: 5100 }, (_, i) => writeFile(path.join(many, `f${i}.js`), 'x')));
+  assert.equal(((await analyzeSource(many)) as any).findings[0].fileCount, 5000);
+});
+check('Docs', 'ARCHITECTURE.md does not list implemented MCP tools as planned (AUDIT F-15)', async () => {
+  const arch = readFileSync(path.join(ROOT, 'docs', 'ARCHITECTURE.md'), 'utf8');
+  const planned = arch.slice(arch.indexOf('Remaining planned additions'));
+  const s = startMcp();
+  try {
+    const names: string[] = (await s.req('tools/list')).result.tools.map((t: any) => t.name);
+    const stale = [...planned.slice(0, planned.indexOf('Candidates for later')).matchAll(/^\| `([a-z_]+)` \|/gm)].map(m => m[1]).filter(n => names.includes(n));
+    assert.deepEqual(stale, [], 'implemented tools still listed as planned');
+  } finally { s.close(); }
 });
 
 // ---------------------------------------------------------------- 9. evidence
@@ -760,16 +805,18 @@ check('MCP', 'every tool has a description and an object input schema with valid
     }
   } finally { s.close(); }
 });
-check('MCP', 'protocol errors: unknown method, unknown tool, garbage input, notifications', async () => {
+check('MCP', 'protocol errors: unknown method, unknown tool (-32602), garbage input (-32700), notifications', async () => {
   const s = startMcp();
   try {
     assert.equal((await s.req('no/such/method')).error.code, -32601);
     const bad = await s.req('tools/call', { name: 'no_such_tool', arguments: {} });
-    assert.equal(bad.error.code, -32000); assert.match(bad.error.message, /Unknown tool/);
+    assert.equal(bad.error.code, -32602); assert.match(bad.error.message, /Unknown tool/);
+    assert.equal((await s.req('tools/call', {})).error.code, -32602, 'missing tool name');
     s.raw('this is not json'); s.notify('notifications/cancelled'); s.notify('some/unknown/notification');
     assert.deepEqual((await s.req('ping')).result, {}, 'server must survive garbage');
     await settle(200);
-    assert.deepEqual(s.unsolicited, [], 'notifications and garbage must not produce responses');
+    assert.equal(s.unsolicited.length, 1, 'only the garbage line is answered; notifications are not');
+    assert.equal(s.unsolicited[0].error.code, -32700); assert.equal(s.unsolicited[0].id, null);
   } finally { s.close(); }
 });
 check('MCP', 'all 22 tools can be called and return parseable JSON results', async () => {
@@ -822,11 +869,13 @@ check('MCP', 'notifications/cancelled stops a running process profile request', 
     assert.ok(value.limitations.some((x: string) => /cancelled/i.test(x)));
   } finally { s.close(); await killAndWait(child); }
 });
-check('MCP', 'tool errors (missing file, bad PID) surface as JSON-RPC errors, not crashes', async () => {
+check('MCP', 'tool errors (missing file, bad PID) surface as isError results, not crashes', async () => {
   const s = startMcp();
   try {
-    assert.ok((await s.req('tools/call', { name: 'analyze_binary', arguments: { file: path.join(WORK, 'nope') } })).error);
-    assert.match((await s.req('tools/call', { name: 'inspect_process', arguments: { pid: -4 } })).error.message, /positive integer/);
+    const a = await s.req('tools/call', { name: 'analyze_binary', arguments: { file: path.join(WORK, 'nope') } });
+    assert.equal(a.error, undefined); assert.equal(a.result.isError, true);
+    const b = await s.req('tools/call', { name: 'inspect_process', arguments: { pid: -4 } });
+    assert.equal(b.result.isError, true); assert.match(b.result.content[0].text, /positive integer/);
     assert.deepEqual((await s.req('ping')).result, {});
   } finally { s.close(); }
 });
