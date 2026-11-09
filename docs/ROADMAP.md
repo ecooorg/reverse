@@ -36,18 +36,18 @@ Version 1.0 is reached when all eleven patches are done and the capability matri
 
 B and C can proceed in parallel after A; E can start at the same time. G and H can proceed in parallel once F is done.
 
-### Patch A — Defect closure and verification gate (0.1.x)
+### Patch A — Defect closure and verification gate (0.1.x) — done, released as 0.1.1
 
-Goal: make the existing 0.1.0 trustworthy before building on it. Every ⚠️ drift found by the capability suite is fixed.
+Goal: make the existing 0.1.0 trustworthy before building on it. Every ⚠️ drift found by the capability suite is fixed, and the suite now asserts the corrected behavior.
 
-- Header analyzer: never throw on files shorter than 4 bytes (return `partial`); stop reporting a bitness for universal Mach-O binaries; tell Java `.class` files apart from universal Mach-O (same `0xCAFEBABE` magic, check the version field).
-- Benchmark runner: enforce the output cap after every chunk so one large chunk cannot bypass it; on timeout terminate the whole process tree (process group on POSIX, `taskkill /T` on Windows) so grandchildren cannot survive.
-- Process inspection: search beyond the first 500 rows when a PID is requested; replace the fixed 4 s PowerShell timeout in favor of a configurable one.
-- CLI: `validate` accepts `--arg`; `--json` either becomes a real mode or is removed from the help.
-- MCP: return `structuredContent` next to `content[0].text`, as `docs/MCP.md` promises, or correct the document.
-- Keep the capability workflow green on all nine environments (three operating systems times Node 20, 22 and 24); keep it as a required check for every later patch.
+- [x] Header analyzer never throws on files shorter than 4 bytes (returns `partial`); universal Mach-O binaries report no bitness; Java `.class` files are told apart from universal Mach-O (the `0xCAFEBABE` magic is shared; the next field decides).
+- [x] Benchmark runner enforces the 1 MiB output cap after every chunk, so one large chunk cannot bypass it, and flags truncation (`stdoutTruncated`, `stderrTruncated`). On timeout the whole process tree is terminated (`src/process-tree.ts`: snapshot first, then kill; `taskkill /T /F` on Windows) and the runner no longer waits for stdio that a survivor holds open.
+- [x] `inspect_process` searches the full process inventory instead of the first 500 rows; helper-executable timeouts are configurable through `REVERSE_EXEC_TIMEOUT_MS` (PowerShell default raised to 10 s).
+- [x] CLI: `validate` accepts `--arg`; missing positional arguments print a usage line; `--json` is documented as accepted with no effect (output is always JSON).
+- [x] MCP: `tools/call` returns `structuredContent` next to `content[0].text` (arrays are wrapped as `{ "items": [...] }`); `initialize` negotiates the protocol version; one `VERSION` constant feeds the CLI banner and `serverInfo`.
+- [x] The capability workflow is green on all nine environments (three operating systems times Node 20, 22 and 24) and stays a required check for every later patch.
 
-Closes: the defects found by the capability suite; no roadmap checkbox below is closed by this patch.
+Remaining ⚠️ drift after this patch: none. The 🚧 limitations that are left each belong to patches B–K.
 
 ### Patch B — Process intelligence and safety (0.2)
 
@@ -197,6 +197,10 @@ Sequencing principle: do not start with Ghidra and do not try to implement every
 - [x] Exact output/exit-code validation
 - [x] Local JSON evidence/artifacts
 - [x] Explicit extension-point registry and capability matrix
+
+## 0.1.1 — defect closure (patch A)
+
+- [x] Everything listed under Patch A above
 
 ## 0.2 — Deep Process & Performance Intelligence
 

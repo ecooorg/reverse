@@ -1,6 +1,6 @@
 # Benchmark methodology
 
-Reverse 0.1.0 measures wall-clock duration for fresh child-process executions. It records command, arguments, working directory, repetition count, per-run duration, exit status, signal, timeout flag, and bounded stdout/stderr.
+Reverse measures wall-clock duration for fresh child-process executions. It records command, arguments, working directory, repetition count, per-run duration, exit status, signal, timeout flag, and stdout/stderr bounded to 1 MiB per stream (a `stdoutTruncated`/`stderrTruncated` flag marks dropped output). A timeout terminates the whole process tree.
 
 ## Recommended protocol
 

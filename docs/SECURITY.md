@@ -8,12 +8,12 @@ Reverse is a local inspection tool, not a sandbox. It runs with the permissions 
 - Process inspection is observational and limited to data exposed by the OS.
 - No target is uploaded to an external service.
 - Benchmark and validation commands are explicitly supplied by the caller and run without a shell (`spawn(command, args)`).
-- Command duration is bounded; output capture is capped at approximately 1 MiB per stream.
+- Command duration is bounded; output capture is capped at exactly 1 MiB per stream (excess output is dropped and the run is flagged `stdoutTruncated` / `stderrTruncated`).
 - Reverse does not patch binaries, change target configuration, inject into processes, or kill arbitrary target processes.
 
 ## Operator responsibilities
 
-Only inspect software and processes you own or are authorized to examine. Treat binaries and their output as untrusted. Run benchmarks in a disposable working directory or OS sandbox where practical. Do not pass untrusted command strings or arguments. A timeout terminates the spawned direct child; this MVP does not guarantee termination of grandchildren or enforce CPU/RAM quotas. Avoid elevated privileges.
+Only inspect software and processes you own or are authorized to examine. Treat binaries and their output as untrusted. Run benchmarks in a disposable working directory or OS sandbox where practical. Do not pass untrusted command strings or arguments. A timeout terminates the spawned child and every process it started (the process tree is snapshotted first; on Windows `taskkill /T /F` is used), but a process that escapes its parent before the snapshot cannot be found. CPU/RAM quotas are not enforced. Avoid elevated privileges.
 
 ## Known security gaps
 

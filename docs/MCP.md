@@ -2,7 +2,7 @@
 
 Transport: newline-delimited JSON-RPC 2.0 over stdin/stdout (MCP stdio). Supported methods: `initialize`, `notifications/initialized`, `ping`, `tools/list`, and `tools/call`.
 
-Each tool returns JSON text and `structuredContent`. Errors are returned as JSON-RPC errors. Never write banners or debug output to stdout.
+Each tool returns its result as JSON text in `content[0].text` and as the same data in `structuredContent` (an array result is wrapped as `{ "items": [...] }`, because `structuredContent` must be an object). `initialize` answers with the client's `protocolVersion` when it is `2024-11-05`, `2025-03-26` or `2025-06-18`, and with `2025-06-18` otherwise. Errors are returned as JSON-RPC errors. Never write banners or debug output to stdout.
 
 ## Tools
 
