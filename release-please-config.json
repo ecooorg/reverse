@@ -1,8 +1,0 @@
-{
-  "release-type": "node",
-  "packages": {
-    ".": {
-      "extra-files": ["src/core-version.ts"]
-    }
-  }
-}
