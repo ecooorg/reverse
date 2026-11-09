@@ -671,6 +671,14 @@ check('Docs', 'ARCHITECTURE.md does not list implemented MCP tools as planned (A
   } finally { s.close(); }
 });
 
+check('Docs', 'every finding and recommendation ID of docs/AUDIT.md is tracked in docs/ROADMAP.md', async () => {
+  const audit = readFileSync(path.join(ROOT, 'docs', 'AUDIT.md'), 'utf8');
+  const road = readFileSync(path.join(ROOT, 'docs', 'ROADMAP.md'), 'utf8');
+  const ids = [...new Set(audit.match(/\b[FR]-\d{2}\b/g) ?? [])];
+  assert.ok(ids.length >= 37, 'audit IDs found');
+  assert.deepEqual(ids.filter(id => !road.includes(`| ${id} |`)), [], 'IDs missing from the approved audit backlog');
+});
+
 // ---------------------------------------------------------------- 9. evidence
 check('Evidence', 'evidence written by an analysis can be found again by ID', async () => {
   const file = await craft('ev.bin', elf({ cls: 2, le: true, machine: 62, entry: 2n }));
