@@ -34,7 +34,7 @@
   },
   "license": "Reverse",
   "devDependencies": {
-    "@types/node": "^22.15.0",
+    "@types/node": "^26.6.6",
     "typescript": "^7.0.2",
     "tsx": "^4.19.3"
   }
