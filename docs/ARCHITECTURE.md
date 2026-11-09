@@ -112,11 +112,15 @@ Reverse
 
 Specialist analysis beyond the built-in analyzers (native, JavaScript/Electron, .NET and WebAssembly analysis, hotspot detection, disk/network I/O) is reached through providers and extensions, not by reimplementing the underlying tools. Platform and domain extensions (Android, browser, GPU, network, database, firmware, container, cloud, compiler, algorithm, energy) are added only when a real need appears. Each has its own adapter, contracts, requirements and tests, and the core must not know the internals of any extension. Linux is the first fully supported profiling environment; interfaces for Windows and macOS are designed in from the start.
 
-## Process Intelligence (planned, 0.2)
+## Process Intelligence (partially implemented, 0.2)
 
-**Advanced Process Inspector.** Beyond a point-in-time snapshot, the inspector collects: PID, PPID and the process tree; executable and launch arguments; process uptime; thread count; RSS and virtual memory; CPU utilization and accumulated CPU time; disk I/O; open file descriptors where available; child processes; and processes consuming disproportionate resources. Observation over a given interval — not only a snapshot — is a core requirement, so the agent sees the dynamics of consumption. An observation report states the target, PID, average and peak CPU, average and peak RSS, thread count, disk read/write totals, observation duration and sample count.
+**Implemented subset.** The inspector now collects OS-exposed PID/PPID, executable and arguments, uptime, thread count, RSS/VMS, CPU time, Linux disk I/O and open-FD count, plus visible child relationships. Linux reads `/proc`; Windows uses CIM and macOS uses `ps`. Metrics are not at parity across platforms.
 
-**Time-Series Performance Profiler.** Collects metrics at a configured frequency: interval CPU utilization, RSS and VMS, peak RAM and memory change, CPU time, read/write I/O and thread count. It detects sharp load spikes, prolonged high load, and processes with continuously growing memory. Modes:
+**Advanced Process Inspector (remaining planned work).** Beyond a point-in-time snapshot, the inspector collects: PID, PPID and the process tree; executable and launch arguments; process uptime; thread count; RSS and virtual memory; CPU utilization and accumulated CPU time; disk I/O; open file descriptors where available; child processes; and processes consuming disproportionate resources. Observation over a given interval — not only a snapshot — is a core requirement, so the agent sees the dynamics of consumption. An observation report states the target, PID, average and peak CPU, average and peak RSS, thread count, disk read/write totals, observation duration and sample count.
+
+**Implemented subset.** Bounded sampling persists structured JSON time series with available CPU, memory, thread, child and disk-I/O metrics, and deterministic high-CPU / growing-RSS anomaly checks.
+
+**Time-Series Performance Profiler (remaining planned work).** Collects metrics at a configured frequency: interval CPU utilization, RSS and VMS, peak RAM and memory change, CPU time, read/write I/O and thread count. It detects sharp load spikes, prolonged high load, and processes with continuously growing memory. Modes:
 
 | Mode | Purpose |
 |---|---|
@@ -226,9 +230,9 @@ CPU and RAM control must not be presented as full system isolation. Real hard li
 
 ### MCP tools
 
-The 13 tools that exist today are listed in [MCP.md](MCP.md). Existing tools must be preserved and backward compatibility must not be broken. Before adding a command, the existing contracts are checked and compatible ones reused, instead of creating duplicate commands.
+The existing tools and the implemented 0.2 process tools are listed in [MCP.md](MCP.md). Existing tools must be preserved and backward compatibility must not be broken. Before adding a command, the existing contracts are checked and compatible ones reused, instead of creating duplicate commands.
 
-Planned additions for 0.2 (not yet implemented):
+Remaining planned additions for 0.2 (not yet implemented):
 
 | Tool | Purpose |
 |---|---|

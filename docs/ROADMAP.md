@@ -51,6 +51,8 @@ Remaining ⚠️ drift after this patch: none. The 🚧 limitations that are lef
 
 ### Patch B — Process intelligence and safety (0.2)
 
+**Implementation status: in progress (not released).** This work chunk adds OS-backed process metadata and persisted process-level time series. It does not close Patch B: cancellation/identity hardening, full Windows/macOS metric parity, resource-control integration, complete anomaly coverage, and the full cross-platform verification gate remain outstanding.
+
 Closes the roadmap items **Advanced Process Inspector**, **Time-Series Performance Profiler** and **Process Safety & Resource Control**.
 
 - Process inspector: PID, PPID and process tree, executable and arguments, uptime, threads, RSS and virtual memory, CPU utilization and CPU time, disk I/O, open file descriptors and child processes, using Linux `/proc`, Windows performance counters and macOS sampling.

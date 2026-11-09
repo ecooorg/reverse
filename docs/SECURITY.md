@@ -17,7 +17,7 @@ Only inspect software and processes you own or are authorized to examine. Treat 
 
 ## Known security gaps
 
-- No OS-level sandbox, resource cgroup/job object, network isolation, or filesystem allowlist.
+- No OS-level sandbox, resource cgroup/job object, network isolation, or filesystem allowlist. Monitoring is read-only; no process termination or control operation is exposed.
 - Process listing and sampling are subject to host permissions and race conditions.
 - MCP stdio assumes a trusted local client. There is no authentication layer.
 - Evidence JSON is not signed or tamper-evident.

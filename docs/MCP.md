@@ -13,8 +13,16 @@ Each tool returns its result as JSON text in `content[0].text` and as the same d
 | `analyze_source` | `directory` | Source inventory |
 | `analyze_dependencies` | `directory` | npm direct dependency inventory |
 | `get_inventory` | none | Visible process list; optional `limit` |
+| `list_processes` | none | Detailed visible process inventory; optional `limit` |
 | `inspect_process` | `pid` | Point-in-time process metadata |
-| `profile_process` | `pid` | CPU/RSS sampling; optional `durationMs`, `intervalMs` |
+| `profile_process` | `pid` | Persisted process time-series sampling; optional `durationMs`, `intervalMs` |
+| `monitor_process` | `pid` | Time-series monitoring; optional duration, interval and mode |
+| `get_process_metrics` | `pid` | Current process resource metrics |
+| `get_process_tree` | `pid` | Visible descendant process tree |
+| `analyze_memory` | `pid` | Process memory metrics |
+| `analyze_cpu` | `pid` | Process CPU metrics |
+| `analyze_io` | `pid` | Per-process disk I/O counters where available |
+| `detect_resource_anomalies` | `series` | Detect high CPU and growing memory in supplied profiles |
 | `capture_baseline` | `command` | Persist a named baseline benchmark artifact |
 | `run_benchmark` | `command` | Run command; optional `args`, `cwd`, `timeoutMs`, `repetitions`, `label` |
 | `compare_results` | `before`, `after` | Compare Reverse benchmark envelopes |
