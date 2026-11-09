@@ -37,3 +37,10 @@ Linux minutes count 1x, Windows 2x and macOS 10x; public repositories are not ch
 - **Time limits.** Every job has a `timeout-minutes` limit instead of the 6-hour default.
 - **Caching and duplicate work.** `actions/setup-node` caches npm; `npm ci --ignore-scripts` avoids a second TypeScript build from the `prepare` hook; the old `ci.yml` was merged into the Linux cells because it installed and built the same code again.
 - **Skip a run.** Put `[skip ci]` in a commit message for changes that need no verification.
+
+## Diagnostics in the workflows
+
+- Every capability job writes a **job summary** (runner facts, totals, failed checks, the ten slowest checks, limitations and drift of that platform), emits an annotation for each failed check and for any check slower than 60 s, and uploads the capability JSON plus the JUnit XML (per-check durations) as an artifact kept for 14 days. A single check that hangs is reported by name after 240 s instead of ending the job at its timeout.
+- `structure.yml` keeps the checker output as an artifact and in the job summary, and prints warnings (never failures) for CRLF files, tracked build output, archives, possible secret files and folders deeper than the layout allows. A manual run can choose one OS or all three.
+- Actions are pinned to major versions that run on Node 24 (`checkout@v5`, `setup-node@v5`, `upload-artifact@v6`, `download-artifact@v7`); the Node 20 deprecation warning seen in older logs came from `checkout@v4`.
+
