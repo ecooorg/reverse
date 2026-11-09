@@ -206,27 +206,24 @@ check('Binary', 'Mach-O 64-bit magics (both byte orders) are recognized', async 
   assert.match(a.format, /^Mach-O 64-bit/); assert.match(b.format, /^Mach-O 64-bit/);
   assert.equal(a.bitness, 64); assert.equal(b.bitness, 64);
 });
-check('Binary', 'Mach-O universal binary: format recognized, bitness field is meaningless', async c => {
+check('Binary', 'Mach-O universal binary is recognized and reports no meaningless bitness', async () => {
   const f: any = (await analyzeBinary(await craft('fat.bin', [0xca, 0xfe, 0xba, 0xbe, 0, 0, 0, 2]))).findings[0];
-  assert.equal(f.format, 'Mach-O universal');
-  if (f.bitness === 32) c.drift('universal binary is reported with bitness=32, which has no meaning for a fat binary');
+  assert.equal(f.format, 'Mach-O universal'); assert.equal(f.bitness, null);
 });
-check('Binary', 'Java .class files share the 0xCAFEBABE magic and are misclassified', async c => {
-  const f: any = (await analyzeBinary(await craft('Hello.class', [0xca, 0xfe, 0xba, 0xbe, 0, 0, 0, 0x34]))).findings[0];
-  if (f.format === 'Mach-O universal') c.limit('Java class files are reported as "Mach-O universal" (magic collision, no disambiguation)');
-  else c.note(`classified as ${f.format}`);
+check('Binary', 'Java .class files are told apart from Mach-O universal binaries (same 0xCAFEBABE magic)', async () => {
+  const cls: any = (await analyzeBinary(await craft('Hello.class', [0xca, 0xfe, 0xba, 0xbe, 0, 0, 0, 0x34]))).findings[0];
+  assert.equal(cls.format, 'Java class'); assert.equal(cls.bitness, null);
+  const fat: any = (await analyzeBinary(await craft('fat3.bin', [0xca, 0xfe, 0xba, 0xbe, 0, 0, 0, 3]))).findings[0];
+  assert.equal(fat.format, 'Mach-O universal');
 });
 check('Binary', 'unrecognized content yields status partial, not a crash', async () => {
   const r = await analyzeBinary(await craft('text.bin', Buffer.from('just some text, definitely not a binary header'))) as any;
   assert.equal(r.findings[0].format, 'unknown'); assert.equal(r.status, 'partial'); assert.equal(r.coverage.complete, false);
 });
-check('Binary', 'files shorter than 4 bytes are handled gracefully', async c => {
-  const f = await craft('tiny.bin', [0x01, 0x02]);
-  try {
-    const r: any = await analyzeBinary(f);
-    assert.equal(r.status, 'partial');
-  } catch (e) {
-    c.drift(`analyzeBinary throws on a 2-byte file instead of returning partial (${(e as Error).name}: ${(e as Error).message.slice(0, 80)})`);
+check('Binary', 'empty and tiny files (0-3 bytes) yield partial instead of throwing', async () => {
+  for (const [name, bytes] of [['b0.bin', []], ['b1.bin', [0x7f]], ['b2.bin', [0x01, 0x02]], ['b3.bin', [0x7f, 0x45, 0x4c]]] as [string, number[]][]) {
+    const r: any = await analyzeBinary(await craft(name, bytes));
+    assert.equal(r.status, 'partial', name); assert.equal(r.findings[0].format, 'unknown', name);
   }
 });
 check('Binary', 'missing file rejects with an error', async () => {
@@ -340,14 +337,24 @@ check('Processes', 'unknown PID yields partial with an empty finding list', asyn
   const r: any = await inspectProcess(2147483646);
   assert.equal(r.status, 'partial'); assert.deepEqual(r.findings, []);
 });
-check('Processes', 'a freshly started child process can be inspected', async c => {
+check('Processes', 'any live process can be inspected, even beyond the 500-row display cap', async () => {
   const child = spawnIdle();
   try {
     await settle(200);
-    const r: any = await inspectProcess(child.pid!);
-    if (r.findings.length) { assert.equal(r.findings[0].pid, child.pid); assert.equal(r.status, 'completed'); }
-    else c.limit('child not visible within the 500-row inventory cap (inspectProcess only searches the first 500 processes)');
+    for (const pid of [child.pid!, process.pid]) {
+      const r: any = await inspectProcess(pid);
+      assert.equal(r.status, 'completed', `pid ${pid}: ${j(r.limitations)}`); assert.equal(r.findings[0].pid, pid);
+    }
   } finally { await killAndWait(child); }
+});
+check('Processes', 'helper-executable timeout is configurable through REVERSE_EXEC_TIMEOUT_MS', async () => {
+  const prev = process.env.REVERSE_EXEC_TIMEOUT_MS;
+  process.env.REVERSE_EXEC_TIMEOUT_MS = '1';
+  try {
+    const r: any = await listProcesses(5);
+    assert.equal(r.status, 'partial'); assert.match(r.limitations.join(' '), /enumeration failed/i);
+  } finally { if (prev === undefined) delete process.env.REVERSE_EXEC_TIMEOUT_MS; else process.env.REVERSE_EXEC_TIMEOUT_MS = prev; }
+  assert.equal(((await listProcesses(5)) as any).status, 'completed');
 });
 check('Processes', 'no memory maps, handles, threads, per-process I/O or process tree', async c => {
   const p: any = ((await listProcesses(5)) as any).findings[0];
@@ -365,7 +372,7 @@ check('Profiling', 'samples CPU/RSS of a live process and aggregates average/pea
     const r: any = await profileProcess(child.pid!, 700, 100);
     const f = r.findings[0];
     if (WIN && r.status === 'partial' && /Command failed|timed out|ETIMEDOUT/i.test(j(r.errors))) {
-      c.drift(`PowerShell sampling failed under load (fixed 4 s exec timeout, one PowerShell start per sample): ${String(r.errors[0]).slice(0, 90)}`);
+      c.drift(`PowerShell sampling failed under load (helper timeout is configurable through REVERSE_EXEC_TIMEOUT_MS; one PowerShell start per sample): ${String(r.errors[0]).slice(0, 90)}`);
       return;
     }
     assert.equal(r.status, 'completed', j(r.errors));
@@ -448,19 +455,20 @@ check('Benchmark', 'stdin is closed (child sees EOF) and stdout/stderr are captu
   });
   assert.equal(r.findings[0].runs[0].stdout, 'eof'); assert.equal(r.findings[0].runs[0].stderr, 'err');
 });
-check('Benchmark', 'captured output is bounded (~1 MiB per stream)', async c => {
-  // Small chunks: the cap must hold on every platform.
+check('Benchmark', 'captured output never exceeds 1 MiB per stream, whatever the chunk size, and is flagged', async () => {
+  const CAP = 1024 * 1024;
   const small: any = await runBenchmark({
     command: NODE, repetitions: 1, timeoutMs: 60000,
     args: nodeEval('const c="x".repeat(16384);let n=0;(function w(){while(n<250){n++;if(!process.stdout.write(c))return process.stdout.once("drain",w);}})()'),
   });
-  const len = small.findings[0].runs[0].stdout.length;
-  assert.ok(len >= 1_000_000 && len < 2_000_000, `captured ${len} bytes of 4,096,000 written in 16 KiB chunks`);
-  // One huge chunk: the cap is checked before appending, so a single oversized chunk can bypass it.
-  const big: any = await runBenchmark({ command: NODE, args: nodeEval('process.stdout.write("x".repeat(4e6))'), repetitions: 1, timeoutMs: 60000 });
-  const bigLen = big.findings[0].runs[0].stdout.length;
-  assert.ok(bigLen >= 1_000_000, `captured only ${bigLen} bytes`);
-  if (bigLen >= 2_000_000) c.drift(`output cap is bypassed when a child's output arrives in one large chunk: kept ${bigLen} of 4,000,000 bytes (seen on Windows/Node 20; the cap is checked before appending, not after)`);
+  const s = small.findings[0].runs[0];
+  assert.equal(s.stdout.length, CAP, 'small chunks'); assert.equal(s.stdoutTruncated, true);
+  const big: any = await runBenchmark({ command: NODE, args: nodeEval('process.stdout.write("x".repeat(4e6));process.stderr.write("y".repeat(3e6))'), repetitions: 1, timeoutMs: 60000 });
+  const b = big.findings[0].runs[0];
+  assert.equal(b.stdout.length, CAP, 'one huge chunk'); assert.equal(b.stderr.length, CAP);
+  assert.equal(b.stdoutTruncated, true); assert.equal(b.stderrTruncated, true);
+  const ok: any = await runBenchmark({ command: NODE, args: nodeEval('process.stdout.write("small")'), repetitions: 1 });
+  assert.equal(ok.findings[0].runs[0].stdoutTruncated, false);
 });
 check('Benchmark', 'honors cwd and records the non-zero exit code', async () => {
   const d = path.join(WORK, 'cwd'); await mkdir(d, { recursive: true });
@@ -482,17 +490,28 @@ check('Benchmark', 'end to end: a measurably slower command is detected as slowe
   const cmp: any = await compareBenchmarks(fast, slow);
   assert.equal(cmp.findings[0].improved, false); assert.ok(cmp.findings[0].changePercent > 50);
 });
-check('Benchmark', 'timeout kills only the direct child (grandchildren survive)', async c => {
+check('Benchmark', 'a timeout terminates the whole process tree, grandchildren included', async c => {
   const code = 'const {spawn}=require("node:child_process");' +
     'const g=spawn(process.execPath,["-e","setTimeout(()=>{},30000)"],{detached:true,stdio:"ignore"});g.unref();' +
     'process.stdout.write(String(g.pid));setTimeout(()=>{},30000)';
   const r: any = await runBenchmark({ command: NODE, args: nodeEval(code), timeoutMs: 1500, repetitions: 1 });
   const gpid = Number(r.findings[0].runs[0].stdout);
-  if (!Number.isInteger(gpid) || gpid <= 0) { c.note('grandchild pid not captured before timeout; check skipped'); return; }
-  let alive = false;
-  try { process.kill(gpid, 0); alive = true; } catch { /* gone */ }
-  if (alive) { try { process.kill(gpid, 'SIGKILL'); } catch { /* ignore */ } c.limit('a detached grandchild outlived the timeout; only the direct child is terminated'); }
-  else c.note('grandchild was terminated too');
+  assert.ok(Number.isInteger(gpid) && gpid > 0, 'grandchild pid must be reported before the timeout');
+  let alive = true;
+  for (let i = 0; i < 30 && alive; i++) { try { process.kill(gpid, 0); await settle(100); } catch { alive = false; } }
+  if (alive) {
+    try { process.kill(gpid, 'SIGKILL'); } catch { /* ignore */ }
+    if (WIN) c.drift('Windows: a detached grandchild survived taskkill /T after the timeout');
+    else assert.fail('grandchild survived the benchmark timeout');
+  }
+  assert.ok(r.findings[0].runs[0].processesTerminated >= 1);
+});
+check('Benchmark', 'a timeout returns promptly even when a grandchild holds the stdio pipes', async () => {
+  const code = 'const {spawn}=require("node:child_process");' +
+    'spawn(process.execPath,["-e","setTimeout(()=>{},30000)"],{stdio:"inherit"});setTimeout(()=>{},30000)';
+  const t0 = Date.now();
+  const r: any = await runBenchmark({ command: NODE, args: nodeEval(code), timeoutMs: 500, repetitions: 1 });
+  assert.ok(Date.now() - t0 < 8000, `took ${Date.now() - t0} ms`); assert.equal(r.findings[0].runs[0].timedOut, true);
 });
 check('Benchmark', 'only wall-clock time is measured (no CPU time, RAM, I/O, warm-up, percentiles)', async c => {
   const f: any = ((await runBenchmark({ command: NODE, args: nodeEval('0'), repetitions: 2 })) as any).findings[0];
@@ -615,22 +634,25 @@ check('CLI', 'validate --expected works for argument-less commands', async () =>
   const v = JSON.parse(runCli(['validate', '--command', NODE, '--expected', exp]).stdout);
   assert.equal(v.findings[0].passed, true);
 });
-check('CLI', 'validate cannot pass arguments to the command (MCP validate_changes can)', async c => {
+check('CLI', 'validate passes --arg to the command', async () => {
   const exp = path.join(cliDir, 'exp2.json'); await writeFile(exp, j({ exitCode: 0, stdout: 'x' }));
   const v = JSON.parse(runCli(['validate', '--command', NODE, '--arg', '-e', '--arg', 'process.stdout.write("x")', '--expected', exp]).stdout);
-  if (v.findings[0].passed === false) c.drift('`reverse validate` ignores --arg, so only argument-less commands can be validated from the CLI (the README/help do not say so)');
-  else c.note('CLI validate accepts --arg');
+  assert.equal(v.findings[0].passed, true);
+});
+check('CLI', 'missing positional arguments give a usage message instead of a stack trace', () => {
+  for (const cmd of ['binary', 'source', 'dependencies', 'process', 'profile']) {
+    const r = runCli([cmd]); assert.equal(r.code, 1, cmd); assert.match(r.stderr, /Usage: reverse /, cmd);
+  }
 });
 check('CLI', 'analyzers lists providers', () => {
   assert.ok(JSON.parse(runCli(['analyzers']).stdout).some((p: any) => p.name === 'ghidra'));
 });
-check('CLI', '--json flag is accepted but changes nothing (output is always pretty JSON)', async c => {
+check('CLI', '--json is accepted, documented as having no effect, and output is always JSON', async () => {
   const f = await craft('cli2.elf', elf({ cls: 2, le: true, machine: 62, entry: 1n }));
   const a = JSON.parse(runCli(['binary', f]).stdout), b = JSON.parse(runCli(['binary', f, '--json']).stdout);
   assert.equal(a.findings[0].format, b.findings[0].format);
-  c.limit('there is no human-readable output mode; --json is a no-op');
+  assert.match(runCli(['--help']).stdout, /always JSON on stdout; --json is accepted and has no effect/);
 });
-
 // ---------------------------------------------------------------- 12. MCP server
 const DOCUMENTED_TOOLS = ['inspect_target', 'analyze_binary', 'analyze_source', 'analyze_dependencies', 'get_inventory', 'inspect_process', 'profile_process',
   'capture_baseline', 'run_benchmark', 'compare_results', 'validate_changes', 'get_evidence', 'list_analyzers'];
@@ -710,12 +732,29 @@ check('MCP', '"reverse mcp" starts the same stdio server', async () => {
 check('Docs', 'docs/MCP.md says tools return structuredContent', async c => {
   const doc = path.join(ROOT, 'docs', 'MCP.md');
   if (!existsSync(doc)) { c.note('docs/MCP.md not present'); return; }
-  if (!/structuredContent/.test(readFileSync(doc, 'utf8'))) { c.note('docs do not claim structuredContent'); return; }
   const s = startMcp();
   try {
-    const r = await s.call('list_analyzers', {});
-    if (!('structuredContent' in r.envelope)) c.drift('docs/MCP.md promises `structuredContent`, but tools/call returns only `content[0].text` (isError:false)');
+    const obj = await s.call('get_inventory', { limit: 3 });
+    assert.deepEqual(obj.envelope.structuredContent, obj.value);
+    const arr = await s.call('list_analyzers', {});
+    assert.deepEqual(arr.envelope.structuredContent, { items: arr.value }, 'arrays are wrapped because structuredContent must be an object');
+    assert.equal(arr.envelope.isError, false);
   } finally { s.close(); }
+});
+check('MCP', 'initialize negotiates the protocol version and reports the product version', async () => {
+  const s = startMcp();
+  try {
+    const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+    for (const v of ['2024-11-05', '2025-03-26', '2025-06-18']) assert.equal((await s.req('initialize', { protocolVersion: v })).result.protocolVersion, v);
+    const odd = await s.req('initialize', { protocolVersion: '1999-01-01' });
+    assert.equal(odd.result.protocolVersion, '2025-06-18'); assert.equal(odd.result.serverInfo.version, pkg.version);
+  } finally { s.close(); }
+});
+check('Package', 'one version everywhere: package.json, VERSION, CLI banner, MCP serverInfo', async () => {
+  const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+  const { VERSION } = await import(pathToFileURL(path.join(DIST, 'core-version.js')).href);
+  assert.equal(VERSION, pkg.version); assert.match(runCli(['--help']).stdout, new RegExp(`^Reverse ${pkg.version.replace(/\./g, '\\.')}\n`));
+  assert.equal(pkg.name, 'reverse-compact'); assert.ok(pkg.bin.reverse);
 });
 check('Docs', 'the tool table in docs/MCP.md matches tools/list', async c => {
   const doc = path.join(ROOT, 'docs', 'MCP.md');
