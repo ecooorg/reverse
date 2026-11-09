@@ -1,9 +1,9 @@
 name: Capabilities
 
-# Verifies what CREA can REALLY do (not what the docs say), on Linux, macOS and Windows.
+# Verifies what Reverse can REALLY do (not what the docs say), on Linux, macOS and Windows.
 #   structure     - flat layout, Markdown links, import graph, package.json targets
 #   capabilities  - tests/capabilities.check.ts against the built library, CLI and MCP server
-#   package       - npm pack -> install the tarball in a clean project -> run the installed `crea`
+#   package       - npm pack -> install the tarball in a clean project -> run the installed `reverse`
 #   summary       - merges all reports into one capability-by-platform matrix (job summary + annotations)
 #
 # Outcomes per check: verified / limitation (a documented limit is real) / drift (docs vs behaviour,
@@ -55,7 +55,7 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         node: [20, 22, 24]
     env:
-      CREA_CAPABILITY_REPORT: capability-reports/${{ matrix.os }}-node${{ matrix.node }}.json
+      REVERSE_CAPABILITY_REPORT: capability-reports/${{ matrix.os }}-node${{ matrix.node }}.json
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -114,22 +114,22 @@ jobs:
       - name: Installed CLI works
         working-directory: .tmp-consumer
         run: |
-          npx --no-install crea --help | grep -q "Usage: crea"
-          npx --no-install crea analyzers | grep -q ghidra
-          npx --no-install crea binary "$(node -p 'process.execPath')" | grep -q '"format"'
+          npx --no-install reverse --help | grep -q "Usage: reverse"
+          npx --no-install reverse analyzers | grep -q ghidra
+          npx --no-install reverse binary "$(node -p 'process.execPath')" | grep -q '"format"'
       - name: Installed library imports by package name
         working-directory: .tmp-consumer
         run: |
           node --input-type=module -e '
-            import * as crea from "crea-compact-reverse-engineer-anything";
+            import * as reverse from "reverse-engineer-anything";
             for (const k of ["analyzeBinary","runBenchmark","validateBehavior","EvidenceEngine","listProviders"])
-              if (typeof crea[k] !== "function") { console.error("missing export " + k); process.exit(1); }
-            console.log("exports ok: " + Object.keys(crea).length);
+              if (typeof reverse[k] !== "function") { console.error("missing export " + k); process.exit(1); }
+            console.log("exports ok: " + Object.keys(reverse).length);
           '
       - name: Installed MCP server answers tools/list
         working-directory: .tmp-consumer
         run: |
-          echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | node node_modules/crea-compact-reverse-engineer-anything/dist/mcp-server.js | grep -q '"inspect_target"'
+          echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | node node_modules/reverse-engineer-anything/dist/mcp-server.js | grep -q '"inspect_target"'
 
   summary:
     name: capability matrix
