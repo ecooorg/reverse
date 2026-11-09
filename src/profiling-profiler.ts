@@ -15,10 +15,11 @@ export async function profileProcess(pid:number,durationMs=3000,intervalMs=250,m
  identity=identity??initialProcess.identityToken;
  if(options.expectedIdentityToken&&initialProcess.identityToken!==options.expectedIdentityToken)return result('pid:'+pid,'process_profile',[],{status:'partial',errors:['Process identity does not match the expected start token.'],coverage:{examined:true,complete:false,notes:['PID reuse protection rejected the target.']}});
  if(options.requireOwnership){const owner=await verifyProcessOwnership(pid);if(owner.known&&!owner.owned)return result('pid:'+pid,'process_profile',[],{status:'partial',errors:['Process is not owned by the current user.'],coverage:{examined:true,complete:false,notes:['Ownership check failed before sampling.']}});if(!owner.known)limitations.push('Process ownership could not be verified on this platform; no ownership claim is made.');}
- let cancelled=false;
+ let cancelled=false,useInitial=true;
  do {
-  if(signal?.aborted){cancelled=true;break;}
-  const r:any=await inspectProcess(pid);const p=r.findings[0];
+  // The initial inspection already is the first sample; reusing it keeps the data and saves one OS enumeration.
+  if(!useInitial&&signal?.aborted){cancelled=true;break;}
+  const r:any=useInitial?initial:await inspectProcess(pid);useInitial=false;const p=r.findings[0];
   if(!p){errors.push(...r.limitations,'Process vanished or is not visible.');break;}
   if(identity&&p.identityToken!==identity){errors.push('Process identity changed or process exited; sampling stopped to prevent PID-reuse contamination.');break;}
   const cpuDelta=previous&&p.cpuTimeMs!==undefined&&previous.cpuTimeMs!==undefined?(p.cpuTimeMs-previous.cpuTimeMs):undefined;
@@ -28,7 +29,7 @@ export async function profileProcess(pid:number,durationMs=3000,intervalMs=250,m
   previous={...p,at:samples[samples.length-1].at};
   if(mode==='Snapshot')break;
   if(Date.now()-started>=duration)break;
-  await new Promise<void>(resolve=>{const timer=setTimeout(done,Math.min(interval,duration-(Date.now()-started)));function done(){clearTimeout(timer);signal?.removeEventListener('abort',done);resolve();}signal?.addEventListener('abort',done,{once:true});});
+  await new Promise<void>(resolve=>{if(signal?.aborted){resolve();return;}const timer=setTimeout(done,Math.min(interval,duration-(Date.now()-started)));function done(){clearTimeout(timer);signal?.removeEventListener('abort',done);resolve();}signal?.addEventListener('abort',done,{once:true});});
  }while(Date.now()-started<duration);
  const avg=(key:string)=>{const a=samples.map(x=>x[key]).filter((x:number)=>Number.isFinite(x));return a.length?a.reduce((x:number,y:number)=>x+y,0)/a.length:null;};
  const peak=(key:string)=>{const a=samples.map(x=>x[key]).filter((x:number)=>Number.isFinite(x));return a.length?Math.max(...a):null;};
