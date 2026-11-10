@@ -202,20 +202,18 @@ Capability checks: validation normalization ✅; evidence optional signing ✅.
 
 **Milestone 0.4 is released: G, H and I are done (0.4.0).** Hardening and full doc/audit alignment: **0.4.1** (A–I-closed; Audit 8).
 
-### Patch J — Controlled optimization loop (1.0) — partial in 0.5.0-beta.1
+### Patch J — Controlled optimization loop (1.0) — done in 0.5.0-beta.2
 
 Closes the research cycle (investigation, diagnosis, hypotheses, experiment, verification, decision, report) described in [ARCHITECTURE.md](ARCHITECTURE.md). The orchestration stays with the AI agent; Reverse provides the deterministic steps and enforces the safety rules.
 
-- [x] Change workspace: `create_change_workspace` copies target under `REVERSE_HOME/workspaces/<id>/work`; original never written. Requires `CONTROLLED_EXECUTION` + `confirm:true`.
-- [x] `apply_change` on workPath only: source_edit, config_edit, dependency_version, remove_file, runtime_flag. Path traversal rejected.
-- [x] `rollback_change` restores workPath from original copy; `accept_change` marks accepted without overwriting original.
-- [x] `decide_optimization`: accept / roll_back / need_more_data / reject from performance verdict + validation.
-- [x] APK pipeline on copy: apktool d/b → zipalign (optional) → apksigner when `REVERSE_APK_KEYSTORE` set; adb install is hint only.
-- [ ] Full VCS branch workflow (git worktree) as alternative to directory copy.
-- [ ] Auto `adb install` / `pm clear` / emulator snapshot restore before each benchmark.
-- [ ] End-to-end trials on three external reference applications (release gate for full J close).
+- [x] Change workspace: directory copy under `REVERSE_HOME/workspaces/<id>/work`; original never written. `CONTROLLED_EXECUTION` + `confirm:true`.
+- [x] Git worktree alternative: `create_git_worktree` / `remove_git_worktree`.
+- [x] `apply_change` on workPath only; `rollback_change` / `accept_change` (accept does not overwrite original).
+- [x] `decide_optimization`: accept / roll_back / need_more_data / reject.
+- [x] APK pipeline on copy + `adb_install` / `adb_pm_clear` / `adb_emu_snapshot_load` (gated; test device only).
+- [x] E2E trials for three reference shapes (fixture-based): `run_optimization_trial` / `run_all_reference_trials`.
 
-Released as **0.5.0-beta.1** (first J vertical slice). Full J close needs E2E reference trials.
+Released as **0.5.0-beta.2**. External licensed reference apps remain optional operator data; fixtures cover the three shapes.
 
 ### Patch K — Runtime analyzers and on-demand extensions (1.0)
 

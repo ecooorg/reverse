@@ -76,3 +76,11 @@ Long-running `profile_process` and `monitor_process` calls accept MCP `notificat
 | `accept_change` | Mark accepted; does not overwrite original |
 | `decide_optimization` | Deterministic decision from verdict + validation |
 | `run_apk_pipeline` | apktool/zipalign/apksigner on a workDir copy |
+
+## Patch J completion (0.5.0-beta.2)
+
+| Tool | Role |
+|---|---|
+| `create_git_worktree` / `remove_git_worktree` | Git worktree workspace |
+| `adb_install` / `adb_pm_clear` / `adb_emu_snapshot_load` | Device prep (confirm + CONTROLLED_EXECUTION) |
+| `run_optimization_trial` / `run_all_reference_trials` | Fixture E2E loop for three shapes |

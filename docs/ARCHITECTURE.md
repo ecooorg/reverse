@@ -312,11 +312,13 @@ Provider-backed dynamic surface (patches G–H): `trace_execution` (Frida attach
 
 Live MCP tool names are listed only in [MCP.md](MCP.md).
 
-## Controlled optimization loop (patch J, 0.5.0-beta.1)
+## Controlled optimization loop (patch J, 0.5.0-beta.2)
 
 - Workspaces isolate changes under `REVERSE_HOME/workspaces/`; original paths are read-only for Reverse.
 - Decision rules map benchmark verdict + validation → accept | roll_back | need_more_data | reject.
 - APK rebuild pipeline uses opt-in host tools on a workDir copy only.
+- Git worktree workspaces; adb install/pm clear/emu snapshot helpers.
+- Fixture E2E trials for small_source, deps_source, closed_binary shapes.
 - Agent still orchestrates what to change and when to measure.
 
 ## Extension contract

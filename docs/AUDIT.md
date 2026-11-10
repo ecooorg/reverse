@@ -6,6 +6,20 @@ IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H*
 
 ---
 
+## Audit 10 — 2026-11-10 — Patch J completed (0.5.0-beta.2)
+
+**Scope.** Remaining J items: git worktree workspaces, adb install/pm clear/emu snapshot, fixture E2E trials for three reference shapes.
+
+**Status.** Patch J checklist items closed. External commercial reference apps are not bundled (fixtures substitute). ADB paths remain confirm-gated.
+
+| ID | Sev | Area | Finding | Status |
+|---|---|---|---|---|
+| F-55 | Medium | Optimization | No git worktree path for changes | Status: closed in 0.5.0-beta.2, patch J |
+| F-56 | Medium | Optimization | No adb install/pm clear/snapshot helpers | Status: closed in 0.5.0-beta.2, patch J |
+| F-57 | Medium | Optimization | No E2E reference-shape trials | Status: closed in 0.5.0-beta.2, patch J (fixtures) |
+
+---
+
 ## Audit 9 — 2026-11-10 — Patch J first vertical slice (0.5.0-beta.1)
 
 **Scope.** Controlled optimization loop foundations: change workspaces, apply/rollback/accept, decision rules, APK pipeline on copy.

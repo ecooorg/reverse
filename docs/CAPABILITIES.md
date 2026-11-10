@@ -61,3 +61,11 @@ Process sampling remains read-only. It captures an OS start-time identity token 
 | Rollback / accept | confirm | Accept never auto-writes original |
 | Decision rules | Caller supplies verdict + validation | Does not re-run benchmarks |
 | APK rebuild pipeline | apktool present + confirm | Signing needs REVERSE_APK_KEYSTORE; adb install not auto |
+
+## Optimization loop completion (0.5.0-beta.2)
+
+| Capability | Status |
+|---|---|
+| Directory workspace + git worktree | ✅ gated |
+| ADB install / pm clear / emu snapshot | ✅ when adb present; test device policy |
+| Reference-shape E2E trials | ✅ fixture-based |
