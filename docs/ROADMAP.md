@@ -52,7 +52,7 @@ Goal: make the existing 0.1.0 trustworthy before building on it. Every ⚠️ dr
 - [x] CLI: `validate` accepts `--arg`; missing positional arguments print a usage line; `--json` is documented as accepted with no effect (output is always JSON).
 - [x] MCP: `tools/call` returns `structuredContent` next to `content[0].text` (arrays are wrapped as `{ "items": [...] }`); `initialize` negotiates the protocol version; one `VERSION` constant feeds the CLI banner and `serverInfo`.
 - [x] The capability workflow is defined for six environments (three operating systems times Node 22 and 24; Node 20 was dropped in 0.2.0-beta.3) and stays a required check for every later patch. An earlier text said "nine environments"; that was wrong.
-- [ ] Release gate: a manual `os: all` run of the capability workflow is recorded green on Linux, macOS and Windows. The archive contains no run log, so this box stays open until the maintainer ticks it (see [GITHUB.md](GITHUB.md)).
+- [ ] Release gate: a manual `os: all` run of the capability workflow is green on Linux, macOS and Windows. Recorded so far (run of 2026-11-10, commit `82c2182`, see the [closure evidence](#ad-closure-evidence-ci-run-of-2026-11-10)): Linux and macOS green on Node 22 and 24; Windows red before the 0.2.0-beta.8 fixes. The box is ticked by the maintainer after a green Windows run (see [GITHUB.md](GITHUB.md)).
 
 Remaining ⚠️ drift after this patch: none. The 🚧 limitations that are left each belong to patches B–K.
 
@@ -70,11 +70,12 @@ Closes **Advanced Process Inspector**, **Time-Series Performance Profiler** and 
 - [x] Explicit `READ_ONLY` / `OBSERVE` / `CONTROLLED_EXECUTION` safety contract. Linux cgroup v2 resource limits are available through the scoped `withProcessResourceLimits` API only when the caller explicitly confirms controlled execution and the hierarchy is delegated.
 - [x] Added MCP `get_resource_control_status`; existing tool names and arguments remain compatible.
 - [x] Closure in 0.2.0-beta.7 (AUDIT F-20…F-23): anomaly thresholds are tested on both sides of every boundary (`tests/profiling-anomalies.test.ts`); the four profile modes differ as documented (`Snapshot` one sample, `Monitor` bounded series, `Diagnostic` adds the anomaly findings of its own series, `Compare` splits the series into two periods); `OBSERVE` is a distinct contract (sampling only with verified ownership, see [ARCHITECTURE.md](ARCHITECTURE.md)); the cgroup limiter has a success path and a cleanup path tested against a fake cgroup tree (`tests/process-safety.test.ts`) and a check against a real, delegated cgroup v2 hierarchy where one exists (*Safety — resource limits are enforced in a real cgroup*).
-- [ ] Release gate: the profiling and safety checks are recorded on macOS and Windows, and the real-cgroup check shows ✅ (not 🚧) on at least one delegated Linux host.
+- [x] Release gate (macOS and cgroup part): the profiling and safety checks are ✅ on macOS (Node 22 and 24) and the real-cgroup check is ✅ (not 🚧) on a delegated Linux host (closure run of 2026-11-10).
+- [ ] Release gate: the profiling and safety checks are recorded ✅ on Windows (0.2.0-beta.8 fixes the Windows tree kill, the single-PID query and the time budgets; the run is pending).
 
 **Known platform limits (not hidden):** Windows process ownership is unknown; Windows/macOS metric parity is incomplete; hard resource quotas are only implemented for delegated Linux cgroup v2. This patch does not provide an OS sandbox, network isolation, memory maps, thread stacks, or function hotspots. Linux was exercised locally; macOS and Windows are delegated to the existing CI matrix and are not claimed as locally verified.
 
-Capability checks added for identity/ownership, cancellation, resource-control reporting and the new MCP tool. Still open and **not** part of this closure: persistent Windows/macOS metric helpers (R-19) and the non-Linux inspection fast paths (F-08).
+Capability checks added for identity/ownership, cancellation, resource-control reporting and the new MCP tool. Still open and **not** part of this closure: persistent Windows/macOS metric helpers (R-19) and the macOS inspection fast path (F-08; the Windows single-PID query arrived in 0.2.0-beta.8).
 
 ### Patch C — Measurement engine and baselines (0.2) — core delivered in 0.2.0-beta.6; residual quality gates remain
 
@@ -92,6 +93,7 @@ Implements the benchmark engine and baseline lifecycle; CI validation on macOS/W
 
 **A–D closure (0.2.0-beta.7).** Closed: R-06 for real (every `src/` and `tests/` TypeScript file passes the format gate and no line exceeds 140 characters; the beta.6 claim left 186 lines over the limit and `mcp-server.ts` became three tool-definition files), stale 0.2 checklists, the Patch A environment-count text. **Still open in patch C, deliberately not claimed:** R-03 (the check *Supply chain — GitHub Actions are pinned to full commit SHAs* lists the unpinned references and shows 🚧 until they are pinned; SHAs cannot be looked up offline), R-05 (`knip`, `jscpd` and a dedicated linter are not installed), F-16 (the capability harness is still one file; the check *Tests — the capability harness is one file* shows 🚧).
 - [ ] Release gate: R-03 pinned SHAs, R-05 external quality gates and F-16 harness split are done, or each is explicitly re-scheduled by the maintainer.
+- [ ] Release gate: the Windows benchmark checks (tree kill with `processesTerminated >= 1`, per-run CPU and RSS, slower-command detection, CLI benchmark → compare) are ✅ on a Windows runner; they were ❌ on 2026-11-10 and 0.2.0-beta.8 addresses the causes (AUDIT F-34…F-37).
 
 - First item, before any new tool: the command-execution gate from [AUDIT.md](AUDIT.md) F-01 (command-running MCP tools off unless the operator sets `CONTROLLED_EXECUTION`, command allowlist, environment allowlist, tool annotations). This changes a documented default and is announced in the release notes.
 - Audit items F-04 (no significance claim from means) and F-12 (identity-checked process-group kill).
@@ -124,6 +126,17 @@ Capability checks that flip: typed evidence, session hash-chain verification and
 - [ ] Release gate: the acceptance trials of 0.2 run on real external applications of the three shapes, and the twelve-item checklist below is ticked item by item (the table below shows what the suite proves today).
 
 **Milestone 0.2 is released when B, C and D are done.**
+
+### A–D closure evidence (CI run of 2026-11-10)
+
+Source: the Capabilities workflow (`workflow_dispatch`, `os: all`, commit `82c2182`, 0.2.0-beta.7), the A–D closure workflow and its real-cgroup job. Linux and macOS cells: 110 ✅, 9 🚧, 0 ⚠️, 0 ❌. Windows cells before 0.2.0-beta.8: 105 ✅ / 3 ❌ (Node 22) and 104 ✅ / 5 ❌ (Node 24). Anything not listed as ✅ here is not claimed.
+
+| Patch | Closed and proven (check, platforms) | Not closed (check or gate) |
+|---|---|---|
+| A | Defect closure of 0.1.1 and the corrected environment count (*Docs — roadmap, audit and architecture agree…*, all six cells); header, output-cap, CLI and MCP checks ✅ on Linux and macOS | Release gate: Windows cells red until the 0.2.0-beta.8 run |
+| B | Anomaly rules on both sides of every threshold; Snapshot/Monitor/Diagnostic/Compare differ; `OBSERVE` contract (Linux, macOS); cgroup success and cleanup paths (fake tree, `tests/process-safety.test.ts`); **real cgroup v2 limiter ✅ verified** on a delegated hierarchy (`ubuntu-latest`, kernel 7.0.0-azure, Node 22) | Windows run of the profiling checks; R-19 persistent helper; F-08 macOS fast path |
+| C | R-06 (*Source — no source or test line exceeds 140 characters, and the gate can fail*, all six cells); benchmark engine, suites, baselines, noise snapshot and hyperfine export ✅ on Linux and macOS; allowlisted child environment; verdicts only from repeated runs | R-03, R-05, F-16 (shown as 🚧 by their own checks); Windows benchmark checks |
+| D | Evidence hash chain and tamper detection ✅, unsigned ledger a separate 🚧 for patch I; promotion by content; typed evidence from real analyzers; research-cycle trial with real analyzers; documentation drift (F-18…F-32) closed; Windows evidence, safety and docs checks ✅ | Release gate: acceptance trials on real external applications; R-01, R-04, R-07 |
 
 ### Patch E — Static analysis core (0.3)
 
@@ -252,7 +265,7 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-05 | Validation never matches truncated output | closed in 0.2.0-beta.2; normalization rules in **I** |
 | F-06 | (a)–(c) protocol errors | closed in 0.2.0-beta.2; stateful revisions through 2025-11-25, titles, output schemas and annotations in 0.2.0-beta.6; stateless 2026 protocol remains open |
 | F-07 | Page size and `CLK_TCK` read from the OS; one documented CPU-percent convention | closed in 0.2.0-beta.6 |
-| F-08 | Single-PID fast path for inspection and sampling; cached `btime`, page size, tick rate | Linux inspection fast path and cached constants in 0.2.0-beta.6; non-Linux fast paths remain partial |
+| F-08 | Single-PID fast path for inspection and sampling; cached `btime`, page size, tick rate | Linux inspection fast path and cached constants in 0.2.0-beta.6; Windows single-PID query in 0.2.0-beta.8; macOS remains partial |
 | F-09 | File and size caps, `lstat`, `.wasm` | closed in 0.2.0-beta.2; real parser (AST) in **E** |
 | F-10 | Dependency groups kept per group, `peerDependencies` | **E** |
 | F-11 | Streamed hashing, atomic evidence writes, lookup by evidence id, one evidence code path | closed in 0.2.0-beta.6 (shared atomic JSON writer) |
@@ -284,6 +297,16 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-32 | `docs/MCP.md` repeated a sentence | closed in 0.2.0-beta.7 |
 | F-33 | R-03, R-05 and F-16 still open although patches C and D read as delivered | open: recorded as 🚧 checks and release gates |
 
+### Findings (Audit 5, CI evidence for 0.2.0-beta.7, 2026-11-10)
+
+| ID | Task | Patch / status |
+|---|---|---|
+| F-34 | Windows timeout run reported `processesTerminated: 0` (finalized before the tree kill ended) | B/C, fix in 0.2.0-beta.8; closed when the Windows run is green |
+| F-35 | Windows tree kill: one PowerShell per victim and a full table with command lines | B/C, fix in 0.2.0-beta.8; Windows run pending |
+| F-36 | Windows `inspectProcess` enumerated every process for one PID | B (F-08, Windows part), fix in 0.2.0-beta.8; Windows run pending |
+| F-37 | Four Windows checks assumed Linux timing | C/D tests, fix in 0.2.0-beta.8 (delays and windows scaled, assertions unchanged) |
+| F-38 | No single copyable closure record from the A–D closure workflow | closed in 0.2.0-beta.8 |
+
 ### Recommendations
 
 | ID | Task | Patch |
@@ -306,7 +329,7 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | R-16 | Node support window: drop Node 20, `engines` and matrix to 22 and 24 | closed in 0.2.0-beta.3 |
 | R-17 | Node built-ins instead of code: `util.parseArgs`, `AbortSignal.timeout`, `fs.glob`, test coverage, `os.availableParallelism` | closed in 0.2.0-beta.6 |
 | R-18 | Distribution: `npx` entry, install scripts that only check Node and print configuration, optional single binary, `server.json` for MCP registries | **L** |
-| R-19 | Windows and macOS metric parity: persistent helpers instead of a fork per sample; `typeperf`/ETW and `libproc` providers | **D/H** open: PowerShell helper currently forks per sample; persistent helper and ETW/libproc remain |
+| R-19 | Windows and macOS metric parity: persistent helpers instead of a fork per sample; `typeperf`/ETW and `libproc` providers | **D/H** open: PowerShell helper currently forks per sample (a run shorter than one sample has no CPU/RSS data on Windows); persistent helper and ETW/libproc remain |
 | R-20 | Sandbox for executed targets under `CONTROLLED_EXECUTION` (bwrap/unshare, sandbox-exec, Job Objects/AppContainer or a container provider; no network by default; scratch directory; rlimits) | **G** |
 
 ### Goal gaps (Audit 2, approved 2026-11-09)
@@ -420,6 +443,15 @@ Depends on O and J. Closes G-05, G-06 and the L3 level of G-10.
 
 Sequencing principle: do not start with Ghidra and do not try to implement every external analyzer at once. First strengthen Reverse's ability to investigate running programs, detect real performance problems and collect evidence, because the main job of Reverse is to help an AI agent find the causes of excessive resource use and objectively verify optimization results. Linux is the first fully supported profiling environment, with interfaces for Windows and macOS designed in from the start.
 
+## 0.2.0-beta.8 — Windows closure and A–D evidence
+
+- [x] Windows timeouts report `processesTerminated` after the tree kill finished (the run used to be finalized by the 2 s stdio grace timer first; AUDIT F-34).
+- [x] Windows tree kill: lean table without command lines, one identity re-check, parallel `taskkill` (AUDIT F-35).
+- [x] Windows single-PID inspection through a filtered WMI query, with fallback to the full table (AUDIT F-36, F-08 Windows part).
+- [x] Windows time budgets of four capability checks scaled; no assertion weakened (AUDIT F-37).
+- [x] A–D closure workflow writes one closure record; closure evidence of the 2026-11-10 run recorded in this file (AUDIT F-38).
+- Open and recorded by checks, not claimed: the Windows run of the Capabilities workflow, R-19 (persistent helper), F-08 (macOS), R-03, R-05, F-16, R-01, R-04.
+
 ## 0.2.0-beta.7 — A–D closure
 
 - [x] Evidence promotion checks content (`promotionBlocker`); typed evidence is produced from analyzer results (`src/evidence-collect.ts`, optional `session_id` on 15 measurement tools).
@@ -427,7 +459,7 @@ Sequencing principle: do not start with Ghidra and do not try to implement every
 - [x] `createResourceLimiter` makes the cgroup writer testable; success and cleanup paths are tested; a real-cgroup check runs where the hierarchy is delegated.
 - [x] Line-length gate (140 characters, `src/` and `tests/`), format gate over every TypeScript file, `mcp-server.ts` split into `mcp-tools*.ts`.
 - [x] Documentation drift closed (Patch A text, 0.2 checklists, fact categories, duplicated MCP sentence, audit status lines).
-- Open and recorded by checks, not claimed: R-03, R-05, F-16, R-19, F-08 (non-Linux), R-01, R-04 (fast-check), macOS/Windows runs.
+- Open and recorded by checks, not claimed: R-03, R-05, F-16, R-19, F-08 (macOS), R-01, R-04 (fast-check), a green Windows run.
 
 ## 0.2.0-beta.5 — Patch C, part 3
 

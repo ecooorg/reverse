@@ -23,7 +23,7 @@ Every run carries `cpuTimeMs`, `peakRssBytes` and `resources` (method, sample co
 
 - **Linux:** `/proc/<pid>/stat` (user + system + waited-for children CPU time, clock ticks from `getconf CLK_TCK`) and the kernel's peak resident set `VmHWM`, sampled every 5 ms.
 - **macOS and other POSIX systems:** `ps -o rss=,time=` every 25 ms; peak RAM is the largest sampled RSS, CPU time has 10 ms resolution.
-- **Windows:** PowerShell `Get-Process` samples `TotalProcessorTime` and peak working set. The helper starts separately for each sample, so very short runs can end before a sample and the sampling overhead is higher than on Linux.
+- **Windows:** PowerShell `Get-Process` samples `TotalProcessorTime` and peak working set. The helper starts separately for each sample (0.5-1.5 s on a hosted runner, AUDIT R-19), so a run shorter than that ends before its first sample and reports `resources.available: false` with a reason; the sampling overhead is higher than on Linux. Timeouts are reported only after the tree kill has finished, so `processesTerminated` is final.
 - Values describe the direct child and are **lower bounds**: sampling can miss what happens after the last sample, and a run shorter than one sample interval may have no data (then the fields are `null`, never zero).
 - `temperature`: the first process started by one benchmark call is `cold`, all later runs `warm` (`coldDurationMs`, `coldPhase`, `warmMedianDurationMs`). The operating system file cache is not dropped, so `cold` means first start in this call.
 - `binaryPath` and `binarySizeBytes`: the resolved command file (for `node` that is the interpreter, not the script).

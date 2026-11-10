@@ -6,6 +6,28 @@ IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H*
 
 ---
 
+## Audit 5 — 2026-11-10 — CI evidence for 0.2.0-beta.7 (A–D closure, Windows)
+
+**Scope.** The Capabilities run (`workflow_dispatch`, `os: all`, commit `82c2182`) and the A–D closure run of 0.2.0-beta.7 were read against the source. Nothing new was reviewed; the question was why the suite was red and what the logs prove.
+
+**What the logs prove.** Linux and macOS, Node 22 and 24: 110 ✅, 9 🚧, 0 ⚠️, 0 ❌ in each of the four cells. The A–D checks are ✅ in all four: hash-chained sessions, promotion by content, typed evidence from real analyzers, anomaly rules on both sides of each threshold, the four profile modes, `OBSERVE`, the 140-character gate, documentation agreement. The A–D closure workflow ran on Linux (Node 22, 24) and macOS (Node 24) with the same totals. The real-cgroup check ended ✅ (verified, not 🚧) on a delegated cgroup v2 hierarchy (`ubuntu-latest`, kernel 7.0.0-azure, Node 22.23.4). The package check passed on Linux and Windows. Windows: 105 ✅ / 3 ❌ (Node 22) and 104 ✅ / 5 ❌ (Node 24); every ❌ is a Windows runtime problem and none touches the evidence, safety or documentation checks.
+
+**Method of this audit.** Linux sandbox, Node 22. Build, unit tests, format, size and structure gates and the capability suite ran locally. **Not run:** any Windows or macOS code path; the changes for Windows below are verified by fixtures and by reading the logs only.
+
+| ID | Sev | Area | Finding | Status |
+|---|---|---|---|---|
+| F-34 | **High** | Benchmark | On Windows a timed-out run was reported with `processesTerminated: 0`: the run was finalized by the 2 s stdio grace timer while the tree kill (PowerShell snapshot, one more PowerShell call per victim, `taskkill`) was still running, so the count was never stored | Status: fix in 0.2.0-beta.8, A–D closure; closed when the Windows run of the Capabilities workflow is green |
+| F-35 | Medium | Process | A Windows tree kill started one PowerShell per victim to re-check identity and read the full process table with command lines; seconds per kill | Status: fix in 0.2.0-beta.8, A–D closure (lean `WINDOWS_TREE_SCRIPT`, one re-check, parallel `taskkill`); Windows run pending |
+| F-36 | Medium | Profiling | `inspectProcess` on Windows enumerated every process for one PID (F-08, Windows part), so Monitor and Compare got under one sample per second | Status: fix in 0.2.0-beta.8, A–D closure (filtered single-PID WMI query with fallback); macOS fast path stays open; Windows run pending |
+| F-37 | Medium | Tests | Four Windows checks assumed Linux timing (a 300 ms delay against a start-up of several hundred ms, a 400 ms child against a PowerShell sample of 0.5–1.5 s, 700 ms and 1000 ms profile windows); AGENTS.md §7 forbids tests that depend on timing luck | Status: fix in 0.2.0-beta.8, A–D closure (the injected delay and the observation window are scaled on Windows; no assertion was weakened) |
+| F-38 | Low | CI | The A–D closure workflow printed one result per cell but no single record that could be copied into the documents | Status: closed in 0.2.0-beta.8, A–D closure (`record` job) |
+
+**Still open, deliberately.** R-19: on Windows every sample still starts a PowerShell. A child that ends before the first sample has no CPU or RSS data (`resources.available: false`, reason recorded); the capability check uses a child that outlives a sample. A persistent helper is the fix and is not part of this change because it cannot be verified without a Windows runner.
+
+Tasks F-34…F-38 are tracked in the [approved audit backlog](ROADMAP.md#approved-audit-backlog-audit-1-approved-2026-11-09). Audit 4 follows.
+
+---
+
 ## Audit 4 — 2026-11-10 — closure review of patches A–D (0.2.0-beta.6)
 
 **Scope.** Not a new feature review. The question was whether patches A, B, C and D can be called closed under [ROADMAP.md](ROADMAP.md) "How progress is measured". The archive `reverse-0.2.0-beta.6-green` and the closure notes supplied with it were compared with the source, the tests, the roadmap and this file.
