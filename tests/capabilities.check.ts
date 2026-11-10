@@ -1620,7 +1620,10 @@ const DOCUMENTED_TOOLS = [
     'adb_pm_clear',
     'adb_emu_snapshot_load',
     'run_optimization_trial',
-    'run_all_reference_trials'
+    'run_all_reference_trials',
+    'analyze_javascript',
+    'analyze_dotnet',
+    'analyze_wasm'
 ];
 check('MCP', 'handshake: initialize, ping and tools/list', async () => {
     const s = startMcp();
@@ -2083,5 +2086,52 @@ check('Optimization', 'reference trial runs for small_source under CONTROLLED_EX
             delete process.env.REVERSE_MODE;
         else
             process.env.REVERSE_MODE = prev;
+    }
+});
+check('Runtime', 'JS inventory and WASM/dotnet detectors return structured results', async () => {
+    const fs = await import('node:fs/promises');
+    const path = await import('node:path');
+    const { analyzeJavascript } = await import('../dist/analysis-javascript.js');
+    const { analyzeWasm } = await import('../dist/analysis-wasm.js');
+    const { analyzeDotnet } = await import('../dist/analysis-dotnet.js');
+    const dir = path.join(WORK, 'jsapp');
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(path.join(dir, 'package.json'), JSON.stringify({ name: 't', dependencies: { electron: '1.0.0' } }));
+    await fs.writeFile(path.join(dir, 'main.js'), 'const {app}=require("electron");\n');
+    const js: any = await analyzeJavascript(dir);
+    assert.equal(js.status, 'completed');
+    assert.equal(js.findings[0].isElectron, true);
+    // minimal valid empty wasm module: magic+version
+    const wasmPath = path.join(WORK, 'empty.wasm');
+    const wasm = Buffer.alloc(8);
+    wasm.writeUInt32LE(0x6d736100, 0);
+    wasm.writeUInt32LE(1, 4);
+    await fs.writeFile(wasmPath, wasm);
+    const w: any = await analyzeWasm(wasmPath);
+    assert.equal(w.findings[0].isWasm, true);
+    const pe = path.join(WORK, 'notdotnet.bin');
+    await fs.writeFile(pe, Buffer.from('MZ'));
+    const d: any = await analyzeDotnet(pe);
+    assert.ok(d.status === 'completed' || d.status === 'partial');
+});
+check('Runtime', 'HTTP MCP refuses without token and flag', async () => {
+    const { startHttpMcp } = await import('../dist/mcp-http.js');
+    const prevH = process.env.REVERSE_MCP_HTTP;
+    const prevT = process.env.REVERSE_MCP_TOKEN;
+    delete process.env.REVERSE_MCP_HTTP;
+    delete process.env.REVERSE_MCP_TOKEN;
+    try {
+        const r: any = startHttpMcp(async () => ({}));
+        assert.equal(r.status, 'unsupported');
+    }
+    finally {
+        if (prevH === undefined)
+            delete process.env.REVERSE_MCP_HTTP;
+        else
+            process.env.REVERSE_MCP_HTTP = prevH;
+        if (prevT === undefined)
+            delete process.env.REVERSE_MCP_TOKEN;
+        else
+            process.env.REVERSE_MCP_TOKEN = prevT;
     }
 });
