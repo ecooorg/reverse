@@ -313,6 +313,7 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 |---|---|---|
 | F-39 | Profile-mode and `OBSERVE` unit tests assumed Linux sample cost (3–4 samples in 600–1000 ms) | C/D tests, fix in 0.2.0-beta.8 (window derived from the measured sample cost, assertions unchanged); closed when the closure run is green |
 | F-40 | A closure cell that failed before the capability suite left no log and no row in the record | closed in 0.2.0-beta.8 |
+| F-41 | Windows: the research-cycle benchmark delay (150 ms) was below the start-up noise of a Windows process | C/D tests, fix in 0.2.0-beta.8 (1500 ms on Windows, assertion unchanged); closed when the Windows closure run is green |
 
 ### Recommendations
 
@@ -459,6 +460,7 @@ Sequencing principle: do not start with Ghidra and do not try to implement every
 - [x] A–D closure workflow writes one closure record; closure evidence of the 2026-11-10 run recorded in this file (AUDIT F-38).
 - [x] Unit tests no longer assume Linux sample cost: the observation window follows the measured cost of one sample, no assertion weakened (AUDIT F-39).
 - [x] A–D closure cells keep the log of the static gates and unit tests, and the record names cells without a report (AUDIT F-40).
+- [x] The research-cycle trial uses a delay that dominates Windows start-up noise; no assertion weakened (AUDIT F-41).
 - Open and recorded by checks, not claimed: the Windows run of the Capabilities workflow, R-19 (persistent helper), F-08 (macOS), R-03, R-05, F-16, R-01, R-04.
 
 ## 0.2.0-beta.7 — A–D closure

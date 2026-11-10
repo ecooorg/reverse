@@ -18,10 +18,13 @@ IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H*
 |---|---|---|---|---|
 | F-39 | Medium | Tests | Monitor, Diagnostic and Compare in `tests/profiling-modes.test.ts` and the `OBSERVE` Compare check in `tests/mcp-evidence.test.ts` asserted 3–4 samples inside fixed 600–1000 ms windows; with a sample cost of 0.1–1.5 s (`ps`, PowerShell) they cannot hold. AGENTS.md §7 forbids tests that depend on timing luck | Status: fix in 0.2.0-beta.8, A–D closure (`tests/sampling-window.ts` derives the window from the measured cost of one sample; no assertion weakened); closed when the closure run is green on every cell |
 | F-40 | Low | CI | A closure cell that failed in the static gates or the unit tests wrote no JSON report and no log, and the closure record silently omitted it | Status: closed in 0.2.0-beta.8, A–D closure (both steps keep a log in the cell's artifact; the record names every cell without a report) |
+| F-41 | Medium | Tests | Windows closure run 42773325959 (Node 22 and 24): the only failing unit test was `research cycle` (`tests/research-cycle.test.ts`): the benchmark of a 150 ms delay against no delay gave `no_significant_change` instead of `improved`, because the delay is smaller than the spread of a Windows process start-up. The other 65 unit tests passed there, including the profile-mode and `OBSERVE` tests of F-39 | Status: fix in 0.2.0-beta.8, A–D closure (the delay is 1500 ms on Windows, as in the capability check of F-37; the assertion is unchanged); closed when the Windows closure run is green |
 
-**Still open, deliberately.** Whether Windows and macOS on Node 24 are green is decided by the next closure run. Unit tests still run on Linux only in the Capabilities workflow; running them elsewhere stays a closure-only gate.
+**Update after the second closure run (commit `484dbde`).** Linux, macOS (Node 22 and 24) and the real-cgroup job are green; the logs added by F-40 show that Windows ended in the unit tests with one failure (F-41).
 
-Tasks F-39 and F-40 are tracked in the [approved audit backlog](ROADMAP.md#approved-audit-backlog-audit-1-approved-2026-11-09). Audit 5 follows.
+**Still open, deliberately.** Whether Windows is green is decided by the next closure run. Unit tests still run on Linux only in the Capabilities workflow; running them elsewhere stays a closure-only gate.
+
+Tasks F-39, F-40 and F-41 are tracked in the [approved audit backlog](ROADMAP.md#approved-audit-backlog-audit-1-approved-2026-11-09). Audit 5 follows.
 
 ---
 
