@@ -78,7 +78,9 @@ test('research cycle: real analyzers feed typed evidence through the whole sessi
             await engine.addSessionEvent(sid, 'profile_completed', { pid });
             child.kill();
             // Baseline, optimization, benchmark, comparison.
-            const slow = nodeArgs("setTimeout(()=>process.stdout.write('42'),150)");
+            // The artificial delay must dominate the start-up noise of a process: several hundred ms on Windows.
+            const delayMs = process.platform === 'win32' ? 1500 : 150;
+            const slow = nodeArgs(`setTimeout(()=>process.stdout.write('42'),${delayMs})`);
             const base = await runBenchmark({ command: app.command, args: slow, repetitions: 6 });
             await attach(base);
             await engine.addSessionEvent(sid, 'baseline_captured', { id: base.id });
