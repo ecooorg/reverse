@@ -59,6 +59,10 @@ reverse mcp
 
 Output is always JSON; `--json` is accepted and has no effect. Reverse stores evidence and benchmark artifacts under `~/.reverse` by default. Set `REVERSE_HOME` to choose another local storage directory, and `REVERSE_EXEC_TIMEOUT_MS` to change the timeout of the helper executables (`ps`, `tasklist`, `powershell`).
 
+## CI diagnostics
+
+All GitHub Actions workflows publish a ZIP artifact with detailed logs and a separate `AI-DEBUG-SUMMARY.md` artifact, including on failed runs. Paste the summary into an AI chat to share run identity, failing steps, exit codes and relevant error lines without attaching the full log archive. See [GITHUB.md](docs/GITHUB.md) for artifact contents and limitations.
+
 ## MCP connection
 
 Reverse implements the MCP JSON-RPC stdio transport and exposes 34 tools, including process inspection, interleaved benchmark suites, stored baselines, typed evidence, hash-chained research sessions, hypothesis promotion and artifact linking. Command-running tools require `REVERSE_MODE=CONTROLLED_EXECUTION` and a command allowlist. Process inventory supports offset pagination; tool results are capped at 1 MiB.
