@@ -798,8 +798,10 @@ check('Benchmark', 'compareBenchmarks computes delta and percent change and vali
     await assert.rejects(compareBenchmarks({ findings: [{ meanDurationMs: 0 }] }, { findings: [{ meanDurationMs: 1 }] }));
 });
 check('Benchmark', 'end to end: a measurably slower command is detected as slower', async () => {
+    // Windows process start-up costs several hundred ms and varies a lot, so the injected delay must dominate it.
+    const delayMs = WIN ? 1500 : 300;
     const fast: any = await runBenchmark({ command: NODE, args: nodeEval('0'), repetitions: 3 });
-    const slow: any = await runBenchmark({ command: NODE, args: nodeEval('setTimeout(()=>{},300)'), repetitions: 3 });
+    const slow: any = await runBenchmark({ command: NODE, args: nodeEval(`setTimeout(()=>{},${delayMs})`), repetitions: 3 });
     const cmp: any = await compareBenchmarks(fast, slow);
     assert.equal(cmp.findings[0].improved, false);
     assert.ok(cmp.findings[0].changePercent > 50);
@@ -872,8 +874,10 @@ check('Benchmark', 'reports P95, std-dev, MAD, outliers, CI, environment, binary
 });
 check('Benchmark', 'per-run CPU time and peak RAM are sampled on Linux (/proc), macOS (ps) and Windows (PowerShell)', async (c) => {
     // A child that holds ~80 MB and burns CPU for a moment, so that sampling has something to see.
+    // On Windows every sample starts a PowerShell (0.5-1.5 s), so a run must outlive the first sample to be seen at all.
+    const busyMs = WIN ? 2500 : 400;
     const code = 'const a=Buffer.alloc(80*1024*1024,1);let x=0;const t=Date.now();'
-        + 'while(Date.now()-t<400)x+=Math.sqrt(x+1);process.stdout.write(String(a.length))';
+        + `while(Date.now()-t<${busyMs})x+=Math.sqrt(x+1);process.stdout.write(String(a.length))`;
     const f: any = ((await runBenchmark({ command: NODE, args: nodeEval(code), repetitions: 3 })) as any).findings[0];
     if (!f.resourceMetrics.available) {
         c.limit(`${process.platform}: resource sampling produced no data (${f.resourceMetrics.reason ?? 'unknown'}); `
@@ -882,7 +886,7 @@ check('Benchmark', 'per-run CPU time and peak RAM are sampled on Linux (/proc), 
     }
     const sampled = f.runs.every((x: any) => x.cpuTimeMs !== null && x.peakRssBytes !== null);
     assert.ok(sampled, 'every successful run carries CPU time and peak RSS');
-    assert.ok(f.medianCpuTimeMs >= 150, `CPU time ${f.medianCpuTimeMs} ms for a 400 ms busy loop`);
+    assert.ok(f.medianCpuTimeMs >= 150, `CPU time ${f.medianCpuTimeMs} ms for a ${busyMs} ms busy loop`);
     assert.ok(f.medianCpuTimeMs <= f.medianDurationMs * 2 + 100, 'CPU time is plausible against wall-clock time');
     assert.ok(f.medianPeakRssBytes >= 60 * 1024 * 1024, `peak RSS ${f.medianPeakRssBytes} bytes for an 80 MiB buffer`);
     assert.ok(f.maxPeakRssBytes >= f.medianPeakRssBytes);
@@ -1177,10 +1181,12 @@ check('Profiling', 'Snapshot, Monitor, Diagnostic and Compare differ as document
     const child = spawn(NODE, ['-e', 'setInterval(()=>{},1000)'], { stdio: 'ignore' });
     try {
         const take = async (mode: any, ms: number) => ((await profileProcess(child.pid!, ms, 100, mode)) as any).findings[0];
+        // Windows needs a PowerShell call per sample (AUDIT R-19), so the observation window is scaled, not the assertions.
+        const scale = WIN ? 12 : 1;
         const snapshot = await take('Snapshot', 600);
-        const monitor = await take('Monitor', 700);
-        const diagnostic = await take('Diagnostic', 700);
-        const compare = await take('Compare', 1000);
+        const monitor = await take('Monitor', 700 * scale);
+        const diagnostic = await take('Diagnostic', 700 * (WIN ? 4 : 1));
+        const compare = await take('Compare', 1000 * scale);
         assert.equal(snapshot.sampleCount, 1);
         assert.ok(monitor.sampleCount >= 3);
         assert.ok(Array.isArray(diagnostic.anomalies) && diagnostic.periods === undefined);
@@ -1410,6 +1416,7 @@ check('CLI', 'profile <pid> --duration --interval', async () => {
     }
 });
 check('CLI', 'benchmark -> compare workflow through files', async () => {
+    const slowMs = WIN ? 1500 : 250; // must dominate the start-up noise of a Windows process
     const mk = (ms: number) => runCli([
         'benchmark',
         '--command',
@@ -1424,7 +1431,7 @@ check('CLI', 'benchmark -> compare workflow through files', async () => {
         `t${ms}`
     ]).stdout;
     const before = path.join(cliDir, 'before.json'), after = path.join(cliDir, 'after.json');
-    await writeFile(before, mk(250));
+    await writeFile(before, mk(slowMs));
     await writeFile(after, mk(1));
     const cmp = JSON.parse(runCli(['compare', before, after]).stdout);
     assert.equal(cmp.findings[0].verdict, 'improved');

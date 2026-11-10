@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseMacPs, parseWindowsCim, parseEtime } from '../dist/process-parse.js';
+import { windowsProcessScript, WINDOWS_CIM_SCRIPT, WINDOWS_TREE_SCRIPT } from '../dist/process-parse.js';
 import { parseProcStatCpu, parseProcStatusPeak, parsePsRow, parsePsCpuTime } from '../dist/benchmark-resources.js';
 test('process parsers tolerate hostile, truncated and oversized deterministic inputs', () => {
     const fixtures = ['', '\uFEFF', '{', '[', 'null', 'not-json', '0'.repeat(1024 * 1024), '\u0000'.repeat(4096)];
@@ -37,4 +38,25 @@ test('process-tree kill refuses to signal a PID whose identity token does not ma
         catch { /* already exited */ }
         await new Promise<void>(resolve => child.once('close', () => resolve()));
     }
+});
+test('Windows helper scripts: single-PID query is filtered, lean tree query has no command lines, all parse the same way', () => {
+    const one = windowsProcessScript(4242);
+    assert.match(one, /-Filter 'ProcessId=4242 OR ParentProcessId=4242'/);
+    assert.ok(!one.includes('"'), 'no double quotes: they would need escaping through execFile');
+    for (const bad of [0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])
+        assert.throws(() => windowsProcessScript(bad), /positive integer/);
+    assert.ok(!WINDOWS_TREE_SCRIPT.includes('CommandLine') && !WINDOWS_TREE_SCRIPT.includes('ExecutablePath'));
+    assert.ok(WINDOWS_TREE_SCRIPT.includes("ToUniversalTime().ToString('o')"), 'same start-time format as the full table');
+    assert.ok(WINDOWS_CIM_SCRIPT.includes("ToUniversalTime().ToString('o')"));
+    // The lean and the filtered output are read by the same parser; the identity token is identical in both.
+    const lean = '[{"ProcessId":10,"ParentProcessId":4,"Started":"2026-11-10T05:00:00.1234567Z"},'
+        + '{"ProcessId":11,"ParentProcessId":10,"Started":"2026-11-10T05:00:01.0000000Z"}]';
+    const rows = parseWindowsCim(lean);
+    assert.deepEqual(rows.map(r => [r.pid, r.ppid, r.identityToken]), [
+        [10, 4, 'windows:2026-11-10T05:00:00.1234567Z'],
+        [11, 10, 'windows:2026-11-10T05:00:01.0000000Z']
+    ]);
+    // A single match is an object, no match is empty output.
+    assert.equal(parseWindowsCim('{"ProcessId":7,"ParentProcessId":1,"Started":"2026-11-10T05:00:00.0000000Z"}').length, 1);
+    assert.deepEqual(parseWindowsCim(''), []);
 });
