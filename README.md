@@ -89,9 +89,9 @@ The server writes protocol messages to stdout. Do not add logging to stdout; dia
 7. Analogies and AI guesses are hypotheses, kept apart from facts and promoted only by same-session Validation or Benchmark evidence.
 8. The legacy track is for open-source software or software whose developers and rights holders consent; see [SECURITY.md](docs/SECURITY.md).
 
-## Current release (1.0.0)
+## Current release (1.1.0-beta.1)
 
-Patches **A–I** are closed: static analysis (ELF/PE/Mach-O, lockfiles, source, APK), provider adapters (Ghidra/Rizin/JADX/Apktool/Frida/GDB/profilers), hotspots, validation normalization, evidence HMAC integrity and change reports. See [docs/ROADMAP.md](docs/ROADMAP.md), [docs/CAPABILITIES.md](docs/CAPABILITIES.md) and [docs/AUDIT.md](docs/AUDIT.md).
+Patches **A–K** and **L** are the 1.0 baseline. This prerelease begins the Windows ≤2010 wave of patch **M** with static DOS MZ / Windows NE, LE, LX and PE header recognition, bounded legacy toolchain/graphics marker scanning, preliminary compatibility findings, and a session-scoped operator declaration of open-source-license or written-consent basis. The authorization declaration is not legal verification. This is an initial M slice, not completion of the Windows wave or of patch M: structural VB6/Delphi/MFC analysis, full Target Profile, sourced OS/API compatibility tables, corpus validation and the remaining M–P vertical slice are still open. See [docs/ROADMAP.md](docs/ROADMAP.md), [docs/CAPABILITIES.md](docs/CAPABILITIES.md), [docs/SECURITY.md](docs/SECURITY.md) and [docs/AUDIT.md](docs/AUDIT.md).
 
 ## Documentation
 
