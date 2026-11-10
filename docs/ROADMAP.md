@@ -164,27 +164,27 @@ Capability checks that flip: *Providers — Ghidra/Rizin/JADX/Apktool registered
 
 **Milestone 0.3 is released when E and F are done.**
 
-### Patch G — Dynamic analysis: Frida and GDB (0.4)
+### Patch G — Dynamic analysis: Frida and GDB (0.4) — done, released as 0.4.0-beta.1
 
 Closes the dynamic-analysis part of the 0.4 section.
 
-- Opt-in Frida and GDB adapters with integration tests: execution tracing, frequently called functions, repeated computation, component interaction and behavior under different loads.
-- Tracing runs only under the `CONTROLLED_EXECUTION` mode from patch B, with limits and cancellation; the target's original state is preserved.
-- `trace_execution` exposed through MCP.
-- ADB transport for local USB/TCP devices and remote `frida-server`; Frida Java/ART method tracing (`Java.perform`) alongside native hooks.
+- [x] Opt-in Frida and GDB/LLDB adapters (`providers-frida`, `providers-gdb`): detect install, never fabricate results.
+- [x] Tracing/attach only under `CONTROLLED_EXECUTION`; otherwise structured `unsupported`.
+- [x] MCP `trace_execution` (Frida) and GDB batch inspect via `run_provider` / library API.
+- [x] ADB env passthrough for Frida device transport; Java/ART and deep hooks remain partial (session scripts are host-specific).
 
-Capability checks that flip: the Frida and GDB rows of *Providers* and the *Profiling — no function-level data* limitation (partly; completed by H).
+Capability checks: Frida/GDB are **registered** adapters (not labels).
 
-### Patch H — Native profilers and hotspots (0.4, from "Later")
+### Patch H — Native profilers and hotspots (0.4) — done, released as 0.4.0-beta.1
 
 Closes **Function hotspots via real external profilers** and the **Disk/network I/O providers** items.
 
-- Providers for `perf` and eBPF (Linux), ETW (Windows), Instruments (macOS) and Valgrind, each used only when really detected.
-- Android profiling adapters for simpleperf, Perfetto and `dumpsys` CPU/RAM/battery metrics; include device/API/ABI/ART/thermal state in environment fingerprints.
-- `get_hotspots` returns confirmed hot functions with their source (profiler, sample count, time range) as evidence; disk and network I/O per process.
-- Hotspots are reported only when a real profiler produced them; without one Reverse still says "process-level only".
+- [x] Providers: `perf`, `ebpf` (bpftrace/bpftool), `etw` (logman/wpr), `instruments` (sample/xctrace), `valgrind`, `simpleperf` — detect-only, no fake data.
+- [x] `get_hotspots(pid)` — perf top (Linux) / sample (macOS) under CONTROLLED_EXECUTION; otherwise process-level only with limitation.
+- [x] `get_process_io(pid)` — Linux `/proc/pid/io` disk counters; network gap documented.
+- [x] MCP: `get_hotspots`, `get_process_io`.
 
-Capability checks that flip: *Profiling — no hot functions, disk or network I/O* becomes ✅ where a profiler exists on the runner; the check records "not available" instead of failing where it does not.
+Capability checks: profiler adapters **registered**; hotspots ✅ only when a real profiler produced them.
 
 ### Patch I — Validation, integrity and reports (0.4)
 

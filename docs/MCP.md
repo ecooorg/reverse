@@ -34,7 +34,10 @@ Tool definitions include `title`, `annotations` and an `outputSchema`; command-e
 | `get_environment_fingerprint` | none | Non-secret environment fingerprint (OS, CPU, memory, Node.js, Reverse version) |
 | `get_evidence` | `id` | Retrieve a persisted evidence record by ID |
 | `list_analyzers` | none | Built-ins, registered adapters and extension points |
-| `run_provider` | `name`, `target` | Run a registered external provider (Ghidra/Rizin/JADX/Apktool); unsupported if absent |
+| `run_provider` | `name`, `target` | Run a registered external provider; unsupported if absent |
+| `trace_execution` | `target`, optional `pid` | Frida dynamic trace under CONTROLLED_EXECUTION |
+| `get_hotspots` | `pid` | Function hotspots from perf/sample when available |
+| `get_process_io` | `pid` | Per-process disk I/O (Linux `/proc/pid/io`) |
 | `create_benchmark_suite` | `cases` | Create a named, interleaved benchmark suite (2–10 cases) |
 | `run_benchmark_suite` | `id` | Run suite cases round-robin with warm-ups and repeated samples |
 | `compare_benchmarks` | `before`, `after` | Compare matching cases in two suite results |
