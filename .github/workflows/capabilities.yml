@@ -171,7 +171,7 @@ jobs:
               const head = seg.split('</testcase>')[0];
               const failed = head.includes('<failure');
               const skipped = head.includes('<skipped');
-              const msg = unesc(((head.match(/<failure[^>]*message="([^"]*)"/) || ['', ''])[1] || '').slice(0, 400));
+              const m = head.match(/<failure[^>]*message="([^"]*)"/); const msg = unesc((m ? m[1] : '').slice(0, 400));
               return { name, ms, failed, skipped, msg };
             });
             const total = cases.reduce((a, c) => a + c.ms, 0);
