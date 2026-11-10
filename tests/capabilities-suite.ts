@@ -21,6 +21,7 @@ import path from 'node:path';
 import readline from 'node:readline';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { analyzeBinary } from '../dist/analysis-binary.js';
+import { analyzeLegacyWindows } from '../dist/legacy-windows.js';
 import { analyzeSource } from '../dist/analysis-source.js';
 import { analyzeDependencies } from '../dist/analysis-dependencies.js';
 import { listProcesses, inspectProcess } from '../dist/process-inspector.js';
@@ -244,6 +245,17 @@ check('Package', 'bin entry has a shebang and package.json targets exist', () =>
     const exp = pkg.exports['.'];
     assert.ok(existsSync(path.join(ROOT, exp.default)), 'exports default');
     assert.ok(existsSync(path.join(ROOT, exp.types)), 'exports types');
+});
+// ---------------------------------------------------------------- 2. legacy Windows analysis (Patch M initial slice)
+check('Legacy Windows', 'MZ + NE executable is recognized as a 16-bit Windows NE image', async () => {
+    const b = Buffer.alloc(256);
+    b.write('MZ', 0, 'ascii');
+    b.writeUInt32LE(128, 0x3c);
+    b.write('NE', 128, 'ascii');
+    const r: any = await analyzeLegacyWindows(await craft('legacy-ne.exe', b));
+    assert.equal(r.findings[0].format, 'Windows NE');
+    assert.equal(r.findings[0].bitness, 16);
+    assert.equal(r.findings[0].compatibilityFindings[0].needsExecutionEnvironment, true);
 });
 // ---------------------------------------------------------------- 2. binary analysis
 check('Binary', 'ELF64 little-endian x86_64 header is parsed (arch, bitness, endian, entry point)', async () => {
