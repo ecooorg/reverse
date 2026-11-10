@@ -77,6 +77,7 @@ Commands:
   dotnet <file>                 Detect .NET CLI header in PE
   wasm <file>                   WebAssembly section inventory
   mcp-http                      Optional HTTP MCP (REVERSE_MCP_HTTP=1 + TOKEN)
+  setup <agent> [--confirm true] Register MCP in cursor|claude|codex|vscode (dry-run default)
   analyzers                     List adapters and providers
   doctor                        Check local runtime and store readiness
   mcp                           Start the MCP stdio server
@@ -203,6 +204,16 @@ async function main() {
                 console.error('HTTP MCP listening (see JSON result). Ctrl+C to stop.');
                 await new Promise(() => { });
             }
+            break;
+        }
+        case 'setup': {
+            const { setupAgent } = await import('./cli-setup.js');
+            out = await setupAgent({
+                agent: positional('setup <agent>'),
+                dryRun: value('confirm', 'false') !== 'true',
+                confirm: value('confirm', 'false') === 'true',
+                reverseBin: value('bin', 'reverse')
+            });
             break;
         }
         case 'analyzers':

@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import readline from 'node:readline';
 import { VERSION } from './core-version.js';
+import { listPrompts, getPrompt } from './mcp-prompts.js';
+import { listResources, readResource } from './mcp-resources.js';
 import { createBenchmarkSuite, runBenchmarkSuite, compareBenchmarkSuites } from './benchmark-suite.js';
 import { captureBaseline, compareBaselines, getBenchmarkSuite } from './benchmark-suite.js';
 import { EvidenceEngine } from './evidence-engine.js';
@@ -272,6 +274,44 @@ async function handleLine(line: string) {
         case 'tools/call':
             await handleToolCall(req);
             return;
+        case 'prompts/list':
+            send({ jsonrpc: '2.0', id: req.id, result: listPrompts() });
+            return;
+        case 'prompts/get': {
+            try {
+                const name = req.params?.name;
+                if (typeof name !== 'string') {
+                    sendError(req.id, -32602, 'prompts/get requires params.name');
+                    return;
+                }
+                const args = req.params?.arguments ?? {};
+                send({ jsonrpc: '2.0', id: req.id, result: getPrompt(name, args) });
+            }
+            catch (e: any) {
+                sendError(req.id, -32602, e?.message ?? String(e));
+            }
+            return;
+        }
+        case 'resources/list': {
+            const r = await listResources();
+            send({ jsonrpc: '2.0', id: req.id, result: r });
+            return;
+        }
+        case 'resources/read': {
+            try {
+                const uri = req.params?.uri;
+                if (typeof uri !== 'string') {
+                    sendError(req.id, -32602, 'resources/read requires params.uri');
+                    return;
+                }
+                const r = await readResource(uri);
+                send({ jsonrpc: '2.0', id: req.id, result: r });
+            }
+            catch (e: any) {
+                sendError(req.id, -32602, e?.message ?? String(e));
+            }
+            return;
+        }
         default: if (req.id !== undefined)
             sendError(req.id, -32601, `Method not found: ${req.method}`);
     }
