@@ -303,9 +303,9 @@ Candidates for later releases, depending on providers: `get_hotspots` and `trace
 
 ## Extension contract
 
-Implement `AnalyzerProvider` from `src/providers-registry.ts`, declare concrete capabilities, check availability without side effects, and return structured observations with explicit coverage and limitations. Never report `available: true` unless the executable and required runtime are actually detected. Provider registration is in-process; dynamic plugin loading is a future task.
+Implement `AnalyzerProvider` from `src/providers-registry.ts`, declare concrete capabilities, check availability without side effects, and return structured observations with explicit coverage and limitations. Never report `available: true` unless the executable and required runtime are actually detected. Provider registration is in-process via `registerProvider` / `bootstrapExternalProviders`; adapters probe PATH and `GHIDRA_INSTALL_DIR` without fabricating results.
 
-Providers are independent so that connecting Ghidra, Rizin, Frida, GDB, eBPF, ETW or Instruments does not require rewriting the core. The core must not depend exclusively on any single engine; engines are connected through the common interface. Execution-environment providers (patch N) use the same independence rule. Provider integrations, in planned order: Ghidra and Rizin (0.3), Frida and GDB (0.4), then separate Linux (eBPF), Windows (ETW) and macOS (Instruments) providers. Android adapters are scheduled across patches E–J; GPU and network analyzers remain later extensions.
+Providers are independent so that connecting Ghidra, Rizin, Frida, GDB, eBPF, ETW or Instruments does not require rewriting the core. The core must not depend exclusively on any single engine; engines are connected through the common interface. Execution-environment providers (patch N) use the same independence rule. Provider integrations: Ghidra, Rizin, JADX and Apktool adapters are implemented in Patch F (opt-in, detect-only). Frida and GDB (0.4), then Linux (eBPF), Windows (ETW) and macOS (Instruments) remain later. Android adapters are scheduled across patches E–J; GPU and network analyzers remain later extensions.
 
 ## Size guidance
 

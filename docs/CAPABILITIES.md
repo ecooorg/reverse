@@ -24,7 +24,7 @@ The hypothesis ledger is implemented in research sessions: hypotheses are tagged
 
 ## Provider status
 
-`ghidra`, `rizin`, `frida`, `gdb`, `perf`, `ebpf`, `etw`, and `instruments` are **extension-point labels only**. No invocation adapter, parser, setup detection, or end-to-end integration is included. The `list_analyzers` output marks them `extension-point`; this is intentional.
+**Patch F:** `ghidra`, `rizin`, `jadx`, `apktool` and `ghidra-similarity` are **registered opt-in adapters**. They probe for a local install (PATH / `GHIDRA_INSTALL_DIR`), never fabricate results when the tool is missing, and return a structured `Result` with limitations. `frida`, `gdb`, `perf`, `ebpf`, `etw` and `instruments` remain **extension-point** labels until their own patches. Provider registration is in-process; adapters are loaded via `providers-bootstrap`.
 
 ## Status semantics
 

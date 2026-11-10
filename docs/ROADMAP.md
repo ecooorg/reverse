@@ -150,17 +150,17 @@ Closes the first half of the 0.3 section: structural binary analysis and depende
 
 Capability checks that flip: *Binary — sections/imports/symbols*, *Source — commented imports not counted*, *Dependencies — lockfile resolution* → ✅. Disassembly/CFG and CVE audit remain limitations (patches F / later).
 
-### Patch F — Provider framework, Ghidra and Rizin (0.3)
+### Patch F — Provider framework, Ghidra and Rizin (0.3) — done, released as 0.3.0-beta.2
 
 Closes the second half of the 0.3 section and the **Plugin loading and provider lifecycle** item.
 
-- Provider contract tests, executable discovery, availability checks without side effects, timeouts and clean shutdown, plugin loading and provider lifecycle.
-- Opt-in Ghidra adapter (main deep-analysis engine) and Rizin adapter (alternative) with integration tests against real installations; results are normalized into the common `Result` envelope with explicit coverage and limitations.
-- Opt-in JADX and Apktool static providers behind `AnalyzerProvider` for DEX/Smali/resources; Ghidra remains responsible for native `.so` libraries.
-- Disassembly, decompilation and cross-reference data are available through the adapters, never faked when the tool is absent.
-- `SimilarityProvider` contract on top of `AnalyzerProvider` (H-03): function and structure similarity with explicit confidence, coverage and limitations; first adapters Ghidra Function ID and BSim where installed. No corpus is bundled (H-06).
+- [x] Provider contract (`AnalyzerProvider`), executable discovery (`providers-discover`), availability probes without analysis side effects, timeouts, `shutdown`, in-process registration lifecycle (`registerProvider` / `bootstrapExternalProviders`).
+- [x] Opt-in Ghidra adapter (`providers-ghidra`) and Rizin adapter (`providers-rizin`); results normalized into `Result` with coverage and limitations; never fabricated when the tool is absent.
+- [x] Opt-in JADX and Apktool providers (`providers-android-tools`) for DEX/Smali/resources; native `.so` remains Ghidra/Rizin when available.
+- [x] Disassembly/decompilation data only via adapters when tools exist on the host.
+- [x] `SimilarityProvider` contract + `ghidra-similarity` adapter (H-03); no bundled corpus (H-06).
 
-Capability checks that flip: *Providers — Ghidra and Rizin are labels only* becomes ✅ for these two; the remaining extension points keep their 🚧 until their own patch.
+Capability checks that flip: *Providers — Ghidra/Rizin/JADX/Apktool registered* → ✅; Frida/GDB/perf/eBPF/ETW/Instruments stay extension-point 🚧.
 
 **Milestone 0.3 is released when E and F are done.**
 
@@ -615,10 +615,10 @@ Criterion 9 is satisfied for tools that receive a `session_id`; the trials on re
 
 ## 0.3 — static analysis and providers
 
-- [ ] Parse ELF program/section headers and symbol tables
-- [ ] PE sections/imports/exports and Mach-O load commands
-- [ ] Function discovery, call graph, duplicated code, embedded libraries, unused components where this can be proven
-- [ ] Dependency lockfile parsers and transitive graphs; duplicate and outdated libraries, version detection, size/resource impact of a dependency, compatibility and risk information for suggested replacements
+- [x] Parse ELF program/section headers and symbol tables (Patch E)
+- [x] PE sections/imports/exports and Mach-O load commands (Patch E)
+- [x] Function discovery from symbols/exports and import-edge graph (Patch E); full CFG, duplicated/unused-component proof remain for provider engines (F)
+- [x] Dependency lockfile parsers and transitive/lock-only nodes (Patch E); size/resource impact and replacement recommendations remain limitations
 - [ ] Provider contract tests and executable discovery
 - [ ] Real, opt-in Ghidra and Rizin adapters with integration tests (Ghidra as the main deep-analysis engine, Rizin as the alternative)
 

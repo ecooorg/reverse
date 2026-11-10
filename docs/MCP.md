@@ -33,7 +33,8 @@ Tool definitions include `title`, `annotations` and an `outputSchema`; command-e
 | `validate_changes` | `command`, `expected` | Compare exact expected outputs; optional `args`, `cwd`, `timeoutMs`, `repetitions` |
 | `get_environment_fingerprint` | none | Non-secret environment fingerprint (OS, CPU, memory, Node.js, Reverse version) |
 | `get_evidence` | `id` | Retrieve a persisted evidence record by ID |
-| `list_analyzers` | none | Distinguish built-ins from extension points |
+| `list_analyzers` | none | Built-ins, registered adapters and extension points |
+| `run_provider` | `name`, `target` | Run a registered external provider (Ghidra/Rizin/JADX/Apktool); unsupported if absent |
 | `create_benchmark_suite` | `cases` | Create a named, interleaved benchmark suite (2–10 cases) |
 | `run_benchmark_suite` | `id` | Run suite cases round-robin with warm-ups and repeated samples |
 | `compare_benchmarks` | `before`, `after` | Compare matching cases in two suite results |
