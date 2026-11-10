@@ -14,7 +14,7 @@
 | Safety | `READ_ONLY` by default; `OBSERVE` samples only verified-owned processes; explicit `CONTROLLED_EXECUTION` scoped cgroup-v2 resource-limit API on delegated Linux hierarchies; ownership and identity checks before moving a process | No OS sandbox or filesystem/network isolation; Windows/macOS hard process quotas are not implemented; cgroup availability depends on delegation and permissions |
 | MCP | stdio JSON-RPC initialize, ping, tools/list, tools/call; protocol revisions through 2025-11-25; tool titles, annotations and output schemas; request cancellation; benchmark suites and research-session tools | No modern stateless 2026-07-28 protocol era, HTTP transport, roots, resources, prompts, or OAuth |
 
-## Legacy Windows wave 1 — initial Patch M baseline (1.1.0-beta.1)
+## Windows compatibility — initial Patch M baseline (1.1.0-beta.1)
 
 | Capability | Status | Limitation |
 |---|---|---|
@@ -24,9 +24,9 @@
 | Compatibility candidates from legacy headers, PE runtime and graphics imports | 🚧 | Static candidates include evidence/confidence/limitations; OS-version API availability tables and execution confirmation belong to later M/N slices |
 | Legacy authorization declaration on research sessions | ✅ | Operator declaration is recorded; legal status and the referenced license/consent are not verified |
 
-The `analyze_legacy_windows` MCP tool refuses unless the supplied research session has a `declare_legacy_authorization` record. It reads at most 8 MiB for marker detection and hashes the complete file. This is the initial Windows ≤2010 M slice, not completion of wave 1.
+The `analyze_legacy_windows` MCP tool refuses unless the supplied research session has a `declare_legacy_authorization` record. It reads at most 8 MiB for marker detection and hashes the complete file. This is initial progress inside product patch M, not completion of the Windows product outcome.
 
-## Legacy Windows wave 1 — Patch M1 increment (1.1.0-beta.2)
+## Windows compatibility — detector increment within Patch M (1.1.0-beta.2)
 
 | Capability | Status | Limitation |
 |---|---|---|
@@ -38,9 +38,9 @@ The `analyze_legacy_windows` MCP tool refuses unless the supplied research sessi
 
 `analyze_legacy_windows` reads at most 8 MiB for signatures and PE import tables, hashes the complete input and requires a research session carrying `declare_legacy_authorization`. Its result embeds the declared basis, reference, declarant and timestamp. The detector does not execute the target or access a similarity corpus.
 
-## Remaining legacy track (planned, patches M–P)
+## Remaining product plan (planned, patches M–Q)
 
-Packer detection, full Target Profile, sourced per-OS API availability tables, reference corpus with ground truth, similarity adapters, old Linux/Mac/Android and newer platform waves remain planned. Delphi/VB6/MFC signatures and bounded PE import extraction are implemented as static indicators, not calibrated classifications. Execution environments belong to N; behavior capture/replay to O; equivalence and migration advice to P. See [ROADMAP.md](ROADMAP.md).
+The remaining work is one ordered sequence, not parallel capability tracks: M completes Windows through 2010 end-to-end; N delivers old Linux end-to-end; O delivers Classic Mac/early macOS end-to-end; P delivers legacy Android end-to-end; Q extends the workflow to newer generations and unifies compatibility intelligence. Each patch includes the relevant Target Profile, sourced diagnosis, execution, behavior capture/replay, validation and migration reporting. Packer detection, full Target Profile, sourced OS/API availability data and calibrated reference corpus remain open in M. Delphi/VB6/MFC signatures and bounded PE import extraction are static indicators, not calibrated classifications. See [ROADMAP.md](ROADMAP.md).
 
 ## Hypotheses, similarity and authorization
 

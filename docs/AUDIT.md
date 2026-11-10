@@ -1,5 +1,17 @@
 # Audit log
 
+## Audit 18 — 2026-11-10 — Product roadmap and architecture coherence (documentation-only)
+
+**Scope.** Consolidate the post-1.0 plan into one ordered set of product patches. Earlier documentation described platform waves (M–P) and cross-cutting capabilities (execution, replay, equivalence and migration) as separate classifications, making it unclear which patch owned a complete product outcome.
+
+**Delivered.** The roadmap now defines exactly five future product patches in strict order: M Windows through 2010, N old Linux, O Classic Mac/early macOS, P legacy Android, and Q newer generations plus unified compatibility intelligence. Each patch is a vertical product slice with the same acceptance dimensions; execution, replay, preservation and migration are delivered within each relevant platform patch, not as parallel patch families. Architecture, capability status, security, MCP, README and assistant instructions now use the same sequence. This is a documentation-only planning correction; it does not implement product capabilities or close product limitations.
+
+| ID | Sev | Area | Finding | Status |
+|---|---|---|---|---|
+| F-71 | Medium | Planning/documentation | Future platform and cross-cutting work used overlapping patch classifications, obscuring the next actionable product unit | Status: closed in documentation-only planning patch (2026-11-10); no product capability claimed |
+
+---
+
 ## Audit 17 — 2026-11-10 — Patch M1 Windows detector expansion (1.1.0-beta.2)
 
 **Scope.** Expand the initial Windows legacy slice with bounded PE import extraction, deterministic framework signatures and authorization provenance in analysis results.
@@ -288,18 +300,18 @@ Tasks H-01…H-10 are tracked in the [approved audit backlog](ROADMAP.md#approve
 
 **Verdict.** Patches A–K deliver a strong general core (observation, measurement, evidence, static analysis, providers, controlled optimization). They are aimed at *performance of current programs*. For the stated goal they leave seven gaps: there is no compatibility diagnosis, no legacy formats and eras, no multi-environment execution, no behavior capture that could prove preservation, no function-level equivalence lab, no migration strategy, and no scope/legal policy. Full preservation of behavior cannot be *proven* by any tool; Reverse must report a **confidence level with its coverage**, never a guarantee.
 
-**Approval and priority.** Approved by the maintainer on 2026-11-09. Target platforms are delivered in this order, each as a complete vertical slice through patches M–P: (1) Windows up to 2010, (2) old Linux, (3) old Mac, (4) old Android, (5) the same four in their newer generations.
+**Approval and priority (historical; superseded by Audit 18).** Approved by the maintainer on 2026-11-09. The original proposal described target platforms as vertical slices through M–P. Audit 18 replaces that overlapping classification with one ordered product-patch sequence M–Q; retain this entry as the historical approval record, not as the active delivery plan.
 
 | ID | Sev | Gap | Task | Patch |
 |---|---|---|---|---|
 | G-01 | **High** | No answer to "why does it not work today" | Compatibility diagnosis: required OS, CPU, bitness, ABI; imported APIs against what the target OS still provides; missing libraries; privilege and virtualization assumptions; CPU-speed-dependent timing; graphics, audio and driver dependencies; DPI and resolution; locale and path assumptions; address-space limits; date limits. Every cause is a finding with evidence | M |
-| G-02 | **High** | Old formats and technologies are not recognized | Legacy formats and toolchains per platform wave (see the wave table in the roadmap) | M |
+| G-02 | **High** | Old formats and technologies are not recognized | Legacy formats and toolchains in the ordered product patches (see the roadmap) | M |
 | G-03 | **High** | Programs can only be run in the current host | Execution-environment providers (Wine, DOSBox-class emulators, QEMU/VMs, old userland containers, classic-Mac and old-Android emulators), snapshots, a works/fails matrix across environments | N |
 | G-04 | **High** | Behavior preservation cannot be shown | Behavior capture and replay: inputs, outputs, files, registry/preferences, network, UI events, time and random control, code coverage, normalization, comparison old versus new | O |
 | G-05 | **High** | A rewritten function cannot be checked against the original | Equivalence lab: emulate or run the original function and the replacement on the same large input sets, differential and property tests, coverage-based confidence | P |
 | G-06 | Medium | No guidance on *how* to fix | Migration strategy advisor: ranked options from configuration or compatibility layer through wrapper, emulation/VM packaging, minimal binary patch, recompilation from a reconstruction, to full rewrite, each with risk, effort and evidence | P |
 | G-07 | Medium | No scope and legal policy | Authorized-use policy, handling of copy protection, dongles and licenses, user-supplied OS images; first item of patch M | M |
-| G-08 | Medium | Platform priority is not encoded | Wave order is a roadmap rule: nothing for a later wave starts before the previous wave has its end-to-end trial | M–P |
+| G-08 | Medium | Platform priority is not encoded | Product patch order is strict: nothing for a later patch starts before the current patch passes its end-to-end trial | M–P |
 | G-09 | Medium | No per-target support matrix | `CAPABILITIES.md` gets a target-platform and era matrix; the suite checks it against the registered format detectors | M |
 | G-10 | Medium | "Full preservation" is an unmeasurable promise | Behavior-preservation report with levels L0–L3 (defined in [ARCHITECTURE.md](ARCHITECTURE.md)); L4 (formal proof) is explicitly out of scope | O, P |
 

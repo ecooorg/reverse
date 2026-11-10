@@ -2,7 +2,7 @@
 
 The design behind each item is described in [ARCHITECTURE.md](ARCHITECTURE.md).
 
-## Delivery plan: eleven large patches to 1.0, plus patch L and the legacy track M–P after it
+## Delivery plan: completed foundation A–L, followed by five sequential product patches M–Q
 
 This plan closes **every** item listed in the release sections below (0.2, 0.3, 0.4 and Later), so that Reverse can analyze a program, reverse-engineer it, find the cause of excessive resource use, apply an optimization and prove the result. Each patch is a large, independently releasable unit: it ends in a merged, tested change set, not in a partially working branch. The patches are ordered by dependency; the release sections further down describe the same work item by item.
 
@@ -241,7 +241,7 @@ Closes audit tasks R-08 and R-18 (core) and quality debts R-03 / F-16 / R-05 (pa
 ### After 1.0.1 — planned order
 
 1. Optional knip/jscpd and R-19 platform helpers when they block real work.
-2. Legacy track M–P only with a concrete era need.
+2. Product patches M–Q in the strict sequence defined below.
 
 ### Coverage of the roadmap
 
@@ -261,8 +261,8 @@ Closes audit tasks R-08 and R-18 (core) and quality debts R-03 / F-16 / R-05 (pa
 | Later: function hotspots, disk/network I/O | H |
 | Later: JS/Electron, .NET, WASM, plugin loading, HTTP MCP, extensions | F (plugin loading), K (the rest) |
 | Core readiness criteria and the two trial scenarios | J |
-| Hypothesis ledger, similarity providers, authorization, oracles (Audit 3) | D, F, L, M, N, P (see the Audit 3 table) |
-| Product goal for old and modern programs: compatibility diagnosis, environments, behavior preservation, migration | M–P by platform wave (see the legacy track) |
+| Hypothesis ledger, similarity providers, authorization, oracles (Audit 3) | D, F, L, M–Q (see the Audit 3 table) |
+| Legacy compatibility and recovery product outcomes | M–Q in strict sequence (see Product delivery after 1.0) |
 
 ## Approved audit backlog (Audit 1, approved 2026-11-09)
 
@@ -309,6 +309,7 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-68 | Windows legacy analyzer lacked PE imports and structural framework signatures | closed in **1.1.0-beta.2 / M1** (bounded static detectors; corpus calibration remains open) |
 | F-69 | Legacy compatibility candidates ignored PE import evidence | closed in **1.1.0-beta.2 / M1** (selected imports; OS API availability tables remain open) |
 | F-70 | Legacy authorization was not embedded in analysis results | closed in **1.1.0-beta.2 / M1** |
+| F-71 | Future platform and cross-cutting work used overlapping patch classifications | closed in documentation-only planning patch (2026-11-10); no product capability claimed |
 | F-16 | Split capability harness | closed in **1.0.1** (entry + `capabilities-suite.ts`) |
 | F-17 | Threat model: agent as untrusted caller, prompt injection through target data | closed in 0.2.0-beta.5 |
 
@@ -382,14 +383,14 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 |---|---|---|
 | G-01 | Compatibility diagnosis with evidence per cause | **M** |
 | G-02 | Legacy formats and toolchains, by platform wave | **M** |
-| G-03 | Execution-environment providers, snapshots, works/fails matrix | **N** |
-| G-04 | Behavior capture and replay, coverage, normalization, old-versus-new comparison | **O** |
-| G-05 | Function equivalence lab (emulation, differential and property tests) | **P** |
-| G-06 | Migration strategy advisor | **P** |
+| G-03 | Execution-environment providers, snapshots, works/fails matrix | **M** (introduced), extended in N–P |
+| G-04 | Behavior capture and replay, coverage, normalization, old-versus-new comparison | **M** (introduced), extended in N–P |
+| G-05 | Function equivalence lab (emulation, differential and property tests) | **M** (introduced), extended in N–P |
+| G-06 | Migration strategy advisor | **M** (introduced), extended in N–Q |
 | G-07 | Authorized-use and legal scope policy (first item of M) | **M** |
-| G-08 | Platform-wave priority rule | **M–P** |
+| G-08 | Single ordered product sequence: Windows, old Linux, Classic Mac/early macOS, legacy Android, newer generations | **M–Q** |
 | G-09 | Target-platform and era support matrix in `CAPABILITIES.md` | **M** |
-| G-10 | Behavior-preservation report with levels L0–L3 | **O**, **P** |
+| G-10 | Behavior-preservation report with levels L0–L3 | **M** (introduced), extended in N–P |
 
 ### Hypotheses, analogy and authorization (Audit 3, approved 2026-11-09)
 
@@ -401,88 +402,50 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | H-04 | Deterministic legacy detectors first; analogy tag only with confidence and deterministic basis | **M** |
 | H-05 | Authorized-use policy: open-source software or full consent of developers and rights holders only | partial in 1.0.1, patch M (enforced for `analyze_legacy_windows`; other legacy operations must gate too) |
 | H-06 | Corpus policy: hashes and signatures only, source and license per entry, no third-party binaries, local lookups | **F**, **M** |
-| H-07 | Oracle rule: no synthesis or reconstruction above L0 without an oracle; provenance for generated code | **N** (oracle report), **P** |
-| H-08 | Reference corpus with ground truth and matcher precision/recall/calibration metrics | **M** (per wave), **L** (agent evaluation) |
+| H-07 | Oracle rule: no synthesis or reconstruction above L0 without an oracle; provenance for generated code | **M** (introduced), extended in N–Q |
+| H-08 | Reference corpus with ground truth and matcher precision/recall/calibration metrics | **M** (introduced), extended in N–Q |
 | H-09 | Agent prompts, skill section and evaluation harness for hypothesis discipline | **L** |
 | H-10 | Authorization record stored in research sessions and reports | **M** |
 
 ---
 
-## Legacy and compatibility track (patches M–P, after 1.0)
+## Product delivery after 1.0 — one ordered patch sequence
 
-This track delivers the product goal stated in [ARCHITECTURE.md](ARCHITECTURE.md): analyze modern and old programs without source, find why they fail or run badly today, and support an improvement or full rework with the **highest verifiable preservation of behavior**. It starts after patch J, because it reuses the controlled change loop, evidence, providers and validation.
+Patches A–L are the completed 1.0 foundation and remain historical release records. All remaining product work is delivered as **five sequential product patches: M, N, O, P and Q**. These letters are the only active planning units. Do not create parallel tracks, platform-wave sub-patches, M1-style release plans, or separate cross-cutting patch families. A patch may have internal implementation tasks, but it is released and accepted as one product outcome.
 
-**Pattern-based archaeology.** Era and domain analogies speed up the search for candidates (compiler idioms, framework structures, file formats). Deterministic detection comes first and yields facts; analogy yields only hypotheses in the ledger (patch D); confirmation needs an oracle and the checks of patches N–P. Analogy does not lower the bar of the L0–L3 levels.
+Each patch is a vertical product slice: detection and Target Profile, compatibility diagnosis, required execution environment, behavior capture/replay, validation/equivalence where an oracle exists, MCP/CLI surface, documentation, and end-to-end reference trials are delivered together to the extent relevant to that target family. Reuse shared interfaces; do not defer a capability to a later patch if it is necessary to make the current platform slice useful. Q consolidates and generalizes the completed platform work rather than introducing a second planning taxonomy.
 
-**Authorized use (H-05).** The track works only with open-source software or software whose developers and rights holders have given full consent, because its purpose is to help them restore old programs that no longer work. Details in [SECURITY.md](SECURITY.md).
+### Ordered product patches
 
-### Platform waves (priority order set by the maintainer)
+| Patch | Target and outcome | Target release | Depends on |
+|---|---|---:|---|
+| M | **Complete Windows compatibility, DOS through Windows 7-era software (up to 2010).** Finish the initial 1.1 Windows detector slice; deliver evidence-backed Target Profiles, sourced API/runtime compatibility diagnosis, relevant execution providers, behavior capture/replay, preservation reporting and migration recommendations. | 1.2 | A–L foundation; initial Windows analyzer in 1.1.0-beta.1/.2 |
+| N | **Old Linux software.** Support a.out/early ELF, old libc and ABI generations, legacy desktop/audio stacks and old package formats; deliver the same end-to-end diagnosis, environment, replay and validation workflow. | 1.3 | M shared contracts and evidence model |
+| O | **Classic Mac and early macOS software.** Support 68k, PEF/CFM, resource forks, PowerPC and early Intel Mach-O, Carbon and legacy bundle layouts; deliver end-to-end recovery and preservation workflow. | 1.4 | N shared contracts and environment/replay foundations |
+| P | **Legacy Android software.** Support Dalvik/early ART, old API levels, 32-bit ARM/x86/MIPS native components and legacy framework behavior; deliver device/emulator diagnosis, capture/replay and preservation validation. | 1.5 | O shared contracts and Android foundations already present in E/J |
+| Q | **Newer generations and unified compatibility intelligence.** Extend the proven workflow to post-2010 Windows, newer Linux, modern/classic-transition macOS and newer Android generations; unify profiles, API/runtime knowledge, evidence, confidence, environment matrices and migration reports across all supported platforms. | 2.0 | M–P complete |
 
-The track is delivered as **vertical slices**: every wave goes through M, N, O and P for one target family, ends in an end-to-end trial on closed reference programs of that family, and is released as its own minor version. A later wave does not start before the previous wave has its trial.
+### Scope and acceptance for every product patch
 
-| Wave | Release | Target family | Examples of what must be recognized and handled |
-|---|---|---|---|
-| 1 | 1.1 | **Windows up to 2010** | DOS (MZ), Windows 3.x (NE/LE/LX), Win9x/NT/2000/XP/Vista/7 PE32, 16- and 32-bit installers, packers (UPX and similar), Visual Basic 6, Delphi/C++ Builder, MFC/ATL, COM/ActiveX, .NET 1.x–3.5, DirectDraw/Direct3D ≤ 9, Glide, 8.3 paths, ANSI code pages, UAC and Program Files/HKLM write assumptions |
-| 2 | 1.2 | **Old Linux** | a.out and early ELF, libc5/old glibc, i386 and static binaries, old kernel interfaces (OSS audio, vsyscall), Motif/GTK1/Qt3, old package formats |
-| 3 | 1.3 | **Old Mac** | classic Mac OS (68k and PEF/CFM, resource forks), Mac OS X PowerPC and early Intel Mach-O, universal and 32-bit binaries, Carbon, old bundle layouts |
-| 4 | 1.4 | **Old Android** | Dalvik/early ART, old API levels, 32-bit ARM/x86/MIPS native libraries, deprecated permissions and APIs |
-| 5 | 1.5 | **Newer generations** of waves 1–4, in the same order | Windows after 2010, newer Linux, newer Mac, newer Android: same tasks with the newer toolchains and environments |
+Every patch must deliver all of the following for its target family, with honest limitations where a platform or external engine cannot provide a capability:
 
-Host and target are different things: the host is where Reverse runs, the target is the analyzed program. Static analysis is host-independent; running old targets uses the environments of patch N, which may be emulators or virtual machines on any host. The statement that Linux is the first fully supported *host* profiling environment stays true.
+1. **Target Profile and static inventory:** executable/container formats, architecture, ABI, OS era, toolchain/runtime/framework, installer/packager and dependencies. Every field links to source evidence, confidence and coverage.
+2. **Compatibility diagnosis:** sourced, versioned OS/API/runtime availability data; concrete findings for missing/changed APIs, libraries, permissions, filesystem/registry/preferences, locale, graphics/audio, timing and hardware assumptions. Hypotheses remain separate from facts.
+3. **Execution and observation:** real provider detection, user-supplied licensed images, environment fingerprints, bounded execution, first-failure diagnostics and traces. No fabricated provider results.
+4. **Behavior capture and replay:** deterministic scenarios for applicable inputs, outputs, files, UI and other observable side effects; nondeterminism controls and explicit replay limitations.
+5. **Preservation and migration:** differential validation against an oracle, coverage and residual-risk reporting, L0–L3 preservation levels, and ranked migration options. Without an oracle, preservation remains L0.
+6. **Product integration:** stable CLI/MCP contracts, matching `docs/MCP.md`, capability checks, security review, examples and updated README/architecture/capabilities docs.
+7. **Reference trials:** at least two reproducible reference-program scenarios where lawful fixtures and environments exist: diagnose/restore a program that fails in the current environment, and compare a changed/repackaged/reimplemented version against the original. If a platform oracle or licensed environment is unavailable, record that as an explicit release limitation rather than claiming success.
 
-### Patch M — Compatibility diagnosis and legacy formats (1.1–1.5)
+### Delivery rules
 
-Depends on E, F and G. Closes G-01, G-02, G-07, G-09.
+- Work strictly in M → N → O → P → Q order. Do not start a later patch while the current patch's acceptance criteria remain open, except for a documented blocking fix.
+- Internal work breakdowns are not patch names and must not appear as competing roadmap classifications.
+- Each patch has one scope, one acceptance checklist, one release record and one capability-gate result. A documentation-only maintenance change does not count as a product patch and is not folded into these five deliverables.
+- Preserve backward compatibility and all existing safety gates. Legacy analysis is limited to open-source software or software with full rights-holder consent; operating-system images and proprietary tools are user supplied, never bundled.
+- The initial Windows slice in 1.1.0-beta.1 and detector increment in 1.1.0-beta.2 are historical progress within M, not separate future roadmap units. M remains open until its complete Windows outcome passes the criteria above.
 
-- [x] First: authorized-use and legal scope policy in [SECURITY.md](SECURITY.md) and the agent rules (copy protection, dongles, licenses, user-supplied OS images are never bundled).
-- [x] Initial authorization record (H-05, H-10): `analyze_legacy_windows` requires a declared basis (open-source license, or written consent of the developers and rights holders), stored in the session and embedded in the analysis result. The record is a declaration, not legal verification. Gates for future legacy operations remain open.
-- [ ] Corpus policy (H-06): a similarity corpus holds only hashes and signatures of open-source or consented material, each with source and license; no third-party binaries are bundled.
-- [ ] Target profile: required OS and era, CPU, bitness, ABI, runtime, installer and toolchain, with evidence for each field; an optional analogy tag with confidence and its deterministic basis.
-- [ ] Deterministic detectors first (H-04): Delphi RTTI/DFM, MFC message maps, Visual Basic 6 headers, Borland and other toolchain markers, dBASE/.dbf and similar documented formats are reported as static facts. Only what they cannot explain becomes a hypothesis.
-- [ ] Similarity adapters (H-03) feed hypotheses with confidence and provenance to the ledger.
-- [ ] Reference corpus with ground truth (H-08): open-source programs built with period compilers; measures precision and recall of detectors and similarity matches and the calibration of confidence values. Hypothesis features do not ship until this exists for the wave.
-- [ ] Compatibility diagnosis report: imported APIs and libraries against per-OS-version availability tables (data files, versioned, sourced); privilege and virtualization assumptions; CPU-speed-dependent timing; graphics, audio, driver and hardware dependencies; DPI and resolution; locale, path and registry/preference assumptions; address-space and date limits. Every cause is a finding with source, confidence and limitations; causes that need running the program are marked "needs N".
-- [x] M1 detector expansion: bounded PE import extraction; VB6/MFC runtime import signatures; Delphi TPF0 form-stream and VCL RTTI-style class signatures; VB6/MFC metadata signatures; selected imports feed compatibility candidates. These are static indicators, not corpus-calibrated classifiers.
-- [ ] Remaining Windows-wave detectors: packers, broader installer/toolchain/format coverage, sourced OS/API availability tables, full Target Profile and reference-corpus precision/recall/calibration.
-- [ ] Target-platform and era matrix in [CAPABILITIES.md](CAPABILITIES.md); a check compares it with the registered detectors.
-- Wave deliverables: M1 Windows ≤ 2010, M2 old Linux, M3 old Mac, M4 old Android, M5 newer generations.
-
-### Patch N — Execution environments (1.1–1.5)
-
-Depends on G and M. Closes G-03.
-
-- [ ] `ExecutionEnvironment` provider contract: detect, prepare, snapshot, restore, run with limits, collect traces, shut down; availability is reported only when the emulator or VM is really present.
-- [ ] Adapters by wave: Wine and Windows VMs (QEMU, VirtualBox), DOSBox-class and 86Box-class emulators; old Linux userlands in containers or VMs; classic-Mac and PowerPC emulators; old-API Android emulator images; newer environments for wave 5.
-- [ ] Environment images are supplied by the user (licensing); Reverse records their hashes and configuration in the environment fingerprint.
-- [ ] Run the same target in several environments and produce a **works/fails matrix** with the first observable failure in each (missing library, refused system call, crash address, timing symptom).
-- [ ] Oracle availability (H-07): each environment reports whether the original can be executed there, so later patches know which functions have an oracle.
-- [ ] System-call and API tracing per environment (Wine relay, strace/ltrace, Windows API tracing, ADB/logcat), through providers, under `CONTROLLED_EXECUTION`.
-
-### Patch O — Behavior capture and replay (1.1–1.5)
-
-Depends on I and N. Closes G-04 and, with P, G-10.
-
-- [ ] Behavior snapshot artifact: inputs, standard streams, files created or changed, registry/preferences, network exchanges, window and UI events (screenshots as hashes, accessibility trees where available), data files written and read.
-- [ ] Control of nondeterminism: fixed time, random seed, locale, window size, scripted input (AutoIt, UI Automation, xdotool, ADB input as providers).
-- [ ] Record and deterministic replay of scenarios; scenario corpus stored as fixtures.
-- [ ] Code coverage of the original during the scenarios (DynamoRIO/drcov, Frida Stalker, emulator tracing, as providers) so the agent sees which parts were never exercised.
-- [ ] Normalization rules and old-versus-new comparison, including programs whose results are visual or file-based.
-- [ ] Behavior-preservation report, levels L0–L2 (definitions in [ARCHITECTURE.md](ARCHITECTURE.md)).
-
-### Patch P — Function equivalence lab and migration advisor (1.1–1.5)
-
-Depends on O and J. Closes G-05, G-06 and the L3 level of G-10.
-
-- [ ] Equivalence lab: run the original function (emulation with Unicorn/Qiling-class providers, or in the original environment) and the replacement on the same large generated and recorded input sets; differential, property and fuzz tests; mismatch minimization.
-- [ ] Candidate synthesis (H-07): an agent-designed replacement of a function, including one based on behavioral analogies, is accepted for validation only when an oracle exists (original function in emulation or its environment, or recorded data files such as samples of a documented file format). It then goes through the differential, property and fuzz tests above; the preservation level comes from those tests alone. Candidates without an oracle are marked `unverifiable`, capped at L0, and never presented as reconstruction. Every generated function carries a provenance record and must fit the license or consent of the target.
-- [ ] Reconstruction checks: a function reconstructed from the binary is compiled and compared against the original bytes or behavior where the toolchain allows it.
-- [ ] Migration strategy advisor: ranked options (configuration or compatibility layer, wrapper, emulation or VM packaging, minimal binary patch, recompilation from a reconstruction, full rewrite), each with expected gain, risk, effort, required permissions and the evidence it rests on; the agent decides, Reverse supplies the data and enforces the safety modes.
-- [ ] Final report: what was found, why it fails today, the chosen strategy, the preservation level reached (L0–L3) with coverage and residual risk.
-- [ ] Wave trials: each wave ends with two scenarios on closed reference programs: a program that does not run today and is made to run, and a program rewritten or repackaged with a measured preservation level.
-
-**Version policy for the track.** 1.1 Windows ≤ 2010, 1.2 old Linux, 1.3 old Mac, 1.4 old Android, 1.5 newer generations. Patch L (agent integration and distribution) is independent of the track and may be released at any point after D and J.
-
----
+**Version policy:** M 1.2, N 1.3, O 1.4, P 1.5, Q 2.0. Do not assign versions to internal tasks or invent intermediate patch labels. Patch L remains part of the completed 1.0 foundation, not a parallel future track.
 
 ## Release sections
 

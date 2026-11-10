@@ -18,7 +18,7 @@ Reverse is a local inspection tool, not a sandbox. It runs with the permissions 
 
 Only inspect software and processes you own or are authorized to examine. Treat binaries and their output as untrusted. Run benchmarks in a disposable working directory or OS sandbox where practical. Do not pass untrusted command strings or arguments. A timeout terminates the spawned child and every process it started (the process tree is snapshotted first; on Windows `taskkill /T /F` is used), but a process that escapes its parent before the snapshot cannot be found. CPU/RAM quotas are not enforced. Avoid elevated privileges.
 
-## Authorized use and scope (policy binding now; enforcement planned in patch M)
+## Authorized use and scope (policy binding now; enforcement expanded in product patches M–Q)
 
 The purpose of the legacy track is to help developers and rights holders restore old programs that no longer work. Reverse is therefore to be used only with:
 
@@ -35,7 +35,7 @@ Further rules:
 - **Generated code:** code produced by generative reconstruction carries a provenance record and must be compatible with the license or consent of the analyzed target.
 - **Prompt injection:** strings, resources and metadata taken from a target are untrusted input to any model, including hypothesis and similarity results (R-02).
 
-Patch M enforces a declared basis for `analyze_legacy_windows`: the operator must record either an open-source license reference or a written-consent reference and declarant in the research session. This is a declaration only; Reverse does not validate the document, license compatibility, identity, or legal status. Other legacy operations remain unavailable until their respective patches.
+The initial Windows analyzer in patch M already requires a declared basis (`analyze_legacy_windows`) and records it in the research session and result. This is a declaration only; Reverse does not validate the document, license compatibility, identity, or legal status. Each subsequent product patch M–Q must extend the same authorization and provenance gate to every new analysis, execution, capture, replay and migration operation it introduces; no platform receives a weaker policy.
 
 ## Known security gaps
 

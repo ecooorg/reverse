@@ -117,10 +117,15 @@ Default bind `127.0.0.1:7331`. Not full MCP Streamable HTTP.
 | `resources/read` | Read local JSON artifact by URI |
 
 
-### Legacy Windows tools (Patch M, initial slice)
+### Legacy Windows tools (Patch M, initial slice; M remains in progress)
 
 1. Call `create_research_session` with the target identifier.
 2. Call `declare_legacy_authorization` with `basis` (`open_source` or `written_consent`), a human-readable `license_or_consent_reference`, and `declared_by`. This records the operator's declaration; Reverse does not validate the legal basis.
 3. Call `analyze_legacy_windows` with the file path and that `session_id`. Calls without the declaration are refused.
 
 The analyzer recognizes DOS MZ, Windows NE/LE/LX and PE headers, and scans at most 8 MiB for selected legacy toolchain/graphics strings. It does not execute the file, perform structural VB6/Delphi/MFC analysis, or provide a complete compatibility diagnosis.
+
+
+## Future product delivery
+
+The next MCP surface changes follow the single product-patch sequence in [ROADMAP.md](ROADMAP.md): M completes Windows through 2010; N adds old Linux; O adds Classic Mac/early macOS; P adds legacy Android; Q extends newer generations and unifies compatibility intelligence. Each patch documents its complete tool contract here; do not create separate MCP roadmaps for platform waves or cross-cutting subsystems.
