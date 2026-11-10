@@ -301,6 +301,7 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-60 | No MCP prompts/resources for agents | closed in **1.0.0 / L** |
 | F-61 | No reverse setup / skill install | closed in **1.0.0 / L** |
 | F-62 | No H-09 prompt evaluation harness | closed in **1.0.1** (lite) |
+| F-66 | CI AI summary could crash or omit actionable diagnostics | closed in **1.1.0-beta.1 maintenance** |
 | F-16 | Split capability harness | closed in **1.0.1** (entry + `capabilities-suite.ts`) |
 | F-17 | Threat model: agent as untrusted caller, prompt injection through target data | closed in 0.2.0-beta.5 |
 
@@ -701,4 +702,6 @@ This prerelease adds `analyze_legacy_windows` and `declare_legacy_authorization`
 - [x] Publish a separate plain-text/Markdown `AI-DEBUG-SUMMARY.md` artifact with run identity, step inventory, failure exit codes and relevant error excerpts.
 - [x] Add a reusable local summary generator and `npm run ci:summary`.
 - [x] Document artifact names, contents, retention and the limits of AI-generated diagnosis in README and `docs/GITHUB.md`.
+- [x] Harden the generator against empty/missing log content; distinguish missing exit markers from confirmed success; classify common failures; include command lines, file/line references, surrounding context, capability JSON failures/drift, JUnit failures and stack frames when present; redact common secret patterns.
+- [x] Add regression tests and run them before generating the artifact in all workflows.
 - [ ] Verify artifact upload and summary content in actual GitHub Actions runs for all three workflows; local checks cannot prove GitHub artifact availability.

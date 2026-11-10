@@ -1,5 +1,17 @@
 # Audit log
 
+## Audit 15 — 2026-11-10 — CI AI summary reliability and diagnostic depth (1.1.0-beta.1 maintenance)
+
+**Scope.** Fix a CI summary generator crash on missing log content and improve the copy-paste report so an assistant can identify the earliest failure, exact command, diagnostic context, file/line references and JUnit failures without requiring the full log archive. Also close the formatter drift reported for `tests/legacy-windows.test.ts`.
+
+**Delivered.** The generator now treats missing/empty logs safely, distinguishes explicit exit markers from unrecorded status, classifies common failure families, captures error context and commands, includes per-step summaries, capability JSON failures/drift, JUnit failures and runtime stack frames when present, redacts common secret-like values, and has regression tests. Every workflow runs those tests before producing the summary. The previously reported formatter drift in the legacy Windows test was corrected without changing test behavior.
+
+| ID | Sev | Area | Finding | Status |
+|---|---|---|---|---|
+| F-66 | Medium | CI diagnostics | AI summary generator could crash on missing content and did not provide enough structured evidence for diagnosis | Status: closed in 1.1.0-beta.1 maintenance; actual GitHub artifact verification remains pending |
+
+---
+
 This file is permanent. **New audits are added at the top** (newest first); older audits are never edited except to mark a finding as closed (`Status: closed in <version>, <patch>`). Each audit lists findings with an ID, severity, evidence and a recommended fix, then improvement proposals. Findings that are accepted are copied into [ROADMAP.md](ROADMAP.md) under the patch named in the "Patch" column; this file stays the record of *why*.
 
 IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H** hypothesis and authorization gap. Severity: **High** = wrong results or a safety/honesty violation of [AGENTS.md](../AGENTS.md); **Medium** = incorrect or fragile behavior with limited blast radius; **Low** = hygiene, docs, polish.
