@@ -76,4 +76,4 @@ The product is **Reverse**. CLI command `reverse`, npm package `reverse-compact`
 - Answer in the user's language; keep repository files (code, comments, docs, commit messages) in English.
 - Say what you are going to do in one sentence, do it, then report briefly: what changed, how it was verified, what was not verified, the next natural step. Do not narrate every step.
 - Ask a question only when the answer changes what you build and cannot be decided from the roadmap, the code or sensible defaults. Otherwise decide, and state the decision.
-- If you discover a defect outside the current patch, do not silently fix it and do not hide it: report it, and propose where it belongs in the roadmap (or add a check that records it as ⚠️ drift).
+- If you discover a defect outside the current patch, do not silently fix it and do not hide it: report it, and propose where it belongs in the roadmap.
