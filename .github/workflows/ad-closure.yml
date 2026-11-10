@@ -1,0 +1,186 @@
+name: A-D closure (temporary)
+
+# TEMPORARY. Delete this file (and nothing else) when the A-D closure has been verified.
+#
+# Run it by hand: Actions -> "A-D closure (temporary)" -> Run workflow. It is never started by a push or a schedule.
+#   matrix       - every selected OS on Node 22 and 24: build, unit tests, format and line-length gates, structure check,
+#                  the full capability suite, and an assertion that the A-D checks ended in the expected state.
+#   cgroup-real  - Linux only: prepares a delegated cgroup v2 hierarchy as root and runs the real-cgroup safety check,
+#                  which must end verified (not limitation) there.
+#   verdict      - one line that says whether the closure is proven: it is red when any cell failed.
+#
+# Minute budget: macOS bills 10x and Windows 2x. Choose `ubuntu-latest` for a quick run.
+
+on:
+  workflow_dispatch:
+    inputs:
+      os:
+        description: Operating systems to verify (macOS bills 10x, Windows 2x)
+        type: choice
+        options: [all, ubuntu-latest, windows-latest, macos-latest]
+        default: all
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  matrix:
+    name: closure (${{ matrix.os }}, node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(inputs.os == 'all' && '["ubuntu-latest","macos-latest","windows-latest"]' || format('["{0}"]', inputs.os)) }}
+        node: [22, 24]
+    env:
+      REVERSE_CAPABILITY_REPORT: ad-closure-reports/${{ matrix.os }}-node${{ matrix.node }}.json
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - name: Install and build
+        run: |
+          node --version
+          npm ci --ignore-scripts
+          npm run build
+          npx tsc -p tsconfig.tests.json
+      - name: Static gates (format, line length, structure)
+        run: |
+          npm run format:check
+          npm run size:check
+          node tests/check-structure.mjs --built
+      - name: Unit tests
+        run: node --test --test-timeout=240000 dist-tests/*.test.js
+      - name: Capability suite
+        run: |
+          mkdir -p ad-closure-reports
+          node --test --test-concurrency=1 --test-reporter=spec --test-timeout=90000 dist-tests/capabilities.check.js
+      - name: Assert the A-D checks ended in the expected state
+        if: always()
+        run: |
+          node --input-type=module -e '
+            import { readFileSync, appendFileSync } from "node:fs";
+            const file = process.env.REVERSE_CAPABILITY_REPORT;
+            const report = JSON.parse(readFileSync(file, "utf8"));
+            const find = (area, part) => report.records.find(r => r.area === area && r.name.includes(part));
+            // Must be verified on every platform.
+            const mustVerify = [
+              ["Evidence", "hash-chain events, detect tampering"],
+              ["Evidence", "promoted only by evidence whose content supports it"],
+              ["Evidence", "real analyzer results become typed evidence"],
+              ["Profiling", "anomaly rules fire on both sides"],
+              ["Profiling", "Snapshot, Monitor, Diagnostic and Compare differ"],
+              ["Safety", "OBSERVE is a distinct contract"],
+              ["Source", "no source or test line exceeds 140"],
+              ["Docs", "roadmap, audit and architecture agree"]
+            ];
+            // Confirmed limitations are expected here; they are the honest open items, not failures.
+            const mayLimit = [
+              ["Evidence", "not signed"],
+              ["Safety", "real cgroup"],
+              ["Supply chain", "pinned to full commit SHAs"],
+              ["Tests", "one file"]
+            ];
+            const problems = [];
+            for (const [a, n] of mustVerify) {
+              const r = find(a, n);
+              if (!r) problems.push(`missing check: ${a} - ${n}`);
+              else if (r.status !== "verified") problems.push(`${a} - ${n}: ${r.status} (${r.detail})`);
+            }
+            for (const [a, n] of mayLimit) {
+              const r = find(a, n);
+              if (!r) problems.push(`missing check: ${a} - ${n}`);
+              else if (!["verified", "limitation"].includes(r.status)) problems.push(`${a} - ${n}: ${r.status} (${r.detail})`);
+            }
+            if (report.totals.failed || report.totals.drift) problems.push(`totals: ${JSON.stringify(report.totals)}`);
+            const lines = [`### A-D closure on ${report.platform} / node ${process.version}`, "", `Totals: ${JSON.stringify(report.totals)}`, ""];
+            for (const [a, n] of [...mustVerify, ...mayLimit]) {
+              const r = find(a, n);
+              lines.push(`- ${r ? r.status : "missing"}: ${a} - ${n}${r && r.status === "limitation" ? ` (${r.detail})` : ""}`);
+            }
+            if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
+            console.log(lines.join("\n"));
+            if (problems.length) { for (const p of problems) console.log(`::error title=A-D closure::${p}`); process.exit(1); }
+          '
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: ad-closure-${{ matrix.os }}-node${{ matrix.node }}
+          path: ad-closure-reports/
+          if-no-files-found: warn
+
+  cgroup-real:
+    name: real cgroup v2 limiter (ubuntu-latest, as root)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      REVERSE_CAPABILITY_REPORT: ad-closure-reports/cgroup-real.json
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install and build
+        run: |
+          npm ci --ignore-scripts
+          npm run build
+          npx tsc -p tsconfig.tests.json
+      - name: Show the cgroup layout
+        run: |
+          stat -fc 'filesystem type of /sys/fs/cgroup: %T' /sys/fs/cgroup
+          cat /sys/fs/cgroup/cgroup.controllers || true
+          cat /proc/self/cgroup
+      - name: Run the real-cgroup check inside a prepared hierarchy
+        run: |
+          mkdir -p ad-closure-reports
+          # cgroup v2 forbids controllers below a cgroup that holds processes, so the hierarchy is
+          #   ad-closure/            (no processes, controllers enabled)
+          #   ad-closure/runner/     (the test process; the limiter creates its cgroup next to it)
+          sudo sh -c 'echo "+cpu +memory" > /sys/fs/cgroup/cgroup.subtree_control' || true
+          sudo mkdir /sys/fs/cgroup/ad-closure
+          sudo sh -c 'echo "+cpu +memory" > /sys/fs/cgroup/ad-closure/cgroup.subtree_control'
+          sudo mkdir /sys/fs/cgroup/ad-closure/runner
+          sudo sh -c "echo \$\$ > /sys/fs/cgroup/ad-closure/runner/cgroup.procs && exec env PATH=\"$PATH\" REVERSE_CAPABILITY_REPORT=\"$PWD/$REVERSE_CAPABILITY_REPORT\" $(command -v node) --test --test-timeout=90000 --test-name-pattern='real cgroup' dist-tests/capabilities.check.js"
+      - name: The check must be verified here, not a limitation
+        if: always()
+        run: |
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const report = JSON.parse(readFileSync(process.env.REVERSE_CAPABILITY_REPORT, "utf8"));
+            const r = report.records.find(x => x.area === "Safety" && x.name.includes("real cgroup"));
+            console.log(JSON.stringify(r));
+            if (!r || r.status !== "verified") { console.log(`::error title=Real cgroup::${r ? `${r.status}: ${r.detail}` : "check did not run"}`); process.exit(1); }
+          '
+      - name: Clean up
+        if: always()
+        run: sudo rmdir /sys/fs/cgroup/ad-closure/runner /sys/fs/cgroup/ad-closure 2>/dev/null || true
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: ad-closure-cgroup-real
+          path: ad-closure-reports/
+          if-no-files-found: warn
+
+  verdict:
+    name: verdict
+    needs: [matrix, cgroup-real]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Closure proven only when every cell passed
+        run: |
+          echo "matrix: ${{ needs.matrix.result }}, cgroup-real: ${{ needs.cgroup-real.result }}"
+          [ "${{ needs.matrix.result }}" = "success" ] && [ "${{ needs.cgroup-real.result }}" = "success" ]

@@ -19,26 +19,23 @@ name: Capabilities
 on:
   push:
     branches: [main, develop]
-    # Documentation that no check reads. docs/MCP.md and docs/CAPABILITIES.md are NOT listed on
-    # purpose: capabilities.check.ts compares them with the real tool list and provider list.
+    # Documentation that no check reads. docs/MCP.md, docs/CAPABILITIES.md, docs/ROADMAP.md,
+    # docs/ARCHITECTURE.md and docs/AUDIT.md are NOT listed on purpose: capabilities.check.ts compares
+    # them with the real tool list, provider list and delivered state of the patches.
     paths-ignore:
       - README.md
       - AGENTS.md
       - .gitignore
-      - docs/ARCHITECTURE.md
       - docs/BENCHMARKS.md
       - docs/GITHUB.md
-      - docs/ROADMAP.md
       - docs/SECURITY.md
   pull_request:
     paths-ignore:
       - README.md
       - AGENTS.md
       - .gitignore
-      - docs/ARCHITECTURE.md
       - docs/BENCHMARKS.md
       - docs/GITHUB.md
-      - docs/ROADMAP.md
       - docs/SECURITY.md
   workflow_dispatch:
     inputs:
