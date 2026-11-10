@@ -40,20 +40,21 @@ export async function analyzeLegacyWindows(file: string) {
     if (b.length >= 64 && b.toString('ascii', 0, 2) === 'MZ') {
         const off = b.readUInt32LE(0x3c);
         if (off + 4 <= b.length) {
-            const sig = b.toString('ascii', off, off + 4);
-            if (sig === 'NE') {
+            const sig2 = b.toString('ascii', off, off + 2);
+            const sig4 = b.toString('ascii', off, off + 4);
+            if (sig2 === 'NE') {
                 format = 'Windows NE';
                 architecture = 'x86';
                 bitness = 16;
                 targetEra = 'Windows 3.x';
             }
-            else if (sig === 'LE' || sig === 'LX') {
-                format = sig === 'LE' ? 'Windows LE' : 'Windows LX';
+            else if (sig2 === 'LE' || sig2 === 'LX') {
+                format = sig2 === 'LE' ? 'Windows LE' : 'Windows LX';
                 architecture = 'x86';
                 bitness = 32;
                 targetEra = 'Win9x/NT legacy';
             }
-            else if (sig === 'PE\u0000\u0000' && off + 24 <= b.length) {
+            else if (sig4 === 'PE\u0000\u0000' && off + 24 <= b.length) {
                 format = 'Windows PE';
                 const machine = b.readUInt16LE(off + 4);
                 const architectures: Record<number, string> = {
@@ -65,15 +66,16 @@ export async function analyzeLegacyWindows(file: string) {
                 const magic = b.readUInt16LE(off + 24);
                 bitness = magic === 0x10b ? 32 : magic === 0x20b ? 64 : null;
                 const opt = off + 24;
-                const sub = opt + (magic === 0x20b ? 68 : 68);
-                if (sub + 2 <= b.length)
+                const sub = opt + 68;
+                if (sub + 2 <= b.length) {
                     const subsystemId = b.readUInt16LE(sub);
-                const subsystems: Record<number, string> = {
-                    2: 'Windows GUI',
-                    3: 'Windows console',
-                    9: 'Windows CE GUI'
-                };
-                subsystem = subsystems[subsystemId] ?? `subsystem-${subsystemId}`;
+                    const subsystems: Record<number, string> = {
+                        2: 'Windows GUI',
+                        3: 'Windows console',
+                        9: 'Windows CE GUI'
+                    };
+                    subsystem = subsystems[subsystemId] ?? `subsystem-${subsystemId}`;
+                }
                 targetEra = bitness === 32 ? 'Win9x/NT through Windows 7 candidate' : 'modern PE candidate';
             }
             else
