@@ -14,12 +14,13 @@ import { analyzeMemory, analyzeCpu, analyzeIo } from './process-inspector.js';
 import { profileProcess, monitorProcess, detectResourceAnomalies } from './profiling-profiler.js';
 import { runBenchmark, compareBenchmarks } from './benchmark-engine.js';
 import { validateBehavior } from './benchmark-validation.js';
-import { listProviders } from './providers-registry.js';
+import { listProviders, runProvider } from './providers-registry.js';
 import { getResourceControlStatus } from './process-safety.js';
 import { checkCommandGate, operatingMode } from './benchmark-gate.js';
 import { evidenceFromResult } from './evidence-collect.js';
 import { environmentFingerprintResult } from './benchmark-environment.js';
 import { tools, EVIDENCE_TOOLS, EXEC_TOOLS } from './mcp-tools.js';
+import './providers-bootstrap.js';
 /** A failure that must be reported as a JSON-RPC protocol error (not as a tool execution error). */
 class ProtocolError extends Error {
     constructor(readonly code: number, message: string) { super(message); }
@@ -93,6 +94,7 @@ async function call(name: string, a: any, signal?: AbortSignal) {
             return { found: true, path: p, record: JSON.parse(await (await import('node:fs/promises')).readFile(p, 'utf8')) };
         }
         case 'list_analyzers': return listProviders();
+        case 'run_provider': return runProvider(a.name, a.target, { timeoutMs: a.timeoutMs, signal });
         case 'create_benchmark_suite': return createBenchmarkSuite(a);
         case 'run_benchmark_suite': return runBenchmarkSuite(a.id);
         case 'compare_benchmarks': return compareBenchmarkSuites(a.before, a.after);

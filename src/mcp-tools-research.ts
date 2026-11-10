@@ -105,8 +105,17 @@ export const researchTools: any[] = [
         }
     },
     {
-        name: 'list_analyzers', description: 'List implemented capabilities and external analyzer extension points.', inputSchema: {
+        name: 'list_analyzers', description: 'List built-in analyzers, registered external adapters and extension points.', inputSchema: {
             type: 'object', properties: {}
+        }
+    },
+    {
+        name: 'run_provider', description: 'Run a registered external provider (ghidra, rizin, jadx, apktool). Returns unsupported if the tool is not installed.', inputSchema: {
+            type: 'object', properties: {
+                name: { type: 'string' },
+                target: { type: 'string' },
+                timeoutMs: { type: 'number' }
+            }, required: ['name', 'target']
         }
     },
     {

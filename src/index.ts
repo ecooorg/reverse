@@ -11,3 +11,7 @@ export * from './evidence-engine.js';
 export * from './providers-registry.js';
 export * from './process-safety.js';
 export * from './benchmark-suite.js';
+export { bootstrapExternalProviders } from './providers-bootstrap.js';
+export { createGhidraProvider, createGhidraSimilarityProvider } from './providers-ghidra.js';
+export { createRizinProvider } from './providers-rizin.js';
+export { createJadxProvider, createApktoolProvider } from './providers-android-tools.js';

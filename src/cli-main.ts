@@ -11,6 +11,7 @@ import { readJson } from './core-util.js';
 import { listProviders } from './providers-registry.js';
 import { VERSION } from './core-version.js';
 import { parseArgs } from 'node:util';
+import './providers-bootstrap.js';
 const parsed = parseArgs({
     args: process.argv.slice(2), strict: false, allowPositionals: true, options: {
         arg: {
