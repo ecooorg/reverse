@@ -221,7 +221,9 @@ check('Package', 'built output exists and the library exports the documented API
     for (const f of ['index', 'cli-main', 'mcp-server'])
         assert.ok(existsSync(path.join(DIST, `${f}.js`)), `dist/${f}.js missing`);
     const lib: any = await import(pathToFileURL(path.join(DIST, 'index.js')).href);
-    const expected = ['EvidenceEngine', 'analyzeAndroid', 'analyzeBinary', 'analyzeDependencies', 'analyzeSource', 'compareBenchmarks', 'getProviderStatus',
+    const expected = [
+        'EvidenceEngine', 'analyzeAndroid', 'analyzeBinary', 'analyzeDependencies', 'analyzeSource',
+        'compareBenchmarks', 'getProviderStatus',
         'inspectProcess',
         'listProcesses',
         'listProviders',
@@ -229,7 +231,8 @@ check('Package', 'built output exists and the library exports the documented API
         'registerProvider',
         'result',
         'runBenchmark',
-        'validateBehavior'];
+        'validateBehavior'
+    ];
     for (const k of expected)
         assert.equal(typeof lib[k], 'function', `export ${k}`);
     c.note(`${expected.length} exports present`);
@@ -1360,7 +1363,7 @@ check('Docs', 'roadmap, audit and architecture agree with the delivered state of
         assert.match(audit, new RegExp(`${id}[^\\n]*closed in 0\\.2\\.0-beta\\.7`), id);
 });
 // ---------------------------------------------------------------- 10. providers
-check('Providers', 'built-ins are implemented; Ghidra/Rizin/JADX/Apktool are registered adapters; other engines stay extension points', async (c) => {
+check('Providers', 'built-ins implemented; Ghidra/Rizin/JADX/Apktool registered; others extension points', async (c) => {
     // ensure bootstrap ran
     await import('../dist/providers-bootstrap.js').catch(() => import('../dist/providers-registry.js'));
     const list: any[] = listProviders();
@@ -1710,8 +1713,7 @@ check('Docs', 'docs/MCP.md says tools return structuredContent', async (c) => {
     try {
         const obj = await s.call('get_inventory', { limit: 3 });
         assert.deepEqual(obj.envelope.structuredContent, obj.value);
-        const arr = await s.call('list_analyzers',
-    'run_provider', {});
+        const arr = await s.call('list_analyzers', 'run_provider', {});
         assert.deepEqual(arr.envelope.structuredContent, {
             items: arr.value,
             untrustedContent: arr.envelope.structuredContent.untrustedContent
