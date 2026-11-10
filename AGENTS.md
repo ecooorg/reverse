@@ -6,7 +6,7 @@ Reverse is a compact, local-first analysis core (CLI plus MCP stdio server) that
 
 Before reading code or making any change:
 
-1. Read `docs/ROADMAP.md` from the top. Its first section is the delivery plan (patches A–K, then L and the legacy track M–P after 1.0; the track follows the platform-wave order: Windows up to 2010, old Linux, old Mac, old Android, then the newer generations): find the patch you are working on, what it closes, what it depends on, and its status. Do not start work that belongs to a later patch, and do not skip a dependency.
+1. Read `docs/ROADMAP.md` from the top. Its first section is the delivery plan (patches A–L as the completed 1.0 foundation, then the single sequential product plan M–Q: Windows through 2010, old Linux, Classic Mac/early macOS, legacy Android, then newer generations plus unified compatibility intelligence): find the patch you are working on, what it closes, what it depends on, and its status. Do not start work that belongs to a later patch, and do not skip a dependency. M–Q are the only future product patch units; do not invent parallel tracks, platform-wave sub-patches or cross-cutting patch families. Internal tasks are not roadmap patches.
 2. Read the newest audit at the top of `docs/AUDIT.md`: findings addressed by your patch must be closed there (`Status: closed in <version>, <patch>`). Then read `docs/ARCHITECTURE.md` (what is implemented versus planned), `docs/CAPABILITIES.md` (what really works), `docs/MCP.md` and `docs/SECURITY.md`.
 3. If the user's request is not covered by the roadmap, say so and ask whether to add it to the roadmap before building it.
 4. Audit tasks are project tasks: the "Approved audit backlog" table in the roadmap lists every finding and recommendation with its patch. Work the rows of your patch, and close the matching findings in `docs/AUDIT.md`. A new audit is added at the top of `docs/AUDIT.md` and its IDs are appended to that table in the same change.
@@ -46,7 +46,7 @@ Never weaken, skip or delete a test or a check to make a run pass. If a check is
 - An external engine (Ghidra, Rizin, Frida, GDB, perf, eBPF, ETW, Instruments, Valgrind) is reported as available only when its executable and runtime are actually detected. Never fake output from a tool that is absent.
 - Do not invent measurements, benchmarks, versions, hashes or sources. Every finding carries its source, time, coverage and limitations. Keep the four fact categories apart: measured, statically derived, AI hypothesis, confirmed optimization.
 - Analogies, intuition and AI guesses are hypotheses. Never present one as a measured or static fact, never store one as evidence, and never raise a preservation level because of one. Code without an oracle stays at L0.
-- Legacy-track work (patches M–P) is for open-source software or software with the full consent of its developers and rights holders. Do not add features that bundle third-party binaries or proprietary code, and do not upload targets or corpus lookups.
+- Legacy product work (patches M–Q) is for open-source software or software with the full consent of its developers and rights holders. Do not add features that bundle third-party binaries or proprietary code, and do not upload targets or corpus lookups.
 - Never claim a speedup from one lower mean, a smaller report or less data sent to the model. Improvements need repeated measurements, comparable environments and passing validation.
 - When docs and behavior disagree, fix whichever is wrong in the same change and add a check so the drift cannot return.
 
