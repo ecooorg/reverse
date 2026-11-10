@@ -6,6 +6,21 @@ IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H*
 
 ---
 
+## Audit 12 — 2026-11-10 — Release 1.0.0 and Patch L core
+
+**Scope.** Fix 1.0.0 label after green A–K capability base; ship agent integration core (prompts, resources, setup, skill, server.json).
+
+**Status.** Product version **1.0.0**. Patch L checklist partially closed (H-09 full harness still open). Quality debts R-03/R-05/F-16/R-19 remain recorded as non-blocking.
+
+| ID | Sev | Area | Finding | Status |
+|---|---|---|---|---|
+| F-60 | Medium | MCP | No prompts/resources surface for agents | Status: closed in 1.0.0, patch L |
+| F-61 | Medium | Distribution | No `reverse setup` / skill install | Status: closed in 1.0.0, patch L |
+| R-08 | Medium | Agent integration | MCP prompts/resources and setup | Status: partial in 1.0.0 (core shipped; full H-09 later) |
+| R-18 | Low | Distribution | server.json / setup path | Status: partial in 1.0.0 |
+
+---
+
 ## Audit 11 — 2026-11-10 — Patch K (1.0.0-beta.1)
 
 **Scope.** JS/Electron, .NET and WASM analyzers as providers; optional authenticated HTTP MCP transport.

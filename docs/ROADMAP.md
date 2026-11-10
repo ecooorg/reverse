@@ -225,16 +225,24 @@ Closes the remaining **Later** items.
 - [x] Optional HTTP MCP: `REVERSE_MCP_HTTP=1` + `REVERSE_MCP_TOKEN` (Bearer), POST `/rpc` on localhost by default (`mcp-http` CLI).
 - [x] Further extensions (Browser, GPU, Network, …) remain on-demand extension-points when a real need appears.
 
-**Version 1.0.0-beta.1** ships J+K core. Final 1.0 label may follow green multi-OS capability matrix and acceptance policy.
+**Version 1.0.0** — patches **A–K done**; green capability matrix on the release base. Residual 🚧 (R-03 full SHA pins, R-05 knip/jscpd, F-16 harness split, R-19 persistent helpers) are non-blocking quality debts.
 
-### Patch L — Agent integration and distribution (post-1.0, 1.x)
+### Patch L — Agent integration and distribution (1.x) — partial in 1.0.0
 
-Closes audit tasks R-08 and R-18. It does not block 1.0.
+Closes audit tasks R-08 and R-18 (core). Full H-09 evaluation harness remains later.
 
-- MCP prompts for the research cycle and MCP resources for evidence records and research sessions (`reverse://evidence/<id>`).
-- Hypothesis discipline for agents (H-09): a prompt that packages target facts, era and similarity results with the `untrustedContent` wrapper (R-02), a skill-file section on proposing, testing and retiring hypotheses, and an evaluation harness that scores an agent on the reference corpus of H-08.
-- `reverse setup`: registers the server in the supported agents after showing the diff, with a dry run and backups; installs the investigation skill file.
-- Distribution: `npx` entry point, install scripts that check Node and print the MCP configuration, an optional single-file binary, `server.json` for MCP registries.
+- [x] MCP prompts: `research_cycle`, `hypothesis_discipline`, `optimization_decision` (`prompts/list`, `prompts/get`).
+- [x] MCP resources: `reverse://evidence|sessions|validations|reports|workspaces/<id>` (`resources/list`, `resources/read`).
+- [x] `reverse setup <agent>` dry-run by default; `confirm` writes with backup (cursor/claude/codex/vscode).
+- [x] `docs/skill-investigation.md` + copy on setup; `server.json` for MCP registries.
+- [ ] Full H-09 evaluation harness and reference corpus scoring.
+- [ ] Optional single-file binary packaging.
+
+### After 1.0 — planned order
+
+1. Finish L residuals (H-09 harness) when needed.
+2. Hygiene: R-03 (pin remaining Action SHAs), F-16 (split capability harness), R-05 (knip/jscpd).
+3. Legacy track M–P only with a concrete era need (not blocking agents).
 
 ### Coverage of the roadmap
 
@@ -291,6 +299,8 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-57 | No E2E reference-shape trials | closed in **0.5.0-beta.2 / J** |
 | F-58 | No JS/Electron/.NET/WASM analyzers | closed in **1.0.0-beta.1 / K** |
 | F-59 | No optional HTTP MCP with auth | closed in **1.0.0-beta.1 / K** |
+| F-60 | No MCP prompts/resources for agents | closed in **1.0.0 / L** |
+| F-61 | No reverse setup / skill install | closed in **1.0.0 / L** |
 | F-16 | Split the test suite into flat `tests/<area>.test.ts` files with pure fixtures; statistics, `CappedBuffer`, MCP error paths, `/proc` parser | partial in 0.2.0-beta.6: statistics, benchmark suites, evidence, research cycle, untrusted output and parser tests split; capability harness remains large; 0.2.0-beta.7: capability harness still monolithic (check *Tests — the capability harness is one file* shows 🚧); new unit tests added for anomalies, modes, cgroup limiter, evidence collection and MCP evidence |
 | F-17 | Threat model: agent as untrusted caller, prompt injection through target data | closed in 0.2.0-beta.5 |
 

@@ -327,6 +327,13 @@ Live MCP tool names are listed only in [MCP.md](MCP.md).
 - Optional HTTP JSON-RPC tool gateway with Bearer token (`mcp-http.ts`).
 - Additional domains stay extension-points until a concrete adapter is required.
 
+## Agent integration (patch L, 1.0.0)
+
+- MCP `prompts/list` / `prompts/get` for research cycle and hypothesis discipline.
+- MCP `resources/list` / `resources/read` for `reverse://…` local artifacts.
+- `reverse setup` registers stdio MCP in agent configs (dry-run default).
+- `server.json` describes the stdio server for registries.
+
 ## Extension contract
 
 Implement `AnalyzerProvider` from `src/providers-registry.ts`, declare concrete capabilities, check availability without side effects, and return structured observations with explicit coverage and limitations. Never report `available: true` unless the executable and required runtime are actually detected. Provider registration is in-process via `registerProvider` / `bootstrapExternalProviders`; adapters probe PATH and `GHIDRA_INSTALL_DIR` without fabricating results.

@@ -1,6 +1,6 @@
 # MCP interface
 
-Transport: newline-delimited JSON-RPC 2.0 over stdin/stdout (MCP stdio). Supported methods: `initialize`, `notifications/initialized`, `ping`, `tools/list`, and `tools/call`.
+Transport: newline-delimited JSON-RPC 2.0 over stdin/stdout (MCP stdio). Supported methods: `initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`, `prompts/list`, `prompts/get`, `resources/list`, `resources/read`.
 
 Each tool returns its result as JSON text in `content[0].text` and as the same data in `structuredContent` (an array result is wrapped as `{ "items": [...] }`, because `structuredContent` must be an object). `initialize` answers with the client's `protocolVersion` when it is `2024-11-05`, `2025-03-26`, `2025-06-18` or `2025-11-25`, and with `2025-11-25` otherwise. The stateless 2026-07-28 protocol era is not implemented. Protocol problems are JSON-RPC errors: `-32700` for a line that is not JSON (`id: null`), `-32600` invalid request, `-32601` unknown method, `-32602` unknown tool or missing tool name. A tool that fails while running (missing file, invalid PID, rejected argument) returns a normal result with `isError: true` and the message in `content[0].text`. Every result also carries an `untrustedContent` field `{ notice, maxStringLength, truncatedStrings }` (inside `structuredContent`; for object results also in the text): strings from analyzed targets are untrusted data, and strings longer than 4096 characters are truncated with a `…[truncated N chars]` suffix. Total tool responses are capped at 1 MiB; oversized `findings` arrays are truncated, marked `partial`, and include `responseBudget` metadata.
 
@@ -103,3 +103,13 @@ Long-running `profile_process` and `monitor_process` calls accept MCP `notificat
 Enabled only when `REVERSE_MCP_HTTP=1` and `REVERSE_MCP_TOKEN` (min 8 chars) are set.
 POST `/rpc` with `Authorization: Bearer <token>` and JSON `{ "method": "<tool>", "params": {...} }`.
 Default bind `127.0.0.1:7331`. Not full MCP Streamable HTTP.
+
+
+## Prompts and resources (patch L)
+
+| Method | Role |
+|---|---|
+| `prompts/list` | research_cycle, hypothesis_discipline, optimization_decision |
+| `prompts/get` | Materialize prompt messages with arguments |
+| `resources/list` | List `reverse://evidence|sessions|…/<id>` |
+| `resources/read` | Read local JSON artifact by URI |

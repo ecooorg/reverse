@@ -78,3 +78,13 @@ Process sampling remains read-only. It captures an OS start-time identity token 
 | .NET | PE CLI directory detect | No IL decompile |
 | WASM | Section inventory | No code validation |
 | HTTP MCP | Token-gated POST /rpc | Optional; localhost default |
+
+
+## Agent integration (1.0.0 / L)
+
+| Capability | Status |
+|---|---|
+| MCP prompts (research_cycle, hypothesis_discipline, optimization_decision) | ✅ |
+| MCP resources `reverse://…` | ✅ local store |
+| `reverse setup` dry-run / confirm | ✅ |
+| H-09 full evaluation harness | 🚧 later |
