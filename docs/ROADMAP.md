@@ -51,13 +51,14 @@ Goal: make the existing 0.1.0 trustworthy before building on it. Every ⚠️ dr
 - [x] `inspect_process` searches the full process inventory instead of the first 500 rows; helper-executable timeouts are configurable through `REVERSE_EXEC_TIMEOUT_MS` (PowerShell default raised to 10 s).
 - [x] CLI: `validate` accepts `--arg`; missing positional arguments print a usage line; `--json` is documented as accepted with no effect (output is always JSON).
 - [x] MCP: `tools/call` returns `structuredContent` next to `content[0].text` (arrays are wrapped as `{ "items": [...] }`); `initialize` negotiates the protocol version; one `VERSION` constant feeds the CLI banner and `serverInfo`.
-- [x] The capability workflow is green on all nine environments (three operating systems times Node 22 and 24 since 0.2.0-beta.3 (6 environments)) and stays a required check for every later patch.
+- [x] The capability workflow is defined for six environments (three operating systems times Node 22 and 24; Node 20 was dropped in 0.2.0-beta.3) and stays a required check for every later patch. An earlier text said "nine environments"; that was wrong.
+- [ ] Release gate: a manual `os: all` run of the capability workflow is recorded green on Linux, macOS and Windows. The archive contains no run log, so this box stays open until the maintainer ticks it (see [GITHUB.md](GITHUB.md)).
 
 Remaining ⚠️ drift after this patch: none. The 🚧 limitations that are left each belong to patches B–K.
 
-### Patch B — Process intelligence and safety (0.2) — done
+### Patch B — Process intelligence and safety (0.2) — done (closure verified in 0.2.0-beta.7)
 
-**Implementation status: done locally; cross-platform CI remains the release gate.**
+**Implementation status: done and verified on Linux; macOS and Windows runs remain the release gate.**
 
 Closes **Advanced Process Inspector**, **Time-Series Performance Profiler** and the implemented scope of **Process Safety & Resource Control**.
 
@@ -68,10 +69,12 @@ Closes **Advanced Process Inspector**, **Time-Series Performance Profiler** and 
 - [x] Caller cancellation via AbortSignal and MCP `notifications/cancelled`; partial results preserve samples collected before cancellation.
 - [x] Explicit `READ_ONLY` / `OBSERVE` / `CONTROLLED_EXECUTION` safety contract. Linux cgroup v2 resource limits are available through the scoped `withProcessResourceLimits` API only when the caller explicitly confirms controlled execution and the hierarchy is delegated.
 - [x] Added MCP `get_resource_control_status`; existing tool names and arguments remain compatible.
+- [x] Closure in 0.2.0-beta.7 (AUDIT F-20…F-23): anomaly thresholds are tested on both sides of every boundary (`tests/profiling-anomalies.test.ts`); the four profile modes differ as documented (`Snapshot` one sample, `Monitor` bounded series, `Diagnostic` adds the anomaly findings of its own series, `Compare` splits the series into two periods); `OBSERVE` is a distinct contract (sampling only with verified ownership, see [ARCHITECTURE.md](ARCHITECTURE.md)); the cgroup limiter has a success path and a cleanup path tested against a fake cgroup tree (`tests/process-safety.test.ts`) and a check against a real, delegated cgroup v2 hierarchy where one exists (*Safety — resource limits are enforced in a real cgroup*).
+- [ ] Release gate: the profiling and safety checks are recorded on macOS and Windows, and the real-cgroup check shows ✅ (not 🚧) on at least one delegated Linux host.
 
 **Known platform limits (not hidden):** Windows process ownership is unknown; Windows/macOS metric parity is incomplete; hard resource quotas are only implemented for delegated Linux cgroup v2. This patch does not provide an OS sandbox, network isolation, memory maps, thread stacks, or function hotspots. Linux was exercised locally; macOS and Windows are delegated to the existing CI matrix and are not claimed as locally verified.
 
-Capability checks added for identity/ownership, cancellation, resource-control reporting and the new MCP tool.
+Capability checks added for identity/ownership, cancellation, resource-control reporting and the new MCP tool. Still open and **not** part of this closure: persistent Windows/macOS metric helpers (R-19) and the non-Linux inspection fast paths (F-08).
 
 ### Patch C — Measurement engine and baselines (0.2) — core delivered in 0.2.0-beta.6; residual quality gates remain
 
@@ -86,6 +89,9 @@ Capability checks added for identity/ownership, cancellation, resource-control r
 **Still open / partial in patch C:** `R-03` is partial (Dependabot, Scorecard, CycloneDX, audit signatures and release-please/provenance workflow added; the existing CI action references are not all SHA-pinned and provenance publishing needs an npm trusted-publisher/token setup); `R-05` is partial (strict TypeScript, TypeScript-printer format check and own-line size gate are present; `knip`, `jscpd` and dedicated linter are not); `F-16` test split is partial because the comprehensive capability harness remains monolithic. The Windows sampler is higher-overhead and has not been exercised on a Windows runner in this workspace.
 
 Implements the benchmark engine and baseline lifecycle; CI validation on macOS/Windows and the remaining quality gates are still required before declaring patch C fully closed.
+
+**A–D closure (0.2.0-beta.7).** Closed: R-06 for real (every `src/` and `tests/` TypeScript file passes the format gate and no line exceeds 140 characters; the beta.6 claim left 186 lines over the limit and `mcp-server.ts` became three tool-definition files), stale 0.2 checklists, the Patch A environment-count text. **Still open in patch C, deliberately not claimed:** R-03 (the check *Supply chain — GitHub Actions are pinned to full commit SHAs* lists the unpinned references and shows 🚧 until they are pinned; SHAs cannot be looked up offline), R-05 (`knip`, `jscpd` and a dedicated linter are not installed), F-16 (the capability harness is still one file; the check *Tests — the capability harness is one file* shows 🚧).
+- [ ] Release gate: R-03 pinned SHAs, R-05 external quality gates and F-16 harness split are done, or each is explicitly re-scheduled by the maintainer.
 
 - First item, before any new tool: the command-execution gate from [AUDIT.md](AUDIT.md) F-01 (command-running MCP tools off unless the operator sets `CONTROLLED_EXECUTION`, command allowlist, environment allowlist, tool annotations). This changes a documented default and is announced in the release notes.
 - Audit items F-04 (no significance claim from means) and F-12 (identity-checked process-group kill).
@@ -109,6 +115,13 @@ Closes **Advanced Evidence Engine**, the remaining MCP tools of 0.2 and the **0.
 - Fixture trials cover the three reference shapes (small source app, larger dependency-bearing source app, closed binary) and the complete observation → profile → baseline → optimization → benchmark → comparison → validation → final report session link chain. The full 12-item release acceptance checklist and external reference-application trials remain a release gate.
 
 Capability checks that flip: typed evidence, session hash-chain verification and hypothesis separation become ✅. Merkle roots/signatures remain in I; mutation testing, full fast-check fuzzing and persistent Windows/macOS metric helpers remain open.
+
+**A–D closure (0.2.0-beta.7), AUDIT F-26…F-31.**
+- [x] Promotion needs content, not only a type: Validation evidence must say `passed: true`, Benchmark evidence must carry the verdict `improved`, confidence must reach 0.5 and the record must match its hash (`promotionBlocker` in `src/evidence-engine.ts`). Before, any Benchmark record with any measurement promoted a hypothesis.
+- [x] Typed evidence is produced by the analyzers, not typed in by hand: `evidenceFromResult` (`src/evidence-collect.ts`) turns the Result of `analyze_binary`, `inspect_process`, `get_process_metrics`, `get_process_tree`, `analyze_memory`, `analyze_cpu`, `analyze_io`, `monitor_process`, `profile_process`, `run_benchmark`, `capture_baseline`, `compare_results`, `compare_benchmarks`, `compare_baselines` and `validate_changes` into Binary, Process, Memory, CPU, I/O, Benchmark or Validation evidence. These tools accept an optional `session_id`; source, measurement, confidence and limitations come from the result itself.
+- [x] The research-cycle trial runs the real analyzers on a small source app, a dependency-bearing source app and a closed binary (`tests/research-cycle.test.ts`); no evidence in it is a hand-written stub.
+- [x] The *Evidence* capability check no longer mixes a confirmed gap into a verified check: hash-chain and tamper detection are ✅, and the unsigned ledger is its own 🚧 check (patch I).
+- [ ] Release gate: the acceptance trials of 0.2 run on real external applications of the three shapes, and the twelve-item checklist below is ticked item by item (the table below shows what the suite proves today).
 
 **Milestone 0.2 is released when B, C and D are done.**
 
@@ -247,8 +260,29 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-13 | Mach-O CPU type and fat slice table, PE `e_lfanew` beyond the buffer reported as `partial` | **E** |
 | F-14 | Remaining: `.gitattributes`, `noUnusedParameters` | closed in 0.2.0-beta.3 |
 | F-15 | Documentation drift and the planned-tools check | closed in 0.2.0-beta.2 |
-| F-16 | Split the test suite into flat `tests/<area>.test.ts` files with pure fixtures; statistics, `CappedBuffer`, MCP error paths, `/proc` parser | partial in 0.2.0-beta.6: statistics, benchmark suites, evidence, research cycle, untrusted output and parser tests split; capability harness remains large |
+| F-16 | Split the test suite into flat `tests/<area>.test.ts` files with pure fixtures; statistics, `CappedBuffer`, MCP error paths, `/proc` parser | partial in 0.2.0-beta.6: statistics, benchmark suites, evidence, research cycle, untrusted output and parser tests split; capability harness remains large; 0.2.0-beta.7: capability harness still monolithic (check *Tests — the capability harness is one file* shows 🚧); new unit tests added for anomalies, modes, cgroup limiter, evidence collection and MCP evidence |
 | F-17 | Threat model: agent as untrusted caller, prompt injection through target data | closed in 0.2.0-beta.5 |
+
+### Findings (Audit 4, A–D closure review, 2026-11-10)
+
+| ID | Task | Patch / status |
+|---|---|---|
+| F-18 | Patch A text said "nine environments" next to "(6 environments)" | closed in 0.2.0-beta.7 |
+| F-19 | Patch A has no recorded green run on macOS and Windows | open: release gate in Patch A (manual `os: all` run) |
+| F-20 | `withProcessResourceLimits` success and cleanup paths untested | closed in 0.2.0-beta.7 (fake cgroup tree; real-cgroup check where delegated) |
+| F-21 | `detect_resource_anomalies` had no behavioral tests | closed in 0.2.0-beta.7 |
+| F-22 | `OBSERVE` was identical to `READ_ONLY` | closed in 0.2.0-beta.7 (verified-ownership sampling) |
+| F-23 | Monitor, Diagnostic and Compare modes were not checked and behaved alike | closed in 0.2.0-beta.7 |
+| F-24 | R-06 closed while 186 lines exceeded 140 characters | closed in 0.2.0-beta.7 |
+| F-25 | Stale unchecked 0.2 checklists contradicting delivered work | closed in 0.2.0-beta.7 |
+| F-26 | Evidence capability check mixed a verified result with an open limitation | closed in 0.2.0-beta.7 |
+| F-27 | ARCHITECTURE marked implemented fact categories as planned | closed in 0.2.0-beta.7 |
+| F-28 | AUDIT statuses out of date (F-07, F-11, F-12, F-17, R-06, R-09) | closed in 0.2.0-beta.7 |
+| F-29 | Any Benchmark or Validation record promoted a hypothesis, whatever its content | closed in 0.2.0-beta.7 |
+| F-30 | Process, Memory, CPU, I/O and Binary evidence could only be typed in by hand | closed in 0.2.0-beta.7 (`session_id` on measurement tools) |
+| F-31 | The research-cycle trial used hand-written evidence | closed in 0.2.0-beta.7; real external applications remain a release gate |
+| F-32 | `docs/MCP.md` repeated a sentence | closed in 0.2.0-beta.7 |
+| F-33 | R-03, R-05 and F-16 still open although patches C and D read as delivered | open: recorded as 🚧 checks and release gates |
 
 ### Recommendations
 
@@ -256,10 +290,10 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 |---|---|---|
 | R-01 | Mutation testing (Stryker) on pure modules | **D** (open; no mutation runner configured) |
 | R-02 | Threat model and prompt-injection hardening (`untrustedContent` wrapper, length caps, adversarial fixtures) | closed in 0.2.0-beta.5 (basic wrapper and caps) |
-| R-03 | Supply chain: npm provenance, pinned action SHAs, Dependabot, OpenSSF Scorecard, CycloneDX SBOM, `npm audit signatures`, `release-please` | partial in 0.2.0-beta.6; provenance workflow and several pinned actions added, existing workflow SHAs/trusted publishing still need validation |
+| R-03 | Supply chain: npm provenance, pinned action SHAs, Dependabot, OpenSSF Scorecard, CycloneDX SBOM, `npm audit signatures`, `release-please` | partial in 0.2.0-beta.6; provenance workflow and several pinned actions added, existing workflow SHAs/trusted publishing still need validation; 0.2.0-beta.7: still partial, the check *Supply chain — GitHub Actions are pinned…* lists the unpinned references |
 | R-04 | Fuzz and property tests (`fast-check`, devDependency) for parsers | partial in 0.2.0-beta.6: deterministic hostile process-parser corpus; fast-check and binary parser fuzzing remain open |
-| R-05 | Static gates: linter and formatter, `knip`, `jscpd`, own-line size gate | partial in 0.2.0-beta.6: strict TypeScript, format check and own-line size gate; knip/jscpd/dedicated linter remain open |
-| R-06 | Reformat dense files, formatter check in the structure workflow | source/test TypeScript reformatted; format check wired into capabilities CI in 0.2.0-beta.6 |
+| R-05 | Static gates: linter and formatter, `knip`, `jscpd`, own-line size gate | partial in 0.2.0-beta.6: strict TypeScript, format check and own-line size gate; knip/jscpd/dedicated linter remain open; 0.2.0-beta.7: format gate now covers every TypeScript file and the size gate limits line length to 140 characters; knip, jscpd and a dedicated linter remain open |
+| R-06 | Reformat dense files, formatter check in the structure workflow | closed in 0.2.0-beta.7 (beta.6 had reformatted only part of the files and left 186 lines over 140 characters; now every `src/` and `tests/` file passes the format gate and the line-length gate) |
 | R-07 | Contract-first MCP: one definition generates `tools/list`, [MCP.md](MCP.md) and schemas; compact/full schema profile; structured error codes; pagination; size budgets | partial in 0.2.0-beta.6: schemas, profiles, errors, offset pagination and 1 MiB budget implemented; docs are contract-tested but not generated |
 | R-08 | MCP prompts and resources; `reverse setup` for Claude Code, Codex, Cursor, Gemini CLI with dry run and backups; investigation skill file | **L** |
 | R-09 | `reverse doctor` | closed in 0.2.0-beta.6 |
@@ -386,6 +420,15 @@ Depends on O and J. Closes G-05, G-06 and the L3 level of G-10.
 
 Sequencing principle: do not start with Ghidra and do not try to implement every external analyzer at once. First strengthen Reverse's ability to investigate running programs, detect real performance problems and collect evidence, because the main job of Reverse is to help an AI agent find the causes of excessive resource use and objectively verify optimization results. Linux is the first fully supported profiling environment, with interfaces for Windows and macOS designed in from the start.
 
+## 0.2.0-beta.7 — A–D closure
+
+- [x] Evidence promotion checks content (`promotionBlocker`); typed evidence is produced from analyzer results (`src/evidence-collect.ts`, optional `session_id` on 15 measurement tools).
+- [x] Profile modes `Diagnostic` (anomaly findings) and `Compare` (two periods) differ from `Monitor`; `OBSERVE` samples only with verified ownership.
+- [x] `createResourceLimiter` makes the cgroup writer testable; success and cleanup paths are tested; a real-cgroup check runs where the hierarchy is delegated.
+- [x] Line-length gate (140 characters, `src/` and `tests/`), format gate over every TypeScript file, `mcp-server.ts` split into `mcp-tools*.ts`.
+- [x] Documentation drift closed (Patch A text, 0.2 checklists, fact categories, duplicated MCP sentence, audit status lines).
+- Open and recorded by checks, not claimed: R-03, R-05, F-16, R-19, F-08 (non-Linux), R-01, R-04 (fast-check), macOS/Windows runs.
+
 ## 0.2.0-beta.5 — Patch C, part 3
 
 - [x] `src/core-untrusted.ts`: every MCP tool result gets `untrustedContent` and strings over 4096 characters are truncated (R-02). Tests: `tests/untrusted.test.ts`, capability check *Security — tool results carry untrustedContent…*.
@@ -463,17 +506,17 @@ Priorities: Process Manager, Performance Profiler, Evidence Engine and Benchmark
 - [x] Reported as process-level monitoring, not as hot-function detection
 
 **Advanced Benchmark Engine**
-- [x] Warm-up and cold/warm labels (0.2.0-beta.3/4); [ ] alternating runs
-- [ ] Mean, median, min/max, P95, standard deviation, MAD, outlier detection, variance and confidence intervals
-- [x] CPU time, peak RAM and binary-size comparison (0.2.0-beta.4; Windows CPU/RAM sampling still open)
-- [ ] Baseline metadata and hardware/environment fingerprints (OS, CPU, cores, RAM, Node.js/Reverse/target versions, arguments, non-secret environment, benchmark parameters)
-- [ ] Warning about limited comparability when environments differ
-- [ ] No statistical-significance claim from a lower mean alone
+- [x] Warm-up and cold/warm labels (0.2.0-beta.3/4); [x] alternating runs (round-robin suites, 0.2.0-beta.6)
+- [x] Mean, median, min/max, P95, standard deviation, MAD, outlier detection, variance and confidence intervals
+- [x] CPU time, peak RAM and binary-size comparison (0.2.0-beta.4; Windows PowerShell sampling since 0.2.0-beta.6)
+- [x] Baseline metadata and hardware/environment fingerprints (OS, CPU, cores, RAM, Node.js/Reverse/target versions, arguments, non-secret environment, benchmark parameters)
+- [x] Warning about limited comparability when environments differ
+- [x] No statistical-significance claim from a lower mean alone
 
 **Advanced Evidence Engine**
-- [ ] Evidence types: Process, Memory, CPU, I/O, Binary, Benchmark, Validation
-- [ ] Record fields: `evidence_id`, `target_id`, `type`, `source`, `timestamp`, `measurement`, `confidence`, `limitations`, `hash`
-- [ ] Research sessions linking target, observations, profile, baseline, optimization, new benchmark, comparison, validation and final evidence report
+- [x] Evidence types: Process, Memory, CPU, I/O, Binary, Benchmark, Validation
+- [x] Record fields: `evidence_id`, `target_id`, `type`, `source`, `timestamp`, `measurement`, `confidence`, `limitations`, `hash`
+- [x] Research sessions linking target, observations, profile, baseline, optimization, new benchmark, comparison, validation and final evidence report
 
 **Process Safety & Resource Control**
 - [x] PID existence and start-time identity checks; ownership verification where supported
@@ -485,9 +528,9 @@ Priorities: Process Manager, Performance Profiler, Evidence Engine and Benchmark
 **MCP interface**
 - [x] `list_processes`, `monitor_process`, `get_process_metrics`, `get_process_tree`
 - [x] `analyze_memory`, `analyze_cpu`, `analyze_io`, `detect_resource_anomalies`
-- [ ] `create_benchmark_suite`, `run_benchmark_suite`, `compare_benchmarks`
-- [ ] `get_environment_fingerprint`, `get_research_session`
-- [ ] Existing MCP commands are preserved; backward compatibility is not broken
+- [x] `create_benchmark_suite`, `run_benchmark_suite`, `compare_benchmarks`
+- [x] `get_environment_fingerprint`, `get_research_session`
+- [x] Existing MCP commands are preserved; backward compatibility is not broken
 
 **Explicitly deferred from 0.2:** Ghidra and Rizin (0.3); Frida and GDB (0.4); eBPF, Windows ETW and macOS Instruments as separate platform providers later; Android implementation is scheduled across patches E–J. The independent-provider architecture is laid down now so these can be added without rewriting the core.
 
@@ -507,6 +550,25 @@ Priorities: Process Manager, Performance Profiler, Evidence Engine and Benchmark
 12. All new functions have automated tests.
 
 Trials are required on three kinds of application defined by the original specification: a small application, a large application with several dependencies, and a closed binary application without source.
+
+What the suite proves today, per criterion (Linux; macOS and Windows need the manual `os: all` run):
+
+| # | Criterion | Verified by |
+|---|---|---|
+| 1 | Observe any accessible process | process inventory/inspection checks, `tests/profiling-modes.test.ts` (owned processes; foreign processes are refused in OBSERVE) |
+| 2 | CPU, RAM and I/O over time | *Profiling — time-series…*, `tests/profiling-modes.test.ts` |
+| 3 | Anomalous consumption | `tests/profiling-anomalies.test.ts`, *Profiling — anomaly rules fire on both sides of every threshold* |
+| 4 | Measurement history | persisted profiles, baselines and sessions (*Evidence* checks) |
+| 5 | Repeated benchmarks | *Benchmark* checks |
+| 6 | Compare two versions | `benchmark_comparison` verdicts, `tests/research-cycle.test.ts` |
+| 7 | Statistical error | `tests/benchmark-stats.test.ts` |
+| 8 | Comparability | environment-fingerprint checks |
+| 9 | Evidence for every measurement | `tests/evidence-collect.test.ts`, `tests/mcp-evidence.test.ts` (with `session_id`); a measurement without `session_id` is still **not** recorded automatically |
+| 10 | Results through MCP | *MCP* checks, `tests/mcp-new-tools.test.ts` |
+| 11 | Safe cancellation | *Profiling — caller cancellation…*, MCP cancellation check |
+| 12 | Automated tests for all new functions | `npm test` and `npm run verify` |
+
+Criterion 9 is satisfied for tools that receive a `session_id`; the trials on real external applications of the three shapes are still a release gate.
 
 ## 0.3 — static analysis and providers
 

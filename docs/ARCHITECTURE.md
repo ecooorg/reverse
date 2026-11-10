@@ -82,13 +82,13 @@ Copy protection, dongles and license checks are reported as facts but are not de
 
 The Result envelope contains `schemaVersion`, `id`, `target`, `operation`, `status`, `generatedAt`, `host`, `findings`, `evidence`, `limitations`, `errors`, and `coverage`.
 
-### Fact categories (planned)
+### Fact categories (implemented)
 
 Every response must make clear which kind of statement it carries, and a model assumption must never be presented as a measured fact:
 
 1. **Measured facts** — observations from sampling, benchmarks and process inspection.
 2. **Static analysis results** — facts derived from files, headers, manifests and, later, disassembly.
-3. **Hypotheses and analogies** — proposed by the agent or a similarity provider. They are stored only in the **hypothesis ledger**, never as evidence and never inside a `measured` or `static` finding. Records carry `hypothesis_id`, `target_id`, statement, provenance, confidence, status and optional `promotionEvidenceId`. Promotion to `supported` requires same-session Validation or Benchmark evidence; refuted hypotheses are retained. MCP records mark them `kind: "hypothesis"`.
+3. **Hypotheses and analogies** — proposed by the agent or a similarity provider. They are stored only in the **hypothesis ledger**, never as evidence and never inside a `measured` or `static` finding. Records carry `hypothesis_id`, `target_id`, statement, provenance, confidence, status and optional `promotionEvidenceId`. Promotion to `supported` requires same-session Validation evidence with `passed: true` or Benchmark evidence with the verdict `improved`, confidence of at least 0.5 and an intact hash; refuted hypotheses are retained. MCP records mark them `kind: "hypothesis"`.
 4. **Confirmed optimization results** — a before/after comparison backed by measurements and validation.
 
 Every finding should carry its source, the target identifier, the time of observation, status, coverage, limitations, errors, supporting evidence, and a way to request more detail on demand. MCP responses stay compact; detailed evidence is returned on request.
@@ -183,8 +183,8 @@ Specialist analysis beyond the built-in analyzers (native, JavaScript/Electron, 
 |---|---|
 | Snapshot | Single measurement |
 | Monitor | Continuous observation |
-| Diagnostic | Extended metric collection |
-| Compare | Comparison of two periods |
+| Diagnostic | Monitor plus the deterministic anomaly findings (`anomalies`) of the same series |
+| Compare | Monitor plus a comparison of the first and the second half of the series (`periods`; needs four samples) |
 
 Results are stored in a structured format so the agent can answer: does RAM grow continuously? does CPU periodically reach 100%? does an idle process keep consuming resources? does load grow after a particular event? which child process creates the main load?
 
@@ -279,7 +279,15 @@ OBSERVE
 CONTROLLED_EXECUTION
 ```
 
-The default is `READ_ONLY`; new programs are studied in a mode that makes no changes to the original. A further mode for applying changes would require explicit permission.
+The default is `READ_ONLY`; new programs are studied in a mode that makes no changes to the original.
+
+| Mode | Contract |
+|---|---|
+| `READ_ONLY` (default) | Static analysis and observation. Sampling works on any visible process; unknown ownership is reported as a limitation. No command execution. |
+| `OBSERVE` | Everything `READ_ONLY` does, but `monitor_process` and `profile_process` sample only processes whose ownership is verified (same UID on Linux/macOS); a foreign process, or any process on Windows where ownership is unknown, is refused. No command execution. |
+| `CONTROLLED_EXECUTION` | Command-running tools (after the allowlist and `cwd` root checks) and the scoped cgroup limiter. |
+
+**Evidence from measurements.** Measurement tools accept an optional `session_id`; the Result is then stored in that research session as typed evidence (`src/evidence-collect.ts`): operation to type, source `reverse:<operation>#<result id>`, measurement from the findings, confidence from the result status and coverage (complete 1, incomplete 0.8, partial 0.4, other 0) and limitations from the result. Confidence is a quality grade, not a probability; a partial result can never promote a hypothesis. A further mode for applying changes would require explicit permission.
 
 CPU and RAM control must not be presented as full system isolation. Real hard limits need separate OS mechanisms such as cgroups on Linux.
 

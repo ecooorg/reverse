@@ -11,6 +11,8 @@ Reverse is a local inspection tool, not a sandbox. It runs with the permissions 
 - Threat model: the AI agent that calls MCP tools is an **untrusted caller**, and data from targets (output, file names, strings) may contain prompt injection. Command-running MCP tools are therefore off unless the operator sets `REVERSE_MODE=CONTROLLED_EXECUTION` with `REVERSE_COMMAND_ALLOWLIST` (optional `REVERSE_CWD_ROOT`); children get an allowlisted environment, so tokens of the parent are not passed on. Still open: sandboxing of executed targets (patch G). Since 0.2.0-beta.5 every MCP result carries an `untrustedContent` marker (notice, string cap, count of truncated strings) and strings longer than 4096 characters are cut; tool descriptions never contain target data. This reduces, but cannot eliminate, prompt-injection risk: the client must still treat result text as data.
 - Command duration is bounded; output capture is capped at exactly 1 MiB (bytes) per stream (excess output is dropped and the run is flagged `stdoutTruncated` / `stderrTruncated`).
 - Reverse does not patch binaries, change target configuration, inject into processes, or kill arbitrary target processes.
+- `REVERSE_MODE=OBSERVE` restricts process sampling to targets whose ownership is verified; it does not enable command execution (only `CONTROLLED_EXECUTION` does).
+- A hypothesis is promoted only by evidence whose content supports it (passed validation or an `improved` benchmark verdict, sufficient confidence, intact hash); an agent cannot promote by attaching arbitrary evidence.
 
 ## Operator responsibilities
 
@@ -40,7 +42,7 @@ Until patch M implements the authorization record, this section is the binding s
 - No general OS sandbox, network isolation, or filesystem allowlist. Linux cgroup v2 CPU/memory limits are available only through the explicit scoped `withProcessResourceLimits` API on delegated hierarchies; no Windows Job Object or macOS hard-quota adapter exists.
 - Process listing and sampling remain subject to host permissions and unavoidable races between OS reads and subsequent operations. Start-time identity checks reduce, but cannot mathematically eliminate, PID-reuse races. Linux/macOS ownership is checked by UID; Windows ownership is currently unknown.
 - MCP stdio assumes a trusted local client. There is no authentication layer.
-- Evidence JSON is not signed or tamper-evident.
+- Evidence JSON is hash-chained per research session, which detects edits to a stored session, but it is not signed: whoever can write the store can rewrite a whole session consistently (patch I). Evidence added through `add_research_evidence` is supplied by the caller; only evidence created through `session_id` on a measurement tool comes from a Reverse result.
 - The cgroup resource-control API requires `CONTROLLED_EXECUTION` and an explicit `confirm: true`; it is scoped to a callback and attempts to restore the original cgroup on exit. Path allowlists and broader approval gates for experiments remain planned.
 
 Report vulnerabilities privately to the repository maintainer. Do not publish exploit details before a fix is available.

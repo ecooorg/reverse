@@ -6,6 +6,41 @@ IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H*
 
 ---
 
+## Audit 4 — 2026-11-10 — closure review of patches A–D (0.2.0-beta.6)
+
+**Scope.** Not a new feature review. The question was whether patches A, B, C and D can be called closed under [ROADMAP.md](ROADMAP.md) "How progress is measured". The archive `reverse-0.2.0-beta.6-green` and the closure notes supplied with it were compared with the source, the tests, the roadmap and this file.
+
+**Method and what was actually run.** Linux sandbox, Node 22, TypeScript 6 (the repository pins TypeScript 7 for building and 5.9 for the format printer; those were not available offline). Build, `tsc` for the tests, the unit tests, the format gate and the size gate ran locally; before the changes 31 unit tests passed. **Not run:** `npm ci` (no network), the capability suite on macOS and Windows, a real delegated cgroup v2 hierarchy (the sandbox is cgroup v1), the packaging check.
+
+**Verdict.** The code was in good shape, the closure claims were not. Patch A had no recorded cross-platform run and an inconsistent environment count; patch B tested neither the cgroup success path nor the anomaly thresholds, and `OBSERVE` and the profile modes were labels; patch C declared R-06 closed with 186 lines over 140 characters; patch D allowed any Benchmark or Validation record, whatever it contained, to promote a hypothesis, and typed evidence could only be entered by hand. These are fixed or recorded as explicit gates in 0.2.0-beta.7. Items that cannot be closed from this environment stay open and are measured by checks that show 🚧 (R-03, F-16) or by release gates in the roadmap (macOS/Windows runs, external reference applications).
+
+| ID | Sev | Area | Finding | Status |
+|---|---|---|---|---|
+| F-18 | Low | Docs | Patch A said "nine environments" next to "(6 environments)" | Status: closed in 0.2.0-beta.7, A–D closure |
+| F-19 | Medium | CI | No recorded green run of the capability workflow on macOS and Windows | open: release gate in Patch A |
+| F-20 | **High** | Safety | `withProcessResourceLimits`: only refusals were tested; moving the process, writing limits and cleanup were not | Status: closed in 0.2.0-beta.7, A–D closure |
+| F-21 | Medium | Profiling | `detect_resource_anomalies` thresholds had no behavioral tests | Status: closed in 0.2.0-beta.7, A–D closure |
+| F-22 | Medium | Safety | `OBSERVE` behaved exactly like `READ_ONLY` | Status: closed in 0.2.0-beta.7, A–D closure |
+| F-23 | Medium | Profiling | Diagnostic and Compare behaved like Monitor and no check covered the modes | Status: closed in 0.2.0-beta.7, A–D closure |
+| F-24 | Medium | Quality | R-06 closed while 186 lines exceeded 140 characters; the size gate counted lines, not their length | Status: closed in 0.2.0-beta.7, A–D closure |
+| F-25 | Low | Docs | Unchecked 0.2 checklists contradicted delivered work | Status: closed in 0.2.0-beta.7, A–D closure |
+| F-26 | Medium | Tests | The Evidence check reported a confirmed gap inside a verified check | Status: closed in 0.2.0-beta.7, A–D closure |
+| F-27 | Low | Docs | Implemented fact categories were marked planned | Status: closed in 0.2.0-beta.7, A–D closure |
+| F-28 | Low | Docs | Audit statuses for F-07, F-11, F-12, F-17, R-06 and R-09 were out of date or outside the audit list | Status: closed in 0.2.0-beta.7, A–D closure |
+| F-29 | **High** | Evidence | A Benchmark record with any measurement promoted a hypothesis; hash and confidence were ignored | Status: closed in 0.2.0-beta.7, A–D closure |
+| F-30 | Medium | Evidence | Process, Memory, CPU, I/O and Binary evidence existed only as a type name | Status: closed in 0.2.0-beta.7, A–D closure |
+| F-31 | Medium | Tests | The research-cycle trial used hand-written evidence | Status: closed in 0.2.0-beta.7, A–D closure (real analyzers on fixtures; external applications remain a release gate) |
+| F-32 | Low | Docs | `docs/MCP.md` repeated a sentence | Status: closed in 0.2.0-beta.7, A–D closure |
+| F-33 | Medium | Process | R-03, R-05 and F-16 are open although patches C and D read as delivered | open: shown as 🚧 checks and release gates |
+
+**Behavior changes users can notice.** A hypothesis can no longer be promoted by arbitrary Benchmark or Validation evidence. `REVERSE_MODE=OBSERVE` now refuses sampling of processes whose ownership is unverified. `Diagnostic` and `Compare` results carry extra fields. `withProcessResourceLimits` is now created by `createResourceLimiter` (same signature and behavior). Measurement tools accept an optional `session_id`.
+
+**Not covered.** Windows and macOS runtime behavior; real cgroup enforcement (the check shows 🚧 without a delegated hierarchy); mutation testing; fast-check fuzzing; the TypeScript 5.9 printer on the new files.
+
+Tasks F-18…F-33 are tracked in the [approved audit backlog](ROADMAP.md#approved-audit-backlog-audit-1-approved-2026-11-09). Audit 3 follows.
+
+---
+
 ## Audit 3 — 2026-11-09 — AI hypothesis engine and pattern-based archaeology proposals (design audit)
 
 **Scope.** Not a code review. Two proposal documents (analogy-based reverse engineering, a "Hypothesis Core" module and patches to ARCHITECTURE.md and ROADMAP.md) were compared with the project principles in [ARCHITECTURE.md](ARCHITECTURE.md), the roadmap dependencies and [AGENTS.md](../AGENTS.md). Source code was not run or changed.
@@ -103,7 +138,17 @@ Tasks G-01…G-10 are tracked in the [approved audit backlog](ROADMAP.md#approve
 | F-15 | (a) and (b) closed in 0.2.0-beta.2 with a check that compares the planned-tools table with `tools/list`; (c) closed; (d) closed together with F-06 |
 | F-01, F-04 | Status: closed in 0.2.0-beta.3, patch C |
 | F-14 (rest) | Status: closed in 0.2.0-beta.3, patch C (`noUnusedParameters`, `.gitattributes`) |
-| F-07, F-08, F-10, F-11, F-12, F-16, F-17 | open, scheduled as in section D |
+| F-07 | Status: closed in 0.2.0-beta.6, patch D (OS page size and tick rate, one per-core CPU convention) |
+| F-08 | partial: Linux single-PID `/proc` fast path and cached constants in 0.2.0-beta.6; non-Linux fast paths remain open |
+| F-10 | open, patch E |
+| F-11 | Status: closed in 0.2.0-beta.6, patch D (atomic JSON writes, streamed hashing, lookup by ID) |
+| F-12 | Status: closed in 0.2.0-beta.6, patch C (identity-checked process-group termination, real Windows counts) |
+| F-16 | open (partial): focused test files exist, the capability harness is still one file |
+| F-17 | Status: closed in 0.2.0-beta.5, patch C |
+| R-02 | Status: closed in 0.2.0-beta.5 (basic wrapper and caps) |
+| R-06 | Status: closed in 0.2.0-beta.7, A–D closure (the beta.6 claim was premature, see Audit 4 F-24) |
+| R-09 | Status: closed in 0.2.0-beta.6 (`reverse doctor`) |
+| R-13, R-16, R-17 | Status: closed (R-13 and R-17 in 0.2.0-beta.6, R-16 in 0.2.0-beta.3) |
 
 Behavior changes users can notice: MCP tool failures now arrive as `isError` results instead of JSON-RPC errors; a non-JSON line now gets a `-32700` reply; `validate_changes` returns `completed` for a clean mismatch; `.wasm` files are no longer counted by `analyze_source`.
 
@@ -182,8 +227,4 @@ macOS/Windows runtime behavior; the 893-line capability suite was run but not re
 
 ## Implementation status after 0.2.0-beta.6
 
-This update records only work verified in the beta.6 source tree; it does not declare patches C or D fully closed.
-
-- **Closed in 0.2.0-beta.6:** F-07 (OS page size/tick rate and per-core CPU convention), F-11 (shared atomic JSON persistence, streamed file hashing and ID lookup), F-12 (identity-checked POSIX process-group termination and Windows CIM/taskkill counts), R-06 (TypeScript format gate and source-size gate), R-09 (`reverse doctor`), R-12 benchmark export shape, R-13 (noise snapshot and interleaved benchmark suites), R-17 (Node built-ins).
-- **Partially implemented in 0.2.0-beta.6:** F-06(d) (stateful protocol revisions through 2025-11-25; the stateless 2026 protocol era remains unsupported); F-08 (Linux single-PID `/proc` fast path and cached constants; non-Linux fast paths remain); F-16 (focused test files added, but the capability harness remains monolithic); R-03 (Dependabot, Scorecard, CycloneDX, signature audit and release-please/provenance workflow added; existing workflow references are not all SHA-pinned and trusted publishing still needs repository configuration); R-04 (deterministic hostile process-parser corpus, not full `fast-check` coverage); R-05 (strict TypeScript, formatter and line-size gates, but no `knip`, `jscpd` or dedicated linter); R-07 (schemas, compact/full profiles, structured errors, pagination and response budget, but docs are contract-tested rather than generated).
-- **Still open:** R-01 mutation testing; R-19 persistent Windows/macOS metric helpers and ETW/libproc providers; full stateless MCP 2026 protocol support; complete binary parser fuzzing; external reference-app release trials and the full twelve-item 0.2 acceptance checklist.
+Superseded: statuses of F-07, F-08, F-11, F-12, F-16, F-17 and the recommendations are recorded in section A2 above, and the closure review of 0.2.0-beta.7 is Audit 4 at the top of this file.
