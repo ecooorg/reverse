@@ -1,5 +1,17 @@
 # Audit log
 
+## Audit 16 — 2026-11-10 — Capability/MCP contract drift and CI diagnosis (1.1.0-beta.1 maintenance)
+
+**Scope.** Fix the current Linux Capabilities run: approved audit IDs F-63…F-65 were missing from the roadmap backlog, the hard-coded MCP contract fixture omitted the two Patch M tools, and the AI summary classified a capability-suite failure as a formatting gate because it matched a weaker keyword first.
+
+**Delivered.** The roadmap backlog now tracks F-63…F-65 with their actual partial/closed status; the MCP contract fixture includes `declare_legacy_authorization` and `analyze_legacy_windows` (60 tools total); and the summary classifier gives concrete test/assertion evidence precedence over incidental formatting words. Regression tests cover capability-suite failures whose output mentions formatting as context.
+
+| ID | Sev | Area | Finding | Status |
+|---|---|---|---|---|
+| F-67 | Medium | CI diagnostics / contract drift | Capability-suite failures could be mislabeled as formatting failures, obscuring the actual assertion failures | Status: fix in 1.1.0-beta.1 maintenance; GitHub rerun pending |
+
+---
+
 ## Audit 15 — 2026-11-10 — CI AI summary reliability and diagnostic depth (1.1.0-beta.1 maintenance)
 
 **Scope.** Fix a CI summary generator crash on missing log content and improve the copy-paste report so an assistant can identify the earliest failure, exact command, diagnostic context, file/line references and JUnit failures without requiring the full log archive. Also close the formatter drift reported for `tests/legacy-windows.test.ts`.
