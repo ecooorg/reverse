@@ -1254,10 +1254,8 @@ check('Safety', 'OBSERVE is a distinct contract: no command execution, sampling 
     assert.equal(operatingMode({}), 'READ_ONLY');
     assert.equal(operatingMode({ REVERSE_MODE: 'OBSERVE' }), 'OBSERVE');
     assert.equal(operatingMode({ REVERSE_MODE: 'CONTROLLED_EXECUTION' }), 'CONTROLLED_EXECUTION');
-    for (const mode of ['READ_ONLY', 'OBSERVE']) {
-        const gated = checkCommandGate({ command: NODE }, { REVERSE_MODE: mode, REVERSE_COMMAND_ALLOWLIST: '*' });
-        assert.match(String(gated), /disabled/, mode);
-    }
+    for (const mode of ['READ_ONLY', 'OBSERVE'])
+        assert.match(String(checkCommandGate({ command: NODE }, { REVERSE_MODE: mode, REVERSE_COMMAND_ALLOWLIST: '*' })), /disabled/, mode));
     const child = spawn(NODE, ['-e', 'setInterval(()=>{},1000)'], { stdio: 'ignore' });
     try {
         const r: any = await profileProcess(child.pid!, 500, 100, 'Snapshot', { requireOwnership: 'verified' });
