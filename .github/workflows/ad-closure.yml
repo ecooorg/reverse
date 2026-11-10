@@ -7,6 +7,7 @@ name: A-D closure (temporary)
 #                  the full capability suite, and an assertion that the A-D checks ended in the expected state.
 #   cgroup-real  - Linux only: prepares a delegated cgroup v2 hierarchy as root and runs the real-cgroup safety check,
 #                  which must end verified (not limitation) there.
+#                  Static gates and unit tests keep a log (static-gates.log, unit-tests.log) in the cell's artifact.
 #   verdict      - writes one closure record (a table of every cell, artifact `ad-closure-record`) and is red when any cell failed.
 #                  The record is what docs/ROADMAP.md quotes under "A-D closure evidence".
 #
@@ -52,17 +53,22 @@ jobs:
           cache: npm
       - name: Install and build
         run: |
+          mkdir -p ad-closure-reports
           node --version
           npm ci --ignore-scripts
           npm run build
           npx tsc -p tsconfig.tests.json
+      # The logs of the two steps below travel inside the cell's artifact. A cell that fails here never reaches the capability
+      # suite and therefore writes no JSON report; without the log nobody could tell why it was red. (`shell: bash` sets pipefail.)
       - name: Static gates (format, line length, structure)
         run: |
-          npm run format:check
-          npm run size:check
-          node tests/check-structure.mjs --built
+          {
+            npm run format:check
+            npm run size:check
+            node tests/check-structure.mjs --built
+          } 2>&1 | tee ad-closure-reports/static-gates.log
       - name: Unit tests
-        run: node --test --test-timeout=240000 dist-tests/*.test.js
+        run: node --test --test-timeout=240000 dist-tests/*.test.js 2>&1 | tee ad-closure-reports/unit-tests.log
       - name: Capability suite
         run: |
           mkdir -p ad-closure-reports
@@ -216,6 +222,9 @@ jobs:
               lines.push(`| ${r.records.length === 1 ? "real cgroup job, " : ""}${r.platform} / ${r.node} (reverse ${r.reverse}) | ${t.verified} | ${t.limitation} | ${t.drift} | ${t.failed} | ${checks.map(c => cell(r, c)).join(" | ")} |`);
             }
             if (!reports.length) lines.push("| no report artifacts were found | | | | | |");
+            const cells = existsSync("ad-closure-in") ? readdirSync("ad-closure-in").filter(d => d !== "ad-closure-record") : [];
+            for (const d of cells.filter(d => !reports.some(x => x.f.split(path.sep).includes(d))))
+              lines.push(`| ${d}: no report, the job ended before the capability suite (read its .log files) | | | | | |`);
             lines.push("", `matrix: ${process.env.MATRIX_RESULT}, cgroup-real: ${process.env.CGROUP_RESULT}`);
             writeFileSync("ad-closure-record/ad-closure-record.md", lines.join("\n") + "\n");
             if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
