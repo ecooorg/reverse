@@ -1613,7 +1613,14 @@ const DOCUMENTED_TOOLS = [
     'rollback_change',
     'accept_change',
     'decide_optimization',
-    'run_apk_pipeline'
+    'run_apk_pipeline',
+    'create_git_worktree',
+    'remove_git_worktree',
+    'adb_install',
+    'adb_pm_clear',
+    'adb_emu_snapshot_load',
+    'run_optimization_trial',
+    'run_all_reference_trials'
 ];
 check('MCP', 'handshake: initialize, ping and tools/list', async () => {
     const s = startMcp();
@@ -2036,6 +2043,40 @@ check('Optimization', 'workspace copies target and rollback restores workPath', 
         await rollbackChangeWorkspace(id, { confirm: true });
         const after = await fs.readFile(path.join(ws!.workPath, 'a.txt'), 'utf8');
         assert.equal(after, 'v1');
+    }
+    finally {
+        if (prev === undefined)
+            delete process.env.REVERSE_MODE;
+        else
+            process.env.REVERSE_MODE = prev;
+    }
+});
+check('Optimization', 'git worktree and adb helpers refuse without confirm/mode', async () => {
+    const { createGitWorktreeWorkspace } = await import('../dist/optimization-git.js');
+    const { adbInstall } = await import('../dist/optimization-adb.js');
+    const prev = process.env.REVERSE_MODE;
+    delete process.env.REVERSE_MODE;
+    try {
+        const g: any = await createGitWorktreeWorkspace(WORK, { confirm: false });
+        assert.equal(g.status, 'unsupported');
+        const a: any = await adbInstall('/no.apk', { confirm: false });
+        assert.equal(a.status, 'unsupported');
+    }
+    finally {
+        if (prev === undefined)
+            delete process.env.REVERSE_MODE;
+        else
+            process.env.REVERSE_MODE = prev;
+    }
+});
+check('Optimization', 'reference trial runs for small_source under CONTROLLED_EXECUTION', async () => {
+    const { runOptimizationTrial } = await import('../dist/optimization-trial.js');
+    const prev = process.env.REVERSE_MODE;
+    process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
+    try {
+        const r: any = await runOptimizationTrial('small_source', { confirm: true });
+        assert.ok(r.status === 'completed' || r.status === 'partial');
+        assert.ok(r.findings?.[0]?.steps?.length >= 4);
     }
     finally {
         if (prev === undefined)
