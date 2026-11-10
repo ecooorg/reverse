@@ -70,5 +70,23 @@ export async function analyzeSource(root: string) {
     }
     catch { }
     const ev = await fileEvidence(base + '/');
-    return result(base, 'source_inventory', [{ fileCount: files.length, totalBytes: bytes, approximateLines: lines, filesByExtension: ext, externalImportReferences: Object.entries(imports).sort((a, b) => b[1] - a[1]).slice(0, 100), packageManifest: manifest }], { evidence: [ev], status: files.length >= MAX_FILES ? 'partial' : 'completed', limitations: ['Heuristic source inventory only; no AST, call graph, dead-code proof, vulnerability scan, or dependency version resolution.', 'Import counts are textual approximations and may include false positives.'], coverage: { examined: true, complete: files.length < MAX_FILES, notes: [`Scanned up to ${files.length} source files.`, `Excluded directories: ${[...SKIP].join(', ')}.`, ...(skipped ? [`${skipped} file(s) larger than ${MAX_FILE_BYTES} bytes were counted but not read.`] : [])] } });
+    return result(base, 'source_inventory', [{
+            fileCount: files.length,
+            totalBytes: bytes,
+            approximateLines: lines,
+            filesByExtension: ext,
+            externalImportReferences: Object.entries(imports).sort((a, b) => b[1] - a[1]).slice(0, 100),
+            packageManifest: manifest
+        }], {
+        evidence: [ev], status: files.length >= MAX_FILES ? 'partial' : 'completed', limitations: [
+            'Heuristic source inventory only; no AST, call graph, dead-code proof, vulnerability scan, or dependency version resolution.',
+            'Import counts are textual approximations and may include false positives.'
+        ], coverage: {
+            examined: true, complete: files.length < MAX_FILES, notes: [
+                `Scanned up to ${files.length} source files.`, `Excluded directories: ${[...SKIP].join(', ')}.`, ...(skipped
+                    ? [`${skipped} file(s) larger than ${MAX_FILE_BYTES} bytes were counted but not read.`]
+                    : [])
+            ]
+        }
+    });
 }

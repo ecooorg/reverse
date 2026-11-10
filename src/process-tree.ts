@@ -7,7 +7,11 @@ async function windowsSnapshot(): Promise<{
     children: Map<number, number[]>;
     identities: Map<number, string>;
 }> {
-    const { stdout } = await exec('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', WINDOWS_CIM_SCRIPT], { timeout: 15000, signal: AbortSignal.timeout(15000), maxBuffer: 32 * 1024 * 1024, windowsHide: true });
+    const { stdout } = await exec('powershell.exe', [
+        '-NoProfile', '-NonInteractive', '-Command', WINDOWS_CIM_SCRIPT
+    ], {
+        timeout: 15000, signal: AbortSignal.timeout(15000), maxBuffer: 32 * 1024 * 1024, windowsHide: true
+    });
     const children = new Map<number, number[]>(), identities = new Map<number, string>();
     for (const p of parseWindowsCim(stdout)) {
         const list = children.get(p.ppid ?? -1);
@@ -44,7 +48,11 @@ async function childMap(): Promise<Map<number, number[]>> {
         }));
         return map;
     }
-    const { stdout } = await exec('ps', ['-axo', 'pid=,ppid='], { timeout: 3000, signal: AbortSignal.timeout(3000), maxBuffer: 4 * 1024 * 1024 });
+    const { stdout } = await exec('ps', [
+        '-axo', 'pid=,ppid='
+    ], {
+        timeout: 3000, signal: AbortSignal.timeout(3000), maxBuffer: 4 * 1024 * 1024
+    });
     for (const line of stdout.split(/\r?\n/)) {
         const m = line.trim().match(/^(\d+)\s+(\d+)$/);
         if (!m)
@@ -77,7 +85,9 @@ export async function listDescendants(rootPid: number): Promise<number[]> {
 async function identity(pid: number): Promise<string | undefined> {
     if (process.platform === 'linux') {
         try {
-            const [raw, boot] = await Promise.all([readFile(`/proc/${pid}/stat`, 'utf8'), readFile('/proc/sys/kernel/random/boot_id', 'utf8')]);
+            const [raw, boot] = await Promise.all([
+                readFile(`/proc/${pid}/stat`, 'utf8'), readFile('/proc/sys/kernel/random/boot_id', 'utf8')
+            ]);
             const end = raw.lastIndexOf(')');
             const fields = raw.slice(end + 2).trim().split(/\s+/);
             return `linux:${boot.trim()}:${fields[19]}`;
@@ -88,7 +98,14 @@ async function identity(pid: number): Promise<string | undefined> {
     }
     if (process.platform === 'win32') {
         try {
-            const { stdout } = await exec('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', `(Get-CimInstance Win32_Process -Filter "ProcessId=${pid}").CreationDate.ToUniversalTime().ToString('o')`], { timeout: 3000, signal: AbortSignal.timeout(3000), windowsHide: true });
+            const { stdout } = await exec('powershell.exe', [
+                '-NoProfile',
+                '-NonInteractive',
+                '-Command',
+                `(Get-CimInstance Win32_Process -Filter "ProcessId=${pid}").CreationDate.ToUniversalTime().ToString('o')`
+            ], {
+                timeout: 3000, signal: AbortSignal.timeout(3000), windowsHide: true
+            });
             return stdout.trim() ? `windows:${stdout.trim()}` : undefined;
         }
         catch {
@@ -125,7 +142,11 @@ export async function killProcessTree(pid: number, expectedIdentity?: string, de
             if (!before || await identity(victim) !== before)
                 continue;
             try {
-                await exec('taskkill', ['/PID', String(victim), '/F'], { timeout: 5000, signal: AbortSignal.timeout(5000), windowsHide: true });
+                await exec('taskkill', [
+                    '/PID', String(victim), '/F'
+                ], {
+                    timeout: 5000, signal: AbortSignal.timeout(5000), windowsHide: true
+                });
                 terminated++;
             }
             catch { /* already exited or access denied */ }

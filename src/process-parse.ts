@@ -78,7 +78,8 @@ export function parseMacPs(psOutput: string, argsOutput = ''): ParsedProcess[] {
  */
 export const WINDOWS_CIM_SCRIPT = [
     '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;',
-    'Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine,ExecutablePath,ThreadCount,WorkingSetSize,VirtualSize,',
+    'Get-CimInstance Win32_Process | Select-Object '
+        + 'ProcessId,ParentProcessId,Name,CommandLine,ExecutablePath,ThreadCount,WorkingSetSize,VirtualSize,',
     "@{n='Started';e={if($_.CreationDate){$_.CreationDate.ToUniversalTime().ToString('o')}}}",
     '| ConvertTo-Json -Compress',
 ].join(' ');

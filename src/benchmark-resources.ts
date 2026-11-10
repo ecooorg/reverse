@@ -80,14 +80,17 @@ export class ResourceSampler {
             if (this.busy)
                 return;
             this.busy = true;
-            void (this.method === 'proc' ? this.readProc() : this.method === 'ps' ? this.readPs() : this.readPowerShell()).catch(() => undefined).finally(() => { this.busy = false; });
+            const read = this.method === 'proc' ? this.readProc() : this.method === 'ps' ? this.readPs() : this.readPowerShell();
+            void read.catch(() => undefined).finally(() => { this.busy = false; });
         };
         this.timer = setInterval(tick, interval);
         this.timer.unref?.();
         tick();
     }
     private async readProc(): Promise<void> {
-        const [raw, status] = await Promise.all([readFile(`/proc/${this.pid}/stat`, 'utf8'), readFile(`/proc/${this.pid}/status`, 'utf8').catch(() => '')]);
+        const [raw, status] = await Promise.all([
+            readFile(`/proc/${this.pid}/stat`, 'utf8'), readFile(`/proc/${this.pid}/status`, 'utf8').catch(() => '')
+        ]);
         const cpu = parseProcStatCpu(raw, clockTicks()), peak = parseProcStatusPeak(status);
         if (cpu === undefined)
             return;
@@ -98,7 +101,13 @@ export class ResourceSampler {
     }
     private readPs(): Promise<void> {
         return new Promise(resolve => {
-            execFile('ps', ['-o', 'rss=,time=', '-p', String(this.pid)], { timeout: 2000, signal: AbortSignal.timeout(2000), env: { ...process.env, LC_ALL: 'C' } }, (err, stdout) => {
+            execFile('ps', [
+                '-o', 'rss=,time=', '-p', String(this.pid)
+            ], {
+                timeout: 2000, signal: AbortSignal.timeout(2000), env: {
+                    ...process.env, LC_ALL: 'C'
+                }
+            }, (err, stdout) => {
                 const row = err ? undefined : parsePsRow(String(stdout));
                 if (row) {
                     this.samples++;
@@ -111,8 +120,14 @@ export class ResourceSampler {
     }
     private readPowerShell(): Promise<void> {
         return new Promise(resolve => {
-            const script = `$p=Get-Process -Id ${Number(this.pid)} -ErrorAction Stop; [pscustomobject]@{cpuMs=[int64]$p.TotalProcessorTime.TotalMilliseconds;rss=[int64]$p.WorkingSet64;peak=[int64]$p.PeakWorkingSet64}|ConvertTo-Json -Compress`;
-            execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { timeout: 5000, signal: AbortSignal.timeout(5000), windowsHide: true }, (err, stdout) => {
+            const script = `$p=Get-Process -Id ${Number(this.pid)} -ErrorAction Stop; `
+                + '[pscustomobject]@{cpuMs=[int64]$p.TotalProcessorTime.TotalMilliseconds;'
+                + 'rss=[int64]$p.WorkingSet64;peak=[int64]$p.PeakWorkingSet64}|ConvertTo-Json -Compress';
+            execFile('powershell.exe', [
+                '-NoProfile', '-NonInteractive', '-Command', script
+            ], {
+                timeout: 5000, signal: AbortSignal.timeout(5000), windowsHide: true
+            }, (err, stdout) => {
                 if (!err) {
                     try {
                         const v = JSON.parse(String(stdout));
@@ -135,7 +150,14 @@ export class ResourceSampler {
         if (this.timer)
             clearInterval(this.timer);
         if (this.samples === 0)
-            return { method: this.method, available: false, samples: 0, cpuTimeMs: null, peakRssBytes: null, reason: 'the process ended before the first sample' };
+            return {
+                method: this.method,
+                available: false,
+                samples: 0,
+                cpuTimeMs: null,
+                peakRssBytes: null,
+                reason: 'the process ended before the first sample'
+            };
         return { method: this.method, available: true, samples: this.samples, cpuTimeMs: this.cpu, peakRssBytes: this.peak };
     }
 }
@@ -146,7 +168,9 @@ export async function describeExecutable(command: string, cwd: string = process.
 } | null> {
     const win = process.platform === 'win32';
     const exts = win ? ['', ...(env.PATHEXT ?? env.PathExt ?? '.COM;.EXE;.BAT;.CMD').split(';').filter(Boolean)] : [''];
-    const dirs = /[\\/]/.test(command) ? [path.resolve(cwd, path.dirname(command))] : (env.PATH ?? env.Path ?? '').split(path.delimiter).filter(Boolean);
+    const dirs = /[\\/]/.test(command)
+        ? [path.resolve(cwd, path.dirname(command))]
+        : (env.PATH ?? env.Path ?? '').split(path.delimiter).filter(Boolean);
     const base = /[\\/]/.test(command) ? path.basename(command) : command;
     for (const dir of dirs)
         for (const ext of exts) {

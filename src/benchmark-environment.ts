@@ -4,7 +4,9 @@ import { VERSION } from './core-version.js';
 import type { RunSpec } from './benchmark-engine.js';
 import { result } from './core-types.js';
 // Names a child process may inherit. Everything else (tokens, API keys, cloud credentials) is dropped.
-const BASE_ENV = ['PATH', 'PATHEXT', 'SystemRoot', 'SYSTEMROOT', 'ComSpec', 'TEMP', 'TMP', 'TMPDIR', 'HOME', 'USERPROFILE', 'LANG', 'LC_ALL', 'TZ'];
+const BASE_ENV = [
+    'PATH', 'PATHEXT', 'SystemRoot', 'SYSTEMROOT', 'ComSpec', 'TEMP', 'TMP', 'TMPDIR', 'HOME', 'USERPROFILE', 'LANG', 'LC_ALL', 'TZ'
+];
 /** Environment for executed targets: the base names plus names listed in REVERSE_CHILD_ENV (comma separated). */
 export function childEnv(source: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
     const extra = (source.REVERSE_CHILD_ENV ?? '').split(',').map(s => s.trim()).filter(Boolean);
@@ -33,7 +35,13 @@ export function getEnvironmentFingerprint(spec?: Partial<RunSpec>) {
         catch { /* unavailable */ }
     }
     const cores = os.availableParallelism();
-    const noise = { loadAverage1m: loadAverage[0], loadPerCore: loadAverage[0] / cores, cpuGovernor, thermalMilliC, highLoad: loadAverage[0] / cores > 0.8 };
+    const noise = {
+        loadAverage1m: loadAverage[0],
+        loadPerCore: loadAverage[0] / cores,
+        cpuGovernor,
+        thermalMilliC,
+        highLoad: loadAverage[0] / cores > 0.8
+    };
     return {
         os: { platform: os.platform(), release: os.release(), arch: process.arch },
         cpu: { model: cpus[0]?.model ?? 'unknown', cores },
@@ -43,11 +51,16 @@ export function getEnvironmentFingerprint(spec?: Partial<RunSpec>) {
         reverse: VERSION,
         target: spec?.command ? { command: spec.command, args: spec.args ?? [] } : null,
         nonSecretEnvironment: { LANG: env.LANG ?? null, LC_ALL: env.LC_ALL ?? null, TZ: env.TZ ?? null },
-        parameters: spec ? { repetitions: spec.repetitions ?? null, warmupRuns: spec.warmupRuns ?? null, timeoutMs: spec.timeoutMs ?? null } : null,
+        parameters: spec ? {
+            repetitions: spec.repetitions ?? null, warmupRuns: spec.warmupRuns ?? null, timeoutMs: spec.timeoutMs ?? null
+        } : null,
     };
 }
 export type Fingerprint = ReturnType<typeof getEnvironmentFingerprint>;
-/** Names of the fingerprint parts that differ. Run parameters are listed as well: different counts are not a hardware problem, but they change the statistics. */
+/**
+ * Names of the fingerprint parts that differ. Run parameters are listed as well: different counts are not a hardware problem, but
+ * they change the statistics.
+ */
 export function fingerprintComparison(a?: Fingerprint, b?: Fingerprint): {
     comparable: boolean | null;
     differences: string[];
@@ -58,4 +71,9 @@ export function fingerprintComparison(a?: Fingerprint, b?: Fingerprint): {
     const differences = keys.filter(k => JSON.stringify(a[k]) !== JSON.stringify(b[k])).map(String);
     return { comparable: differences.length === 0, differences };
 }
-export const environmentFingerprintResult = () => result('local-host', 'environment_fingerprint', [getEnvironmentFingerprint()], { limitations: ['Only non-secret, allowlisted environment values are recorded.', 'Target version is not detected; the command line is recorded instead.'] });
+export const environmentFingerprintResult = () => result('local-host', 'environment_fingerprint', [getEnvironmentFingerprint()], {
+    limitations: [
+        'Only non-secret, allowlisted environment values are recorded.',
+        'Target version is not detected; the command line is recorded instead.'
+    ]
+});

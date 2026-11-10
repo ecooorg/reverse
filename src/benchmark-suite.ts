@@ -36,7 +36,14 @@ export async function createBenchmarkSuite(input: {
             throw new Error('Each suite case needs a unique name and command.');
         names.add(c.name);
     }
-    const suite: BenchmarkSuite = { suite_id: randomUUID(), name: input.name?.trim() || 'benchmark-suite', cases: input.cases, repetitions: Math.max(5, Math.min(20, Math.floor(input.repetitions ?? 5))), warmupRuns: Math.max(0, Math.min(5, Math.floor(input.warmupRuns ?? 1))), createdAt: now() };
+    const suite: BenchmarkSuite = {
+        suite_id: randomUUID(),
+        name: input.name?.trim() || 'benchmark-suite',
+        cases: input.cases,
+        repetitions: Math.max(5, Math.min(20, Math.floor(input.repetitions ?? 5))),
+        warmupRuns: Math.max(0, Math.min(5, Math.floor(input.warmupRuns ?? 1))),
+        createdAt: now()
+    };
     await save(suitePath(suite.suite_id), suite);
     return result(suite.name, 'create_benchmark_suite', [suite]);
 }
@@ -60,7 +67,9 @@ export async function runBenchmarkSuite(id: string) {
     for (let round = 0; round < suite.warmupRuns + suite.repetitions; round++) {
         for (const c of suite.cases) {
             const isWarmup = round < suite.warmupRuns;
-            const one = await runBenchmark({ command: c.command, args: c.args, cwd: c.cwd, timeoutMs: c.timeoutMs, repetitions: 1, warmupRuns: 0, label: c.name } satisfies RunSpec);
+            const one = await runBenchmark({
+                command: c.command, args: c.args, cwd: c.cwd, timeoutMs: c.timeoutMs, repetitions: 1, warmupRuns: 0, label: c.name
+            } satisfies RunSpec);
             const run = one.findings[0]?.runs?.[0];
             if (run) {
                 run.phase = isWarmup ? 'warmup' : 'measured';
@@ -77,10 +86,35 @@ export async function runBenchmarkSuite(id: string) {
         const good = runs.filter(x => !x.error && !x.timedOut && x.exitCode === 0);
         const times = good.map(x => x.durationMs).sort((a, b) => a - b);
         const mean = times.length ? times.reduce((a, b) => a + b, 0) / times.length : null;
-        const median = times.length ? (times.length % 2 ? times[(times.length - 1) / 2] : (times[times.length / 2 - 1] + times[times.length / 2]) / 2) : null;
-        return { label: c.name, command: c.command, args: c.args ?? [], repetitionsRequested: suite.repetitions, repetitionsCompleted: runs.length, successfulRuns: good.length, meanDurationMs: mean, medianDurationMs: median, runs, warmups: all.filter(x => x.phase === 'warmup'), environment: good[0]?.environment };
+        const median = times.length
+            ? (times.length % 2
+                ? times[(times.length - 1) / 2]
+                : (times[times.length / 2 - 1] + times[times.length / 2]) / 2)
+            : null;
+        return {
+            label: c.name,
+            command: c.command,
+            args: c.args ?? [],
+            repetitionsRequested: suite.repetitions,
+            repetitionsCompleted: runs.length,
+            successfulRuns: good.length,
+            meanDurationMs: mean,
+            medianDurationMs: median,
+            runs,
+            warmups: all.filter(x => x.phase === 'warmup'),
+            environment: good[0]?.environment
+        };
     });
-    const out = result(suite.name, 'run_benchmark_suite', findings, { status: findings.every(f => f.successfulRuns === suite.repetitions) ? 'completed' : 'partial', limitations: ['Cases are executed in round-robin order to reduce time-dependent bias; this is not CPU/load isolation.', 'Each sample is a fresh process. Warm-up runs are excluded from statistics.'], coverage: { examined: findings.some(f => f.repetitionsCompleted > 0), complete: findings.every(f => f.successfulRuns === suite.repetitions), notes: ['Round-robin interleaving is enabled by default.'] } });
+    const out = result(suite.name, 'run_benchmark_suite', findings, {
+        status: findings.every(f => f.successfulRuns === suite.repetitions) ? 'completed' : 'partial', limitations: [
+            'Cases are executed in round-robin order to reduce time-dependent bias; this is not CPU/load isolation.',
+            'Each sample is a fresh process. Warm-up runs are excluded from statistics.'
+        ], coverage: {
+            examined: findings.some(f => f.repetitionsCompleted > 0),
+            complete: findings.every(f => f.successfulRuns === suite.repetitions),
+            notes: ['Round-robin interleaving is enabled by default.']
+        }
+    });
     const file = path.join(storeDir(), 'benchmarks', `${out.id}.json`);
     await save(file, out);
     return { ...out, findings: findings.map(f => ({ ...f, artifactPath: file })) };
@@ -93,16 +127,25 @@ export async function compareBenchmarkSuites(before: any, after: any) {
             return { label: x.label, verdict: 'insufficient_evidence', reason: 'Matching case missing from after suite.' };
         return { label: x.label, comparison: await compareBenchmarks({ findings: [x] }, { findings: [y] }) };
     }));
-    return result('benchmark-suites', 'compare_benchmarks', rows, { status: rows.length && rows.every((r: any) => r.comparison) ? 'completed' : 'partial', limitations: ['Each case comparison requires at least five successful runs per side and comparable environment fingerprints.'] });
+    return result('benchmark-suites', 'compare_benchmarks', rows, {
+        status: rows.length && rows.every((r: any) => r.comparison) ? 'completed' : 'partial',
+        limitations: ['Each case comparison requires at least five successful runs per side and comparable environment fingerprints.']
+    });
 }
 export async function captureBaseline(spec: RunSpec & {
     name?: string;
 }) {
     const measured = await runBenchmark({ ...spec, label: spec.name ?? spec.label ?? 'baseline' });
-    const baseline = { baseline_id: randomUUID(), name: spec.name ?? spec.label ?? 'baseline', createdAt: now(), benchmark: measured };
+    const baseline = {
+        baseline_id: randomUUID(), name: spec.name ?? spec.label ?? 'baseline', createdAt: now(), benchmark: measured
+    };
     const file = path.join(storeDir(), 'baselines', `${baseline.baseline_id}.json`);
     await save(file, baseline);
-    return result(baseline.name, 'capture_baseline', [{ baseline_id: baseline.baseline_id, name: baseline.name, artifactPath: file, benchmark: measured }], { status: measured.status, limitations: measured.limitations, coverage: measured.coverage });
+    return result(baseline.name, 'capture_baseline', [{
+            baseline_id: baseline.baseline_id, name: baseline.name, artifactPath: file, benchmark: measured
+        }], {
+        status: measured.status, limitations: measured.limitations, coverage: measured.coverage
+    });
 }
 export async function getBaseline(id: string) {
     if (!safe(id))

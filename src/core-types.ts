@@ -39,6 +39,26 @@ export interface Result<T> {
     coverage: Coverage;
     pagination?: Pagination;
 }
-export function result<T>(target: string, operation: string, findings: T[], options: Partial<Pick<Result<T>, 'status' | 'evidence' | 'limitations' | 'errors' | 'coverage' | 'pagination'>> = {}): Result<T> {
-    return { schemaVersion: '1.0', id: randomUUID(), target, operation, status: options.status ?? 'completed', generatedAt: new Date().toISOString(), host: { hostname: hostname(), platform: platform(), arch: process.arch }, findings, evidence: options.evidence ?? [], limitations: options.limitations ?? [], errors: options.errors ?? [], coverage: options.coverage ?? { examined: true, complete: true, notes: [] }, ...(options.pagination ? { pagination: options.pagination } : {}) };
+type ResultOptions<T> = Partial<Pick<Result<T>, 'status' | 'evidence' | 'limitations' | 'errors' | 'coverage' | 'pagination'>>;
+export function result<T>(target: string, operation: string, findings: T[], options: ResultOptions<T> = {}): Result<T> {
+    return {
+        schemaVersion: '1.0',
+        id: randomUUID(),
+        target,
+        operation,
+        status: options.status ?? 'completed',
+        generatedAt: new Date().toISOString(),
+        host: {
+            hostname: hostname(), platform: platform(), arch: process.arch
+        },
+        findings,
+        evidence: options.evidence ?? [],
+        limitations: options.limitations ?? [],
+        errors: options.errors ?? [],
+        coverage: options.coverage ?? {
+            examined: true, complete: true, notes: []
+        }, ...(options.pagination ? {
+            pagination: options.pagination
+        } : {})
+    };
 }

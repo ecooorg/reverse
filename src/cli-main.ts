@@ -10,14 +10,42 @@ import { readJson } from './core-util.js';
 import { listProviders } from './providers-registry.js';
 import { VERSION } from './core-version.js';
 import { parseArgs } from 'node:util';
-const parsed = parseArgs({ args: process.argv.slice(2), strict: false, allowPositionals: true, options: {
-        arg: { type: 'string', multiple: true }, command: { type: 'string' }, cwd: { type: 'string' }, timeout: { type: 'string' }, repeat: { type: 'string' }, label: { type: 'string' }, expected: { type: 'string' }, duration: { type: 'string' }, interval: { type: 'string' }, limit: { type: 'string' }, json: { type: 'boolean' },
-    } });
+const parsed = parseArgs({
+    args: process.argv.slice(2), strict: false, allowPositionals: true, options: {
+        arg: {
+            type: 'string', multiple: true
+        }, command: {
+            type: 'string'
+        }, cwd: {
+            type: 'string'
+        }, timeout: {
+            type: 'string'
+        }, repeat: {
+            type: 'string'
+        }, label: {
+            type: 'string'
+        }, expected: {
+            type: 'string'
+        }, duration: {
+            type: 'string'
+        }, interval: {
+            type: 'string'
+        }, limit: {
+            type: 'string'
+        }, json: {
+            type: 'boolean'
+        },
+    }
+});
 const [cmd, ...args] = parsed.positionals;
 const value = (k: string, d?: string) => { const v = parsed.values[k.replace(/^--/, '')]; return typeof v === 'string' ? v : d; };
 const num = (k: string, d: number) => Number(value(k, String(d)));
 /** Every `--arg X` becomes one argument of the target command, in order. */
-const commandArgs = (): string[] => { const v = parsed.values.arg; return (Array.isArray(v) ? v : v === undefined ? [] : [v]).filter((x): x is string => typeof x === 'string'); };
+const commandArgs = (): string[] => {
+    const v = parsed.values.arg;
+    const list = Array.isArray(v) ? v : v === undefined ? [] : [v];
+    return list.filter((x): x is string => typeof x === 'string');
+};
 const positional = (usage: string) => {
     if (!args[0] || args[0].startsWith('--'))
         throw new Error(`Missing argument. Usage: reverse ${usage}`);
@@ -73,14 +101,23 @@ async function main() {
             out = await profileProcess(Number(positional('profile <pid>')), num('--duration', 3000), num('--interval', 250));
             break;
         case 'benchmark':
-            out = await runBenchmark({ command: value('--command') ?? '', args: commandArgs(), cwd: value('--cwd'), timeoutMs: num('--timeout', 30000), repetitions: num('--repeat', 3), label: value('--label') });
+            out = await runBenchmark({
+                command: value('--command') ?? '',
+                args: commandArgs(),
+                cwd: value('--cwd'),
+                timeoutMs: num('--timeout', 30000),
+                repetitions: num('--repeat', 3),
+                label: value('--label')
+            });
             break;
         case 'compare':
             out = await compareBenchmarks(await readJson(positional('compare <before.json> <after.json>')), await readJson(args[1] ?? ''));
             break;
         case 'validate': {
             const expected = await readJson(value('--expected') ?? '');
-            out = await validateBehavior({ command: value('--command') ?? '', args: commandArgs(), cwd: value('--cwd'), timeoutMs: num('--timeout', 30000) }, expected, num('--repeat', 1));
+            out = await validateBehavior({
+                command: value('--command') ?? '', args: commandArgs(), cwd: value('--cwd'), timeoutMs: num('--timeout', 30000)
+            }, expected, num('--repeat', 1));
             break;
         }
         case 'analyzers':
@@ -92,7 +129,16 @@ async function main() {
             const dir = storeDir();
             await mkdir(dir, { recursive: true });
             await access(dir);
-            out = { operation: 'doctor', status: 'completed', node: process.version, requiredNode: '>=22', platform: process.platform, storeDir: dir, storeWritable: true, providers: listProviders() };
+            out = {
+                operation: 'doctor',
+                status: 'completed',
+                node: process.version,
+                requiredNode: '>=22',
+                platform: process.platform,
+                storeDir: dir,
+                storeWritable: true,
+                providers: listProviders()
+            };
             break;
         }
         case 'mcp':

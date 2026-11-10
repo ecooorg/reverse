@@ -52,7 +52,34 @@ export interface ResearchSession {
     };
 }
 const digest = (v: unknown) => createHash('sha256').update(JSON.stringify(v)).digest('hex');
+type Hyp = HypothesisRecord;
 const idPattern = /^[a-zA-Z0-9_-]{1,128}$/;
+/** Minimum confidence an evidence record needs before it may promote a hypothesis. */
+export const PROMOTION_MIN_CONFIDENCE = 0.5;
+type HypothesisInput = Omit<HypothesisRecord, 'kind' | 'hypothesis_id' | 'createdAt' | 'updatedAt' | 'status' | 'target_id'>;
+const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+/**
+ * Why `evidence` may NOT promote a hypothesis, or null when it may. The type alone is not enough: the content has to say the
+ * check passed (Validation) or that a statistically supported improvement was observed (Benchmark), the record must be
+ * intact and its confidence must reach {@link PROMOTION_MIN_CONFIDENCE}.
+ */
+export function promotionBlocker(evidence: EvidenceRecord | undefined): string | null {
+    if (!evidence || (evidence.type !== 'Validation' && evidence.type !== 'Benchmark'))
+        return 'A hypothesis can be promoted only by referencing Validation or Benchmark evidence in this session.';
+    const { hash, ...base } = evidence;
+    if (digest(base) !== hash)
+        return 'The referenced evidence does not match its hash; it cannot promote a hypothesis.';
+    if (evidence.confidence < PROMOTION_MIN_CONFIDENCE)
+        return `The referenced evidence has confidence ${evidence.confidence}, below the promotion minimum ${PROMOTION_MIN_CONFIDENCE}.`;
+    const m = evidence.measurement;
+    if (!isObject(m))
+        return 'The referenced evidence has no structured measurement.';
+    if (evidence.type === 'Validation' && m.passed !== true)
+        return 'Validation evidence promotes a hypothesis only when its measurement says passed: true.';
+    if (evidence.type === 'Benchmark' && m.verdict !== 'improved' && m.improved !== true)
+        return 'Benchmark evidence promotes a hypothesis only when its comparison verdict is "improved".';
+    return null;
+}
 export class EvidenceEngine {
     async record(kind: string, source: string, details: Record<string, unknown> = {}, sha256?: string): Promise<EvidenceRef> {
         const ref: EvidenceRef = { id: randomUUID(), kind, source, observedAt: now(), ...(sha256 ? { sha256 } : {}), details };
@@ -82,7 +109,16 @@ export class EvidenceEngine {
         if (!targetId.trim())
             throw new Error('targetId is required.');
         const at = now();
-        const session: ResearchSession = { session_id: randomUUID(), target_id: targetId, createdAt: at, updatedAt: at, entries: [], hypotheses: [], evidence: [], links: {} };
+        const session: ResearchSession = {
+            session_id: randomUUID(),
+            target_id: targetId,
+            createdAt: at,
+            updatedAt: at,
+            entries: [],
+            hypotheses: [],
+            evidence: [],
+            links: {}
+        };
         await this.appendEntry(session, 'event', { event: 'session_created', target_id: targetId });
         await this.saveSession(session);
         return session;
@@ -99,14 +135,16 @@ export class EvidenceEngine {
         if (!Number.isFinite(input.confidence) || input.confidence < 0 || input.confidence > 1)
             throw new Error('confidence must be between 0 and 1.');
         const s = await this.requireSession(sessionId);
-        const record: EvidenceRecord = { ...input, target_id: input.target_id ?? s.target_id, evidence_id: randomUUID(), timestamp: now(), hash: '' };
+        const record: EvidenceRecord = {
+            ...input, target_id: input.target_id ?? s.target_id, evidence_id: randomUUID(), timestamp: now(), hash: ''
+        };
         record.hash = digest({ ...record, hash: undefined });
         s.evidence.push(record);
         await this.appendEntry(s, 'evidence', record);
         await this.saveSession(s);
         return record;
     }
-    async addHypothesis(sessionId: string, input: Omit<HypothesisRecord, 'kind' | 'hypothesis_id' | 'createdAt' | 'updatedAt' | 'status' | 'target_id'> & {
+    async addHypothesis(sessionId: string, input: HypothesisInput & {
         status?: HypothesisStatus;
     }): Promise<HypothesisRecord> {
         if (!input.statement.trim())
@@ -114,18 +152,28 @@ export class EvidenceEngine {
         if (!Number.isFinite(input.confidence) || input.confidence < 0 || input.confidence > 1)
             throw new Error('confidence must be between 0 and 1.');
         const s = await this.requireSession(sessionId), at = now();
-        const h: HypothesisRecord = { ...input, target_id: s.target_id, kind: 'hypothesis', hypothesis_id: randomUUID(), status: input.status ?? 'open', createdAt: at, updatedAt: at };
+        const h: HypothesisRecord = {
+            ...input,
+            target_id: s.target_id,
+            kind: 'hypothesis',
+            hypothesis_id: randomUUID(),
+            status: input.status ?? 'open',
+            createdAt: at,
+            updatedAt: at
+        };
         s.hypotheses.push(h);
         await this.appendEntry(s, 'hypothesis', h);
         await this.saveSession(s);
         return h;
     }
-    async updateHypothesis(sessionId: string, hypothesisId: string, status: HypothesisStatus, evidenceId?: string): Promise<HypothesisRecord> {
+    async updateHypothesis(sessionId: string, hypothesisId: string, status: HypothesisStatus, evidenceId?: string): Promise<Hyp> {
         const s = await this.requireSession(sessionId), h = s.hypotheses.find(x => x.hypothesis_id === hypothesisId);
         if (!h)
             throw new Error(`Hypothesis not found: ${hypothesisId}`);
-        if (status === 'supported' && (!evidenceId || !s.evidence.some(e => e.evidence_id === evidenceId && (e.type === 'Validation' || e.type === 'Benchmark')))) {
-            throw new Error('A hypothesis can be promoted only by referencing Validation or Benchmark evidence in this session.');
+        if (status === 'supported') {
+            const blocker = promotionBlocker(s.evidence.find(e => e.evidence_id === evidenceId));
+            if (blocker)
+                throw new Error(blocker);
         }
         h.status = status;
         h.updatedAt = now();
