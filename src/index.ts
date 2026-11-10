@@ -15,3 +15,6 @@ export { bootstrapExternalProviders } from './providers-bootstrap.js';
 export { createGhidraProvider, createGhidraSimilarityProvider } from './providers-ghidra.js';
 export { createRizinProvider } from './providers-rizin.js';
 export { createJadxProvider, createApktoolProvider } from './providers-android-tools.js';
+export { getHotspots, getProcessIo } from './profiling-hotspots.js';
+export { traceWithFrida } from './providers-frida.js';
+export { inspectWithGdb } from './providers-gdb.js';

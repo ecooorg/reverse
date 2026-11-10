@@ -58,7 +58,7 @@ const builtIn: ProviderListEntry[] = [
     }
 ];
 /** Labels that stay extension-points until their own patch wires them. */
-const FUTURE_EXTENSIONS = ['frida', 'gdb', 'perf', 'ebpf', 'etw', 'instruments'] as const;
+const FUTURE_EXTENSIONS = [] as const; // G/H: frida/gdb/perf/ebpf/etw/instruments are registered adapters
 export function registerProvider(p: AnalyzerProvider) {
     if (providers.some(x => x.name === p.name) || builtIn.some(x => x.name === p.name)) {
         throw new Error(`Provider already registered: ${p.name}`);

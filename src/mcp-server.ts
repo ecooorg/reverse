@@ -15,6 +15,8 @@ import { profileProcess, monitorProcess, detectResourceAnomalies } from './profi
 import { runBenchmark, compareBenchmarks } from './benchmark-engine.js';
 import { validateBehavior } from './benchmark-validation.js';
 import { listProviders, runProvider } from './providers-registry.js';
+import { getHotspots, getProcessIo } from './profiling-hotspots.js';
+import { traceWithFrida } from './providers-frida.js';
 import { getResourceControlStatus } from './process-safety.js';
 import { checkCommandGate, operatingMode } from './benchmark-gate.js';
 import { evidenceFromResult } from './evidence-collect.js';
@@ -95,6 +97,9 @@ async function call(name: string, a: any, signal?: AbortSignal) {
         }
         case 'list_analyzers': return listProviders();
         case 'run_provider': return runProvider(a.name, a.target, { timeoutMs: a.timeoutMs, signal });
+        case 'trace_execution': return traceWithFrida(a.target, { pid: a.pid, durationMs: a.durationMs, signal });
+        case 'get_hotspots': return getHotspots(a.pid, { durationMs: a.durationMs, signal });
+        case 'get_process_io': return getProcessIo(a.pid);
         case 'create_benchmark_suite': return createBenchmarkSuite(a);
         case 'run_benchmark_suite': return runBenchmarkSuite(a.id);
         case 'compare_benchmarks': return compareBenchmarkSuites(a.before, a.after);

@@ -1,7 +1,17 @@
 import { registerProvider } from './providers-registry.js';
-import { createGhidraProvider, createGhidraSimilarityProvider } from './providers-ghidra.js';
+import { createGhidraProvider } from './providers-ghidra.js';
+import { createGhidraSimilarityProvider } from './providers-ghidra.js';
 import { createRizinProvider } from './providers-rizin.js';
-import { createJadxProvider, createApktoolProvider } from './providers-android-tools.js';
+import { createJadxProvider } from './providers-android-tools.js';
+import { createApktoolProvider } from './providers-android-tools.js';
+import { createFridaProvider } from './providers-frida.js';
+import { createGdbProvider } from './providers-gdb.js';
+import { createPerfProvider } from './providers-native-profile.js';
+import { createEbpfProvider } from './providers-native-profile.js';
+import { createEtwProvider } from './providers-native-profile.js';
+import { createInstrumentsProvider } from './providers-native-profile.js';
+import { createValgrindProvider } from './providers-native-profile.js';
+import { createSimpleperfProvider } from './providers-native-profile.js';
 let done = false;
 /** Register opt-in external adapters once. Safe to call multiple times. */
 export function bootstrapExternalProviders(): void {
@@ -13,7 +23,15 @@ export function bootstrapExternalProviders(): void {
         createGhidraSimilarityProvider(),
         createRizinProvider(),
         createJadxProvider(),
-        createApktoolProvider()
+        createApktoolProvider(),
+        createFridaProvider(),
+        createGdbProvider(),
+        createPerfProvider(),
+        createEbpfProvider(),
+        createEtwProvider(),
+        createInstrumentsProvider(),
+        createValgrindProvider(),
+        createSimpleperfProvider()
     ]) {
         try {
             registerProvider(p);
@@ -23,5 +41,4 @@ export function bootstrapExternalProviders(): void {
         }
     }
 }
-// Auto-register on import so CLI/MCP see them.
 bootstrapExternalProviders();

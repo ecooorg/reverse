@@ -178,5 +178,41 @@ export const processTools: any[] = [
         inputSchema: {
             type: 'object', properties: {}
         }
+    },
+    {
+        name: 'trace_execution',
+        description: 'Dynamic trace via Frida under CONTROLLED_EXECUTION. Unsupported if Frida or mode missing.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                target: { type: 'string' },
+                pid: { type: 'number' },
+                durationMs: { type: 'number' }
+            },
+            required: ['target']
+        }
+    },
+    {
+        name: 'get_hotspots',
+        description: 'Function hotspots from a real profiler (perf/sample) when available; else process-level only.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                pid: { type: 'number' },
+                durationMs: { type: 'number' }
+            },
+            required: ['pid']
+        }
+    },
+    {
+        name: 'get_process_io',
+        description: 'Per-process disk I/O counters where the OS exposes them (Linux /proc/pid/io).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                pid: { type: 'number' }
+            },
+            required: ['pid']
+        }
     }
 ];
