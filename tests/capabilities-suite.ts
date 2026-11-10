@@ -257,6 +257,24 @@ check('Legacy Windows', 'MZ + NE executable is recognized as a 16-bit Windows NE
     assert.equal(r.findings[0].bitness, 16);
     assert.equal(r.findings[0].compatibilityFindings[0].needsExecutionEnvironment, true);
 });
+check('Legacy Windows', 'Delphi form/RTTI signatures are reported as bounded static structural evidence', async () => {
+    const b = Buffer.alloc(256);
+    b.write('MZ', 0, 'ascii');
+    b.write('TPF0 TForm TApplication TComponent TControl', 64, 'ascii');
+    const r: any = await analyzeLegacyWindows(await craft('legacy-delphi.exe', b));
+    assert.ok(r.findings[0].structuralDetectors.some((x: any) => x.name.includes('form stream')));
+    assert.ok(r.findings[0].structuralDetectors.some((x: any) => x.name.includes('RTTI-style')));
+});
+check('Legacy Windows', 'legacy analysis report preserves the declared authorization provenance', async () => {
+    const b = Buffer.alloc(64);
+    b.write('MZ', 0, 'ascii');
+    const authorization = {
+        basis: 'open_source', licenseOrConsentReference: 'LICENSE',
+        declaredBy: 'capability-test', declaredAt: '2026-11-10T00:00:00.000Z'
+    };
+    const r: any = await analyzeLegacyWindows(await craft('legacy-authorized.exe', b), authorization);
+    assert.deepEqual(r.findings[0].authorization, authorization);
+});
 // ---------------------------------------------------------------- 2. binary analysis
 check('Binary', 'ELF64 little-endian x86_64 header is parsed (arch, bitness, endian, entry point)', async () => {
     const r = await analyzeBinary(await craft('elf64.bin', elf({ cls: 2, le: true, machine: 62, entry: 0x401000n })));
