@@ -1607,7 +1607,13 @@ const DOCUMENTED_TOOLS = [
     'link_research_artifacts',
     'generate_change_report',
     'verify_evidence_integrity',
-    'run_validation_fixtures'
+    'run_validation_fixtures',
+    'create_change_workspace',
+    'apply_change',
+    'rollback_change',
+    'accept_change',
+    'decide_optimization',
+    'run_apk_pipeline'
 ];
 check('MCP', 'handshake: initialize, ping and tools/list', async () => {
     const s = startMcp();
@@ -1964,5 +1970,77 @@ check('MCP', 'tools carry annotations: command-running tools are not read-only',
     }
     finally {
         await s.close();
+    }
+});
+check('Optimization', 'decide accept only with improved + validation passed', async () => {
+    const { decideOptimization } = await import('../dist/optimization-decision.js');
+    const a: any = decideOptimization({
+        performanceVerdict: 'improved', validationPassed: true
+    });
+    assert.equal(a.findings[0].decision, 'accept');
+    const r: any = decideOptimization({
+        performanceVerdict: 'regressed', validationPassed: true
+    });
+    assert.equal(r.findings[0].decision, 'roll_back');
+    const n: any = decideOptimization({
+        performanceVerdict: 'insufficient_evidence', validationPassed: true
+    });
+    assert.equal(n.findings[0].decision, 'need_more_data');
+    const rej: any = decideOptimization({
+        performanceVerdict: 'improved', validationPassed: false
+    });
+    assert.equal(rej.findings[0].decision, 'reject');
+});
+check('Optimization', 'workspace create refused without CONTROLLED_EXECUTION and confirm', async () => {
+    const { createChangeWorkspace } = await import('../dist/optimization-workspace.js');
+    const prev = process.env.REVERSE_MODE;
+    delete process.env.REVERSE_MODE;
+    try {
+        const r: any = await createChangeWorkspace(WORK, { confirm: false });
+        assert.equal(r.status, 'unsupported');
+    }
+    finally {
+        if (prev === undefined)
+            delete process.env.REVERSE_MODE;
+        else
+            process.env.REVERSE_MODE = prev;
+    }
+});
+check('Optimization', 'workspace copies target and rollback restores workPath', async () => {
+    const fs = await import('node:fs/promises');
+    const path = await import('node:path');
+    const { createChangeWorkspace, rollbackChangeWorkspace, loadWorkspace } = await import('../dist/optimization-workspace.js');
+    const { applyChange } = await import('../dist/optimization-apply.js');
+    const prev = process.env.REVERSE_MODE;
+    process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
+    const dir = path.join(WORK, 'opt-src');
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(path.join(dir, 'a.txt'), 'v1', 'utf8');
+    try {
+        const created: any = await createChangeWorkspace(dir, { confirm: true });
+        assert.equal(created.status, 'completed');
+        const id = created.findings[0].workspace_id;
+        const ws = await loadWorkspace(id);
+        assert.ok(ws);
+        await applyChange({
+            workspace_id: id,
+            changeType: 'source_edit',
+            relativePath: 'a.txt',
+            contents: 'v2',
+            permission: { confirm: true }
+        });
+        const mid = await fs.readFile(path.join(ws!.workPath, 'a.txt'), 'utf8');
+        assert.equal(mid, 'v2');
+        const orig = await fs.readFile(path.join(dir, 'a.txt'), 'utf8');
+        assert.equal(orig, 'v1', 'original must stay untouched');
+        await rollbackChangeWorkspace(id, { confirm: true });
+        const after = await fs.readFile(path.join(ws!.workPath, 'a.txt'), 'utf8');
+        assert.equal(after, 'v1');
+    }
+    finally {
+        if (prev === undefined)
+            delete process.env.REVERSE_MODE;
+        else
+            process.env.REVERSE_MODE = prev;
     }
 });
