@@ -28,6 +28,11 @@ import { profileProcess } from '../dist/profiling-profiler.js';
 import { MAC_PS_FIELDS, parseEtime, parseMacPs, parseWindowsCim } from '../dist/process-parse.js';
 import { getProcessIdentity, verifyProcessIdentity, verifyProcessOwnership } from '../dist/process-inspector.js';
 import { getResourceControlStatus, withProcessResourceLimits } from '../dist/process-safety.js';
+import { analyzeMemory, analyzeCpu, analyzeIo } from '../dist/process-inspector.js';
+import { findAnomalies } from '../dist/profiling-profiler.js';
+import { checkCommandGate, operatingMode } from '../dist/benchmark-gate.js';
+import { evidenceFromResult } from '../dist/evidence-collect.js';
+import { promotionBlocker } from '../dist/evidence-engine.js';
 import { runBenchmark, compareBenchmarks } from '../dist/benchmark-engine.js';
 import { validateBehavior } from '../dist/benchmark-validation.js';
 import { EvidenceEngine } from '../dist/evidence-engine.js';
@@ -217,7 +222,14 @@ check('Package', 'built output exists and the library exports the documented API
         assert.ok(existsSync(path.join(DIST, `${f}.js`)), `dist/${f}.js missing`);
     const lib: any = await import(pathToFileURL(path.join(DIST, 'index.js')).href);
     const expected = ['EvidenceEngine', 'analyzeBinary', 'analyzeDependencies', 'analyzeSource', 'compareBenchmarks', 'getProviderStatus',
-        'inspectProcess', 'listProcesses', 'listProviders', 'profileProcess', 'registerProvider', 'result', 'runBenchmark', 'validateBehavior'];
+        'inspectProcess',
+        'listProcesses',
+        'listProviders',
+        'profileProcess',
+        'registerProvider',
+        'result',
+        'runBenchmark',
+        'validateBehavior'];
     for (const k of expected)
         assert.equal(typeof lib[k], 'function', `export ${k}`);
     c.note(`${expected.length} exports present`);
@@ -329,7 +341,13 @@ check('Source', 'inventories files, counts extensions/lines, extracts bare impor
     await mkdir(path.join(SRC, '.github'), { recursive: true });
     await mkdir(path.join(SRC, 'dist'), { recursive: true });
     await mkdir(path.join(SRC, 'sub'), { recursive: true });
-    await writeFile(path.join(SRC, 'a.ts'), "import fs from 'node:fs';\nimport g from 'lodash/get';\nimport l from './local.js';\nconst z = require('left-pad');\n");
+    const imports = [
+        "import fs from 'node:fs';",
+        "import g from 'lodash/get';",
+        "import l from './local.js';",
+        "const z = require('left-pad');"
+    ];
+    await writeFile(path.join(SRC, 'a.ts'), imports.join('\n') + '\n');
     await writeFile(path.join(SRC, 'b.py'), 'print("x")\n');
     await writeFile(path.join(SRC, 'c.js'), "// see: from 'fake-pkg'\nexport {};\n");
     await writeFile(path.join(SRC, 'sub', 'd.go'), 'package main\n');
@@ -378,7 +396,11 @@ check('Source', 'this repository itself can be inventoried', async () => {
 check('Dependencies', 'reads dependencies, devDependencies and optionalDependencies', async () => {
     const d = path.join(WORK, 'deps');
     await mkdir(d, { recursive: true });
-    await writeFile(path.join(d, 'package.json'), j({ dependencies: { a: '^1.0.0' }, devDependencies: { b: '~2.0.0' }, optionalDependencies: { c: '3.x' } }));
+    await writeFile(path.join(d, 'package.json'), j({
+        dependencies: { a: '^1.0.0' },
+        devDependencies: { b: '~2.0.0' },
+        optionalDependencies: { c: '3.x' }
+    }));
     const r: any = await analyzeDependencies(d);
     assert.deepEqual(r.findings.map((x: any) => [x.name, x.declaredVersion]), [['a', '^1.0.0'], ['b', '~2.0.0'], ['c', '3.x']]);
     assert.equal(r.status, 'completed');
@@ -475,7 +497,8 @@ check('Processes', 'macOS ps output is parsed (fixture): paths with spaces, etim
     assert.equal(MAC_PS_FIELDS.at(-1), 'comm=', 'comm may contain spaces, so it must be the last column');
     const table = [
         '    1     0     0   0.0  13024 4294000 12-03:04:05 Mon Nov  2 09:12:01 2026 /sbin/launchd',
-        '  512     1   501  12.5 204800 9000000    01:02:03 Mon Nov  9 06:54:40 2026 /Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+        '  512     1   501  12.5 204800 9000000    01:02:03 Mon Nov  9 06:54:40 2026 '
+            + '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
         'not a process row',
     ].join('\n');
     const args = ['    1 /sbin/launchd', '  512 /Applications/Google Chrome.app/Contents/MacOS/Google Chrome --type=renderer'].join('\n');
@@ -498,14 +521,38 @@ check('Processes', 'macOS ps output is parsed (fixture): paths with spaces, etim
     assert.equal(parseEtime('garbage'), undefined);
 });
 check('Processes', 'Windows CIM JSON is parsed (fixture): ISO start time, null values, single object, BOM', () => {
-    const one = parseWindowsCim('\uFEFF' + j({ ProcessId: 4321, ParentProcessId: 4, Name: 'node.exe', CommandLine: null, ExecutablePath: 'C:\\node.exe', ThreadCount: 11, WorkingSetSize: 5000, VirtualSize: 0, Started: '2026-11-09T06:54:40.1234567Z' }));
+    const one = parseWindowsCim('\uFEFF'
+        + j({
+            ProcessId: 4321,
+            ParentProcessId: 4,
+            Name: 'node.exe',
+            CommandLine: null,
+            ExecutablePath: 'C:\\node.exe',
+            ThreadCount: 11,
+            WorkingSetSize: 5000,
+            VirtualSize: 0,
+            Started: '2026-11-09T06:54:40.1234567Z'
+        }));
     assert.equal(one.length, 1);
     assert.equal(one[0].identityToken, 'windows:2026-11-09T06:54:40.1234567Z');
     assert.equal(one[0].startedAt, '2026-11-09T06:54:40.123Z');
     assert.equal(one[0].command, '');
     assert.equal(one[0].threads, 11);
     assert.equal(one[0].vmsBytes, undefined);
-    const many = parseWindowsCim(j([{ ProcessId: 0, ParentProcessId: 0, Name: 'System Idle Process', Started: null }, { ProcessId: 8, ParentProcessId: 0, Name: 'a', Started: 'not a date' }]));
+    const many = parseWindowsCim(j([
+        {
+            ProcessId: 0,
+            ParentProcessId: 0,
+            Name: 'System Idle Process',
+            Started: null
+        },
+        {
+            ProcessId: 8,
+            ParentProcessId: 0,
+            Name: 'a',
+            Started: 'not a date'
+        }
+    ]));
     assert.equal(many.length, 2);
     assert.ok(many.every(p => p.startedAt === undefined && p.identityToken === undefined), 'an unreadable start time must not throw');
     assert.deepEqual(parseWindowsCim(''), []);
@@ -524,8 +571,9 @@ check('Safety', 'resource-control status is reported without claiming isolation'
     const r: any = await getResourceControlStatus();
     assert.equal(r.operation, 'resource_control_status');
     assert.ok(r.findings.length === 1);
-    await assert.rejects(withProcessResourceLimits(process.pid, { memoryMaxBytes: 64 * 1024 * 1024 }, 'READ_ONLY', true, async () => true), /CONTROLLED_EXECUTION/);
-    await assert.rejects(withProcessResourceLimits(process.pid, { memoryMaxBytes: 64 * 1024 * 1024 }, 'CONTROLLED_EXECUTION', false, async () => true), /confirm=true/);
+    const limit = { memoryMaxBytes: 64 * 1024 * 1024 };
+    await assert.rejects(withProcessResourceLimits(process.pid, limit, 'READ_ONLY', true, async () => true), /CONTROLLED_EXECUTION/);
+    await assert.rejects(withProcessResourceLimits(process.pid, limit, 'CONTROLLED_EXECUTION', false, async () => true), /confirm=true/);
 });
 // ---------------------------------------------------------------- 6. profiling
 check('Profiling', 'samples CPU/RSS of a live process and aggregates average/peak', async (c) => {
@@ -537,7 +585,8 @@ check('Profiling', 'samples CPU/RSS of a live process and aggregates average/pea
         const r: any = await profileProcess(child.pid!, 700, 100);
         const f = r.findings[0];
         if (WIN && r.status === 'partial' && /Command failed|timed out|ETIMEDOUT/i.test(j(r.errors))) {
-            c.drift(`PowerShell sampling failed under load (helper timeout is configurable through REVERSE_EXEC_TIMEOUT_MS; one PowerShell start per sample): ${String(r.errors[0]).slice(0, 90)}`);
+            c.drift('PowerShell sampling failed under load (helper timeout is configurable through REVERSE_EXEC_TIMEOUT_MS; '
+                + `one PowerShell start per sample): ${String(r.errors[0]).slice(0, 90)}`);
             return;
         }
         assert.equal(r.status, 'completed', j(r.errors));
@@ -688,16 +737,27 @@ check('Benchmark', 'captured output never exceeds 1 MiB (bytes) per stream, what
     const CAP = 1024 * 1024;
     const small: any = await runBenchmark({
         command: NODE, repetitions: 1, timeoutMs: 60000,
-        args: nodeEval('const c="x".repeat(16384);let n=0;(function w(){while(n<250){n++;if(!process.stdout.write(c))return process.stdout.once("drain",w);}})()'),
+        args: nodeEval('const c="x".repeat(16384);let n=0;'
+            + '(function w(){while(n<250){n++;if(!process.stdout.write(c))return process.stdout.once("drain",w);}})()'),
     });
     const s = small.findings[0].runs[0];
     assert.equal(Buffer.byteLength(s.stdout), CAP, 'small chunks');
     assert.equal(s.stdoutTruncated, true);
-    const big: any = await runBenchmark({ command: NODE, args: nodeEval('process.stdout.write("x".repeat(4e6));process.stderr.write("y".repeat(3e6))'), repetitions: 1, timeoutMs: 60000 });
+    const big: any = await runBenchmark({
+        command: NODE,
+        args: nodeEval('process.stdout.write("x".repeat(4e6));process.stderr.write("y".repeat(3e6))'),
+        repetitions: 1,
+        timeoutMs: 60000
+    });
     const b = big.findings[0].runs[0];
     assert.equal(Buffer.byteLength(b.stdout), CAP, 'one huge chunk');
     assert.equal(Buffer.byteLength(b.stderr), CAP);
-    const wide: any = await runBenchmark({ command: NODE, args: nodeEval('process.stdout.write("é".repeat(1100000))'), repetitions: 1, timeoutMs: 60000 });
+    const wide: any = await runBenchmark({
+        command: NODE,
+        args: nodeEval('process.stdout.write("é".repeat(1100000))'),
+        repetitions: 1,
+        timeoutMs: 60000
+    });
     assert.ok(Buffer.byteLength(wide.findings[0].runs[0].stdout) <= CAP, 'multi-byte text is capped in bytes, not characters');
     assert.equal(wide.findings[0].runs[0].stdoutTruncated, true);
     assert.equal(b.stdoutTruncated, true);
@@ -708,14 +768,30 @@ check('Benchmark', 'captured output never exceeds 1 MiB (bytes) per stream, what
 check('Benchmark', 'honors cwd and records the non-zero exit code', async () => {
     const d = path.join(WORK, 'cwd');
     await mkdir(d, { recursive: true });
-    const r: any = await runBenchmark({ command: NODE, args: nodeEval('process.stdout.write(process.cwd());process.exit(3)'), cwd: d, repetitions: 1 });
-    assert.equal(realpathSync.native(r.findings[0].runs[0].stdout), realpathSync.native(d)); // 8.3 short names (Windows) and /var -> /private/var (macOS)
+    const r: any = await runBenchmark({
+        command: NODE,
+        args: nodeEval('process.stdout.write(process.cwd());process.exit(3)'),
+        cwd: d,
+        repetitions: 1
+    });
+    // Normalizes 8.3 short names (Windows) and /var -> /private/var (macOS).
+    assert.equal(realpathSync.native(r.findings[0].runs[0].stdout), realpathSync.native(d));
     assert.equal(r.findings[0].runs[0].exitCode, 3);
 });
 check('Benchmark', 'compareBenchmarks computes delta and percent change and validates input', async () => {
     const imp: any = await compareBenchmarks({ findings: [{ meanDurationMs: 200 }] }, { findings: [{ meanDurationMs: 150 }] });
     // Means alone are descriptive: no claim of improvement without repeated runs (AUDIT F-04).
-    assert.deepEqual([imp.findings[0].deltaMs, imp.findings[0].changePercent, imp.findings[0].improved, imp.findings[0].verdict], [-50, -25, false, 'insufficient_evidence']);
+    assert.deepEqual([
+        imp.findings[0].deltaMs,
+        imp.findings[0].changePercent,
+        imp.findings[0].improved,
+        imp.findings[0].verdict
+    ], [
+        -50,
+        -25,
+        false,
+        'insufficient_evidence'
+    ]);
     const reg: any = await compareBenchmarks({ findings: [{ meanDurationMs: 100 }] }, { findings: [{ meanDurationMs: 120 }] });
     assert.equal(reg.findings[0].improved, false);
     await assert.rejects(compareBenchmarks({}, {}), /positive meanDurationMs/);
@@ -767,7 +843,21 @@ check('Benchmark', 'a timeout returns promptly even when a grandchild holds the 
 });
 check('Benchmark', 'reports P95, std-dev, MAD, outliers, CI, environment, binary size and cold/warm labels', async () => {
     const f: any = ((await runBenchmark({ command: NODE, args: nodeEval('0'), repetitions: 2 })) as any).findings[0];
-    for (const k of ['p95DurationMs', 'stddevMs', 'madMs', 'outlierDurationsMs', 'ci95MeanMs', 'environment', 'environmentNoiseDetected', 'hyperfineExport', 'warmupCompleted', 'resourceMetrics', 'binarySizeBytes', 'coldDurationMs', 'warmMedianDurationMs'])
+    for (const k of [
+        'p95DurationMs',
+        'stddevMs',
+        'madMs',
+        'outlierDurationsMs',
+        'ci95MeanMs',
+        'environment',
+        'environmentNoiseDetected',
+        'hyperfineExport',
+        'warmupCompleted',
+        'resourceMetrics',
+        'binarySizeBytes',
+        'coldDurationMs',
+        'warmMedianDurationMs'
+    ])
         assert.notEqual(f[k], undefined, k);
     assert.ok(f.binarySizeBytes > 1000, `binary size ${f.binarySizeBytes}`);
     assert.equal(f.hyperfineExport.version, '1.0');
@@ -782,21 +872,65 @@ check('Benchmark', 'reports P95, std-dev, MAD, outliers, CI, environment, binary
 });
 check('Benchmark', 'per-run CPU time and peak RAM are sampled on Linux (/proc), macOS (ps) and Windows (PowerShell)', async (c) => {
     // A child that holds ~80 MB and burns CPU for a moment, so that sampling has something to see.
-    const code = 'const a=Buffer.alloc(80*1024*1024,1);let x=0;const t=Date.now();while(Date.now()-t<400)x+=Math.sqrt(x+1);process.stdout.write(String(a.length))';
+    const code = 'const a=Buffer.alloc(80*1024*1024,1);let x=0;const t=Date.now();'
+        + 'while(Date.now()-t<400)x+=Math.sqrt(x+1);process.stdout.write(String(a.length))';
     const f: any = ((await runBenchmark({ command: NODE, args: nodeEval(code), repetitions: 3 })) as any).findings[0];
     if (!f.resourceMetrics.available) {
-        c.limit(`${process.platform}: resource sampling produced no data (${f.resourceMetrics.reason ?? 'unknown'}); very short runs may end before a sample`);
+        c.limit(`${process.platform}: resource sampling produced no data (${f.resourceMetrics.reason ?? 'unknown'}); `
+            + 'very short runs may end before a sample');
         return;
     }
-    assert.ok(f.runs.every((x: any) => x.cpuTimeMs !== null && x.peakRssBytes !== null), 'every successful run carries CPU time and peak RSS');
+    const sampled = f.runs.every((x: any) => x.cpuTimeMs !== null && x.peakRssBytes !== null);
+    assert.ok(sampled, 'every successful run carries CPU time and peak RSS');
     assert.ok(f.medianCpuTimeMs >= 150, `CPU time ${f.medianCpuTimeMs} ms for a 400 ms busy loop`);
     assert.ok(f.medianCpuTimeMs <= f.medianDurationMs * 2 + 100, 'CPU time is plausible against wall-clock time');
     assert.ok(f.medianPeakRssBytes >= 60 * 1024 * 1024, `peak RSS ${f.medianPeakRssBytes} bytes for an 80 MiB buffer`);
     assert.ok(f.maxPeakRssBytes >= f.medianPeakRssBytes);
 });
 check('Benchmark', 'compare_results reports CPU time, peak RAM and binary size changes per metric', async () => {
-    const mk = (cpu: number[], rss: number[], size: number) => ({ findings: [{ meanDurationMs: 100, binarySizeBytes: size, medianCpuTimeMs: cpu[0], medianPeakRssBytes: rss[0], runs: cpu.map((v, i) => ({ durationMs: 100, exitCode: 0, cpuTimeMs: v, peakRssBytes: rss[i] })) }] });
-    const r: any = await compareBenchmarks(mk([100, 101, 99, 100, 102, 98], [50e6, 50e6, 50e6, 50e6, 50e6, 50e6], 1000), mk([50, 51, 49, 50, 52, 48], [40e6, 40e6, 40e6, 40e6, 40e6, 40e6], 900));
+    const mk = (cpu: number[], rss: number[], size: number) => ({
+        findings: [{
+                meanDurationMs: 100,
+                binarySizeBytes: size,
+                medianCpuTimeMs: cpu[0],
+                medianPeakRssBytes: rss[0],
+                runs: cpu.map((v, i) => ({
+                    durationMs: 100,
+                    exitCode: 0,
+                    cpuTimeMs: v,
+                    peakRssBytes: rss[i]
+                }))
+            }]
+    });
+    const r: any = await compareBenchmarks(mk([
+        100,
+        101,
+        99,
+        100,
+        102,
+        98
+    ], [
+        50e6,
+        50e6,
+        50e6,
+        50e6,
+        50e6,
+        50e6
+    ], 1000), mk([
+        50,
+        51,
+        49,
+        50,
+        52,
+        48
+    ], [
+        40e6,
+        40e6,
+        40e6,
+        40e6,
+        40e6,
+        40e6
+    ], 900));
     const m = r.findings[0].metrics;
     assert.equal(m.binarySizeBytes.delta, -100);
     assert.equal(m.binarySizeBytes.changePercent, -10);
@@ -809,7 +943,14 @@ check('Benchmark', 'compare_results reports CPU time, peak RAM and binary size c
 });
 // ---------------------------------------------------------------- 8. validation
 check('Validation', 'passes when exit code, stdout and stderr match exactly', async () => {
-    const r: any = await validateBehavior({ command: NODE, args: nodeEval('process.stdout.write("pass");process.stderr.write("e")') }, { exitCode: 0, stdout: 'pass', stderr: 'e' }, 2);
+    const r: any = await validateBehavior({
+        command: NODE,
+        args: nodeEval('process.stdout.write("pass");process.stderr.write("e")')
+    }, {
+        exitCode: 0,
+        stdout: 'pass',
+        stderr: 'e'
+    }, 2);
     assert.equal(r.findings[0].passed, true);
     assert.equal(r.status, 'completed');
     assert.equal(r.findings[0].checks.length, 3);
@@ -826,7 +967,10 @@ check('Validation', 'detects a stdout mismatch, a wrong exit code and an unexpec
     assert.equal(d.findings[0].passed, false);
 });
 check('Validation', 'repeated runs must all match (non-deterministic output fails)', async () => {
-    const r: any = await validateBehavior({ command: NODE, args: nodeEval('process.stdout.write(String(Math.random()))') }, { stdout: '0.5' }, 3);
+    const r: any = await validateBehavior({
+        command: NODE,
+        args: nodeEval('process.stdout.write(String(Math.random()))')
+    }, { stdout: '0.5' }, 3);
     assert.equal(r.findings[0].passed, false);
 });
 check('Validation', 'exact-match only (no semantic equivalence, test discovery or build integration)', async (c) => {
@@ -844,7 +988,10 @@ check('Benchmark', 'median is the mean of the two middle values for even counts 
     assert.equal(median([4, 1, 3, 2]), 2.5);
 });
 check('Validation', 'output cut at the capture cap never counts as a match (AUDIT F-05)', async () => {
-    const r: any = await validateBehavior({ command: NODE, args: nodeEval('process.stdout.write("x".repeat(2e6))') }, { stdout: 'x'.repeat(1024 * 1024) });
+    const r: any = await validateBehavior({
+        command: NODE,
+        args: nodeEval('process.stdout.write("x".repeat(2e6))')
+    }, { stdout: 'x'.repeat(1024 * 1024) });
     assert.equal(r.findings[0].passed, false);
     assert.equal(r.status, 'partial');
     assert.ok(r.findings[0].checks.some((x: any) => x.name === 'outputNotTruncated' && !x.passed));
@@ -882,7 +1029,8 @@ check('Docs', 'ARCHITECTURE.md does not list implemented MCP tools as planned (A
     const s = startMcp();
     try {
         const names: string[] = (await s.req('tools/list')).result.tools.map((t: any) => t.name);
-        const stale = [...planned.slice(0, planned.indexOf('Candidates for later')).matchAll(/^\| `([a-z_]+)` \|/gm)].map(m => m[1]).filter(n => names.includes(n));
+        const section = planned.slice(0, planned.indexOf('Candidates for later'));
+        const stale = [...section.matchAll(/^\| `([a-z_]+)` \|/gm)].map(m => m[1]).filter(n => names.includes(n));
         assert.deepEqual(stale, [], 'implemented tools still listed as planned');
     }
     finally {
@@ -918,22 +1066,264 @@ check('Evidence', 'unknown ID returns undefined; record() and persist() round-tr
 });
 check('Evidence', 'every result uses the documented Result envelope', async () => {
     const r: any = await runBenchmark({ command: NODE, args: nodeEval('0'), repetitions: 1 });
-    for (const k of ['schemaVersion', 'id', 'target', 'operation', 'status', 'generatedAt', 'host', 'findings', 'evidence', 'limitations', 'errors', 'coverage'])
+    for (const k of [
+        'schemaVersion',
+        'id',
+        'target',
+        'operation',
+        'status',
+        'generatedAt',
+        'host',
+        'findings',
+        'evidence',
+        'limitations',
+        'errors',
+        'coverage'
+    ])
         assert.ok(k in r, k);
     assert.equal(r.schemaVersion, '1.0');
 });
-check('Evidence', 'research sessions hash-chain events and keep hypotheses separate from typed evidence', async (c) => {
+check('Evidence', 'research sessions hash-chain events, detect tampering and keep hypotheses separate from evidence', async () => {
     const engine = new EvidenceEngine();
     const session = await engine.createResearchSession('capability-fixture');
-    const hypothesis = await engine.addHypothesis(session.session_id, { statement: 'Possible CPU bottleneck', provenance: ['agent'], confidence: 0.4 });
+    const hypothesis = await engine.addHypothesis(session.session_id, {
+        statement: 'Possible CPU bottleneck',
+        provenance: ['agent'],
+        confidence: 0.4
+    });
     assert.equal(hypothesis.kind, 'hypothesis');
-    const measured = await engine.addEvidence(session.session_id, { type: 'Validation', source: 'fixture', measurement: { passed: true }, confidence: 1, limitations: [] });
+    const measured = await engine.addEvidence(session.session_id, {
+        type: 'Validation',
+        source: 'fixture',
+        measurement: { passed: true },
+        confidence: 1,
+        limitations: []
+    });
     await engine.updateHypothesis(session.session_id, hypothesis.hypothesis_id, 'supported', measured.evidence_id);
     const loaded = await engine.getResearchSession(session.session_id);
     assert.equal(loaded?.hypotheses.length, 1);
     assert.equal(loaded?.evidence.length, 1);
-    assert.ok(loaded!.entries.every((entry: any, i: number) => entry.previousHash === (i ? loaded!.entries[i - 1].hash : '0'.repeat(64))));
+    const genesis = '0'.repeat(64);
+    assert.ok(loaded!.entries.every((entry: any, i: number) => entry.previousHash === (i ? loaded!.entries[i - 1].hash : genesis)));
+    assert.equal(loaded?.integrity?.valid, true);
+    // Editing the stored ledger must be detected.
+    const file = path.join(HOME, 'sessions', `${session.session_id}.json`);
+    const stored = await read(file);
+    stored.entries[0].payload = { ...stored.entries[0].payload, tampered: true };
+    await writeFile(file, JSON.stringify(stored));
+    assert.equal((await engine.getResearchSession(session.session_id))?.integrity?.valid, false);
+});
+check('Evidence', 'the session ledger is hash-chained but not signed (patch I)', async (c) => {
+    const engine = new EvidenceEngine();
+    const session: any = await engine.createResearchSession('unsigned-fixture');
+    const keys = Object.keys(session).join(' ') + ' ' + Object.keys(session.entries[0] ?? {}).join(' ');
+    assert.ok(!/signature|merkle/i.test(keys), 'no signature or Merkle field exists yet');
     c.limit('session ledger is hash-chained but not signed; Merkle roots and detached signatures belong to patch I');
+});
+check('Evidence', 'a hypothesis is promoted only by evidence whose content supports it (promotion bypass closed)', async () => {
+    const engine = new EvidenceEngine();
+    const session = await engine.createResearchSession('promotion-fixture');
+    const sid = session.session_id;
+    const h = await engine.addHypothesis(sid, { statement: 'safe', provenance: ['agent'], confidence: 0.5 });
+    const add = (type: any, measurement: unknown, confidence: number) => engine.addEvidence(sid, {
+        type,
+        source: 'check',
+        measurement,
+        confidence,
+        limitations: []
+    });
+    const promote = (id: string) => engine.updateHypothesis(sid, h.hypothesis_id, 'supported', id);
+    await assert.rejects(promote((await add('Benchmark', { medianMs: 10 }, 1)).evidence_id), /improved/);
+    await assert.rejects(promote((await add('Validation', { passed: false }, 1)).evidence_id), /passed: true/);
+    await assert.rejects(promote((await add('Validation', { passed: true }, 0.2)).evidence_id), /minimum/);
+    await assert.rejects(promote((await add('CPU', { passed: true }, 1)).evidence_id), /Validation or Benchmark/);
+    assert.equal(promotionBlocker(undefined) !== null, true);
+    await promote((await add('Validation', { passed: true }, 1)).evidence_id);
+    assert.equal((await engine.getResearchSession(sid))?.hypotheses[0].status, 'supported');
+});
+check('Evidence', 'real analyzer results become typed evidence (Binary, Process, Memory, CPU, I/O) with a Reverse source', async (c) => {
+    const collected = [
+        evidenceFromResult(await analyzeBinary(NODE)),
+        evidenceFromResult(await inspectProcess(process.pid)),
+        evidenceFromResult(await analyzeMemory(process.pid)),
+        evidenceFromResult(await analyzeCpu(process.pid)),
+        evidenceFromResult(await analyzeIo(process.pid)),
+        evidenceFromResult(await profileProcess(process.pid, 500, 100, 'Snapshot'))
+    ];
+    assert.deepEqual(collected.map(e => e?.type), ['Binary', 'Process', 'Memory', 'CPU', 'I/O', 'Process']);
+    for (const e of collected)
+        assert.match(e!.source, /^reverse:[a-z_]+#[0-9a-f-]{36}$/);
+    const weak = collected.filter(e => e!.confidence < 1).map(e => e!.type);
+    if (weak.length)
+        c.note(`${process.platform}: ${weak.join(', ')} evidence has confidence below 1 because the result was partial or incomplete`);
+});
+check('Profiling', 'anomaly rules fire on both sides of every threshold', () => {
+    const run = (cpu: number[], rss: number[] = []) => findAnomalies([{
+            pid: 1,
+            samples: cpu.map((cpuPercent, i) => ({
+                cpuPercent,
+                rssBytes: rss[i]
+            }))
+        }]).map((f: any) => f.type);
+    assert.deepEqual(run([80, 80, 80]), []);
+    assert.deepEqual(run([81, 81, 81]), ['sustained_cpu']);
+    assert.deepEqual(run([95, 1, 1]), []);
+    assert.deepEqual(run([96, 1, 1]), ['cpu_spike']);
+    assert.deepEqual(run([1, 1, 1], [100, 110, 120]), []);
+    assert.deepEqual(run([1, 1, 1], [100, 110, 121]), ['growing_memory']);
+    assert.deepEqual(run([1, 1], [100, 500]), []);
+});
+check('Profiling', 'Snapshot, Monitor, Diagnostic and Compare differ as documented', async () => {
+    const child = spawn(NODE, ['-e', 'setInterval(()=>{},1000)'], { stdio: 'ignore' });
+    try {
+        const take = async (mode: any, ms: number) => ((await profileProcess(child.pid!, ms, 100, mode)) as any).findings[0];
+        const snapshot = await take('Snapshot', 600);
+        const monitor = await take('Monitor', 700);
+        const diagnostic = await take('Diagnostic', 700);
+        const compare = await take('Compare', 1000);
+        assert.equal(snapshot.sampleCount, 1);
+        assert.ok(monitor.sampleCount >= 3);
+        assert.ok(Array.isArray(diagnostic.anomalies) && diagnostic.periods === undefined);
+        assert.ok(compare.periods && compare.anomalies === undefined && compare.sampleCount >= 4);
+        assert.ok(snapshot.anomalies === undefined && monitor.anomalies === undefined && monitor.periods === undefined);
+    }
+    finally {
+        child.kill();
+    }
+});
+check('Safety', 'OBSERVE is a distinct contract: no command execution, sampling only with verified ownership', async () => {
+    assert.equal(operatingMode({}), 'READ_ONLY');
+    assert.equal(operatingMode({ REVERSE_MODE: 'OBSERVE' }), 'OBSERVE');
+    assert.equal(operatingMode({ REVERSE_MODE: 'CONTROLLED_EXECUTION' }), 'CONTROLLED_EXECUTION');
+    for (const mode of ['READ_ONLY', 'OBSERVE'])
+        assert.match(String(checkCommandGate({ command: NODE }, { REVERSE_MODE: mode, REVERSE_COMMAND_ALLOWLIST: '*' })), /disabled/, mode);
+    const child = spawn(NODE, ['-e', 'setInterval(()=>{},1000)'], { stdio: 'ignore' });
+    try {
+        const r: any = await profileProcess(child.pid!, 500, 100, 'Snapshot', { requireOwnership: 'verified' });
+        if (WIN)
+            assert.equal(r.status, 'partial', 'Windows ownership is unknown, so verified sampling refuses');
+        else
+            assert.equal(r.findings[0].sampleCount, 1);
+    }
+    finally {
+        child.kill();
+    }
+});
+check('Safety', 'resource limits are enforced in a real cgroup (needs a delegated cgroup v2 hierarchy)', async (c) => {
+    if (process.platform !== 'linux') {
+        c.limit(`${process.platform}: enforced limits exist only for Linux cgroup v2`);
+        return;
+    }
+    const child = spawn(NODE, ['-e', 'setInterval(()=>{},1000)'], { stdio: 'ignore' });
+    try {
+        const pid = child.pid!;
+        const procCgroup = () => readFileSync(`/proc/${pid}/cgroup`, 'utf8');
+        const before = procCgroup();
+        const unified = before.match(/^0::(.*)$/m);
+        if (!unified) {
+            c.limit('the host does not use a unified cgroup v2 hierarchy');
+            return;
+        }
+        let seen: {
+            inside: string;
+            memory: string;
+            cpu: string;
+        } | undefined;
+        try {
+            await withProcessResourceLimits(pid, {
+                memoryMaxBytes: 64 * 1024 * 1024,
+                cpuQuotaPercent: 50
+            }, 'CONTROLLED_EXECUTION', true, async () => {
+                const inside = procCgroup();
+                const dir = path.join('/sys/fs/cgroup', inside.match(/^0::(.*)$/m)![1]);
+                seen = {
+                    inside,
+                    memory: readFileSync(path.join(dir, 'memory.max'), 'utf8').trim(),
+                    cpu: readFileSync(path.join(dir, 'cpu.max'), 'utf8').trim()
+                };
+            });
+        }
+        catch (e) {
+            const code = (e as NodeJS.ErrnoException).code;
+            if (/cgroup v2 hierarchy is not available|cgroup\.subtree_control/.test((e as Error).message)) {
+                c.limit(`no usable cgroup v2 hierarchy for the target here: ${(e as Error).message}`);
+                return;
+            }
+            if (code && ['EACCES', 'EPERM', 'EROFS'].includes(code)) {
+                c.limit(`cgroup v2 is not delegated to this user here (${code}: ${(e as Error).message})`);
+                return;
+            }
+            throw e;
+        }
+        assert.match(seen!.inside, new RegExp(`/reverse-${pid}-[0-9a-f-]{36}`), 'the target was inside the temporary cgroup');
+        assert.equal(seen!.memory, String(64 * 1024 * 1024));
+        assert.equal(seen!.cpu, '50000 100000');
+        assert.equal(procCgroup(), before, 'the target is back in its original cgroup');
+        const rel = unified[1].replace(/^\/+|\/+$/g, '');
+        const siblings = rel ? path.dirname(path.join('/sys/fs/cgroup', rel)) : '/sys/fs/cgroup';
+        assert.deepEqual((await readdir(siblings)).filter(n => n.startsWith(`reverse-${pid}-`)), [], 'the temporary cgroup was removed');
+    }
+    finally {
+        child.kill();
+    }
+});
+check('Supply chain', 'GitHub Actions are pinned to full commit SHAs (R-03)', async (c) => {
+    const dir = path.join(ROOT, '.github', 'workflows');
+    const unpinned = new Set<string>();
+    let total = 0;
+    for (const name of (await readdir(dir)).filter(n => /\.ya?ml$/.test(n))) {
+        for (const m of (await readFile(path.join(dir, name), 'utf8')).matchAll(/^\s*-?\s*uses:\s*([^\s#]+)/gm)) {
+            total++;
+            if (!m[1].startsWith('./') && !/@[0-9a-f]{40}$/.test(m[1]))
+                unpinned.add(m[1]);
+        }
+    }
+    if (unpinned.size)
+        c.limit(`${unpinned.size} of ${total} action references are tags, not commit SHAs: ${[...unpinned].sort().join(', ')}`);
+});
+check('Source', 'no source or test line exceeds 140 characters, and the gate can fail', async () => {
+    const gate = path.join(ROOT, 'tests', 'size-gate.mjs');
+    assert.equal(spawnSync(NODE, [gate], { cwd: ROOT, encoding: 'utf8' }).status, 0, 'the repository passes its own gate');
+    const probe = await mkdtemp(path.join(WORK, 'gate-'));
+    await mkdir(path.join(probe, 'src'), { recursive: true });
+    await writeFile(path.join(probe, 'src', 'wide.ts'), `export const x = '${'a'.repeat(200)}';\n`);
+    const failed = spawnSync(NODE, [gate], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, REVERSE_GATE_ROOT: probe } });
+    assert.equal(failed.status, 1);
+    assert.match(failed.stderr, /Line length gate failed/);
+    await writeFile(path.join(probe, 'src', 'wide.ts'), 'export const x = 1;\n');
+    assert.equal(spawnSync(NODE, [gate], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, REVERSE_GATE_ROOT: probe } }).status, 0);
+});
+check('Tests', 'the capability harness is one file (F-16, still open)', async (c) => {
+    const lines = (await readFile(path.join(ROOT, 'tests', 'capabilities.check.ts'), 'utf8')).split('\n').length;
+    if (lines > 1000)
+        c.limit(`tests/capabilities.check.ts has ${lines} lines; splitting the monolithic harness (AUDIT F-16) is not done`);
+});
+check('Docs', 'roadmap, audit and architecture agree with the delivered state of patches A-D', async () => {
+    const docs = async (n: string) => readFile(path.join(ROOT, 'docs', n), 'utf8');
+    const [roadmap, audit, arch, mcp] = [
+        await docs('ROADMAP.md'),
+        await docs('AUDIT.md'),
+        await docs('ARCHITECTURE.md'),
+        await docs('MCP.md')
+    ];
+    // Unchecked boxes in patches A-D are allowed only as explicitly labelled release gates.
+    const sections = [...roadmap.matchAll(/^### Patch ([A-D])\b[\s\S]*?(?=^### |^## )/gm)];
+    assert.equal(sections.length, 4, 'patch sections A, B, C and D exist');
+    for (const m of sections)
+        for (const line of m[0].split('\n').filter(l => /^- \[ \]/.test(l)))
+            assert.match(line, /^- \[ \] Release gate:/, `Patch ${m[1]}: ${line.slice(0, 80)}`);
+    // The 0.2 release checklist is closed apart from labelled release gates.
+    const release = roadmap.slice(roadmap.indexOf('## 0.2 '), roadmap.indexOf('## 0.3 '));
+    assert.ok(release.length > 500, '0.2 section found');
+    for (const line of release.split('\n').filter(l => /^- \[ \]/.test(l) || /; \[ \]/.test(l)))
+        assert.fail(`unchecked 0.2 item: ${line.slice(0, 80)}`);
+    assert.ok(!/### Fact categories \(planned\)/.test(arch), 'fact categories are implemented, not planned');
+    // No sentence of a reference document is stated twice in a row.
+    for (const sentence of mcp.split(/(?<=\.)\s+/).filter(x => x.length > 40))
+        assert.equal(mcp.split(sentence).length - 1, 1, `MCP.md repeats: ${sentence.slice(0, 60)}`);
+    // AUDIT.md: every closed finding carries a Status line in the audit it belongs to.
+    for (const id of ['F-18', 'F-24', 'F-29'])
+        assert.match(audit, new RegExp(`${id}[^\\n]*closed in 0\\.2\\.0-beta\\.7`), id);
 });
 // ---------------------------------------------------------------- 10. providers
 check('Providers', 'built-in header provider is implemented; external engines are extension points only', async (c) => {
@@ -952,7 +1342,12 @@ check('Providers', 'a custom provider can be registered, listed and status-check
     registerProvider({ name, capabilities: ['demo'], available: async () => true, analyze: async () => ({}) });
     assert.deepEqual((listProviders() as any[]).find(p => p.name === name), { name, state: 'registered', capabilities: ['demo'] });
     assert.equal((await getProviderStatus()).find(p => p.name === name)!.available, true);
-    assert.throws(() => registerProvider({ name, capabilities: [], available: async () => false, analyze: async () => ({}) }), /already registered/);
+    assert.throws(() => registerProvider({
+        name,
+        capabilities: [],
+        available: async () => false,
+        analyze: async () => ({})
+    }), /already registered/);
 });
 // ---------------------------------------------------------------- 11. CLI
 const cliDir = path.join(WORK, 'cli');
@@ -962,7 +1357,20 @@ check('CLI', '--help, no arguments and "help" print usage listing every command'
         const r = runCli(a);
         assert.equal(r.code, 0, j(a));
         assert.match(r.stdout, /Usage: reverse/);
-        for (const cmd of ['binary', 'source', 'dependencies', 'processes', 'process', 'profile', 'benchmark', 'compare', 'validate', 'analyzers', 'doctor', 'mcp'])
+        for (const cmd of [
+            'binary',
+            'source',
+            'dependencies',
+            'processes',
+            'process',
+            'profile',
+            'benchmark',
+            'compare',
+            'validate',
+            'analyzers',
+            'doctor',
+            'mcp'
+        ])
             assert.ok(r.stdout.includes(cmd), cmd);
     }
 });
@@ -988,14 +1396,33 @@ check('CLI', 'profile <pid> --duration --interval', async () => {
     const child = spawnIdle();
     try {
         await settle(150);
-        assert.equal(JSON.parse(runCli(['profile', String(child.pid), '--duration', '600', '--interval', '100']).stdout).operation, 'process_profile');
+        assert.equal(JSON.parse(runCli([
+            'profile',
+            String(child.pid),
+            '--duration',
+            '600',
+            '--interval',
+            '100'
+        ]).stdout).operation, 'process_profile');
     }
     finally {
         await killAndWait(child);
     }
 });
 check('CLI', 'benchmark -> compare workflow through files', async () => {
-    const mk = (ms: number) => runCli(['benchmark', '--command', NODE, '--arg', '-e', '--arg', `setTimeout(()=>{},${ms})`, '--repeat', '6', '--label', `t${ms}`]).stdout;
+    const mk = (ms: number) => runCli([
+        'benchmark',
+        '--command',
+        NODE,
+        '--arg',
+        '-e',
+        '--arg',
+        `setTimeout(()=>{},${ms})`,
+        '--repeat',
+        '6',
+        '--label',
+        `t${ms}`
+    ]).stdout;
     const before = path.join(cliDir, 'before.json'), after = path.join(cliDir, 'after.json');
     await writeFile(before, mk(250));
     await writeFile(after, mk(1));
@@ -1011,7 +1438,17 @@ check('CLI', 'validate --expected works for argument-less commands', async () =>
 check('CLI', 'validate passes --arg to the command', async () => {
     const exp = path.join(cliDir, 'exp2.json');
     await writeFile(exp, j({ exitCode: 0, stdout: 'x' }));
-    const v = JSON.parse(runCli(['validate', '--command', NODE, '--arg', '-e', '--arg', 'process.stdout.write("x")', '--expected', exp]).stdout);
+    const v = JSON.parse(runCli([
+        'validate',
+        '--command',
+        NODE,
+        '--arg',
+        '-e',
+        '--arg',
+        'process.stdout.write("x")',
+        '--expected',
+        exp
+    ]).stdout);
     assert.equal(v.findings[0].passed, true);
 });
 check('CLI', 'missing positional arguments give a usage message instead of a stack trace', () => {
@@ -1049,13 +1486,51 @@ check('CLI', '--json is accepted, documented as having no effect, and output is 
 });
 // ---------------------------------------------------------------- 12. MCP server
 const GATE_ENV = { REVERSE_MODE: 'CONTROLLED_EXECUTION', REVERSE_COMMAND_ALLOWLIST: NODE };
-const DOCUMENTED_TOOLS = ['inspect_target', 'analyze_binary', 'analyze_source', 'analyze_dependencies', 'get_inventory', 'inspect_process', 'profile_process', 'list_processes',
-    'monitor_process', 'get_process_metrics', 'get_process_tree', 'analyze_memory', 'analyze_cpu', 'analyze_io', 'detect_resource_anomalies', 'get_resource_control_status',
-    'capture_baseline', 'run_benchmark', 'compare_results', 'validate_changes', 'get_environment_fingerprint', 'get_evidence', 'list_analyzers', 'create_benchmark_suite', 'run_benchmark_suite', 'compare_benchmarks', 'compare_baselines', 'get_research_session', 'create_research_session', 'add_research_hypothesis', 'promote_research_hypothesis', 'add_research_event', 'add_research_evidence', 'link_research_artifacts'];
+const DOCUMENTED_TOOLS = ['inspect_target',
+    'analyze_binary',
+    'analyze_source',
+    'analyze_dependencies',
+    'get_inventory',
+    'inspect_process',
+    'profile_process',
+    'list_processes',
+    'monitor_process',
+    'get_process_metrics',
+    'get_process_tree',
+    'analyze_memory',
+    'analyze_cpu',
+    'analyze_io',
+    'detect_resource_anomalies',
+    'get_resource_control_status',
+    'capture_baseline',
+    'run_benchmark',
+    'compare_results',
+    'validate_changes',
+    'get_environment_fingerprint',
+    'get_evidence',
+    'list_analyzers',
+    'create_benchmark_suite',
+    'run_benchmark_suite',
+    'compare_benchmarks',
+    'compare_baselines',
+    'get_research_session',
+    'create_research_session',
+    'add_research_hypothesis',
+    'promote_research_hypothesis',
+    'add_research_event',
+    'add_research_evidence',
+    'link_research_artifacts'];
 check('MCP', 'handshake: initialize, ping and tools/list', async () => {
     const s = startMcp();
     try {
-        const init = await s.req('initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'verify', version: '1' } });
+        const init = await s.req('initialize', {
+            protocolVersion: '2024-11-05',
+            capabilities: {},
+            clientInfo: {
+                name: 'verify',
+                version: '1'
+            }
+        });
         assert.equal(init.result.serverInfo.name, 'reverse');
         assert.ok(init.result.capabilities.tools);
         s.notify('notifications/initialized');
@@ -1123,7 +1598,14 @@ check('MCP', 'notifications/cancelled stops a running process profile request', 
     const child = spawnIdle();
     const requestId = 424242;
     try {
-        const pending = s.req('tools/call', { name: 'monitor_process', arguments: { pid: child.pid, durationMs: 2500, intervalMs: 100 } }, requestId);
+        const pending = s.req('tools/call', {
+            name: 'monitor_process',
+            arguments: {
+                pid: child.pid,
+                durationMs: 2500,
+                intervalMs: 100
+            }
+        }, requestId);
         await settle(300);
         s.notify('notifications/cancelled', { requestId });
         const response = await pending;
@@ -1172,7 +1654,10 @@ check('Docs', 'docs/MCP.md says tools return structuredContent', async (c) => {
         const obj = await s.call('get_inventory', { limit: 3 });
         assert.deepEqual(obj.envelope.structuredContent, obj.value);
         const arr = await s.call('list_analyzers', {});
-        assert.deepEqual(arr.envelope.structuredContent, { items: arr.value, untrustedContent: arr.envelope.structuredContent.untrustedContent }, 'arrays are wrapped because structuredContent must be an object');
+        assert.deepEqual(arr.envelope.structuredContent, {
+            items: arr.value,
+            untrustedContent: arr.envelope.structuredContent.untrustedContent
+        }, 'arrays are wrapped because structuredContent must be an object');
         assert.equal(arr.envelope.isError, false);
     }
     finally {
@@ -1278,7 +1763,11 @@ check('Benchmark', 'children receive an allowlisted environment: secrets of the 
     process.env.REVERSE_CHILD_ENV = 'REVERSE_TEST_PASS';
     process.env.REVERSE_TEST_PASS = 'visible';
     try {
-        const r: any = await runBenchmark({ command: NODE, args: nodeEval('process.stdout.write(String(process.env.REVERSE_TEST_SECRET)+\"|\"+process.env.REVERSE_TEST_PASS)'), repetitions: 1 });
+        const r: any = await runBenchmark({
+            command: NODE,
+            args: nodeEval('process.stdout.write(String(process.env.REVERSE_TEST_SECRET)+\"|\"+process.env.REVERSE_TEST_PASS)'),
+            repetitions: 1
+        });
         assert.equal(r.findings[0].runs[0].stdout, 'undefined|visible');
     }
     finally {
@@ -1287,7 +1776,7 @@ check('Benchmark', 'children receive an allowlisted environment: secrets of the 
         delete process.env.REVERSE_TEST_PASS;
     }
 });
-check('Benchmark', 'the environment fingerprint is recorded, holds no secrets, and different fingerprints warn about comparability', async () => {
+check('Benchmark', 'the environment fingerprint is recorded, holds no secrets, and differing fingerprints warn', async () => {
     const { getEnvironmentFingerprint } = await import('../dist/benchmark-environment.js');
     process.env.REVERSE_TEST_SECRET = 'top-secret';
     try {
@@ -1306,11 +1795,31 @@ check('Benchmark', 'the environment fingerprint is recorded, holds no secrets, a
     assert.equal(diff.status, 'partial');
 });
 check('Benchmark', 'compareBenchmarks gives a significance verdict from repeated runs, never from means alone (AUDIT F-04)', async () => {
-    const mk = (ds: number[]) => ({ findings: [{ meanDurationMs: ds.reduce((x, y) => x + y) / ds.length, runs: ds.map(d => ({ durationMs: d, exitCode: 0 })) }] });
+    const mk = (ds: number[]) => ({
+        findings: [{
+                meanDurationMs: ds.reduce((x, y) => x + y) / ds.length,
+                runs: ds.map(d => ({
+                    durationMs: d,
+                    exitCode: 0
+                }))
+            }]
+    });
     const slow = mk([200, 202, 198, 201, 199, 203]), fast = mk([100, 101, 99, 102, 98, 100]);
     assert.equal(((await compareBenchmarks(slow, fast)) as any).findings[0].verdict, 'improved');
     assert.equal(((await compareBenchmarks(fast, slow)) as any).findings[0].verdict, 'regressed');
-    assert.equal(((await compareBenchmarks(mk([100, 120, 90, 110, 95]), mk([105, 99, 118, 92, 108]))) as any).findings[0].verdict, 'no_significant_change');
+    assert.equal(((await compareBenchmarks(mk([
+        100,
+        120,
+        90,
+        110,
+        95
+    ]), mk([
+        105,
+        99,
+        118,
+        92,
+        108
+    ]))) as any).findings[0].verdict, 'no_significant_change');
     assert.equal(((await compareBenchmarks(mk([200, 201]), mk([100, 99]))) as any).findings[0].verdict, 'insufficient_evidence');
 });
 check('MCP', 'command-running tools are refused by default and gated by mode, allowlist and cwd root (AUDIT F-01)', async () => {

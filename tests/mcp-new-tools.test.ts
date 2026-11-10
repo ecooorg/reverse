@@ -8,7 +8,19 @@ import path from 'node:path';
 const server = path.resolve('dist/mcp-server.js');
 test('MCP: baseline suites and hash-chained research-session tools work end-to-end', async () => {
     const home = await mkdtemp(path.join(os.tmpdir(), 'reverse-mcp-tools-'));
-    const child = spawn(process.execPath, [server], { stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, REVERSE_HOME: home, REVERSE_MODE: 'CONTROLLED_EXECUTION', REVERSE_COMMAND_ALLOWLIST: process.execPath } });
+    const child = spawn(process.execPath, [server], {
+        stdio: [
+            'pipe',
+            'pipe',
+            'pipe'
+        ],
+        env: {
+            ...process.env,
+            REVERSE_HOME: home,
+            REVERSE_MODE: 'CONTROLLED_EXECUTION',
+            REVERSE_COMMAND_ALLOWLIST: process.execPath
+        }
+    });
     const rl = readline.createInterface({ input: child.stdout! });
     let nextId = 0;
     const pending = new Map<number, (value: any) => void>();
@@ -38,10 +50,31 @@ test('MCP: baseline suites and hash-chained research-session tools work end-to-e
     try {
         await request('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'test', version: '1' } });
         const session = await call('create_research_session', { target_id: 'mcp-fixture' });
-        const evidence = await call('add_research_evidence', { session_id: session.session_id, type: 'Validation', source: 'test', measurement: { passed: true }, confidence: 1, limitations: [] });
-        const hypothesis = await call('add_research_hypothesis', { session_id: session.session_id, statement: 'Output remains stable', provenance: ['test run'], confidence: 0.8 });
-        await call('promote_research_hypothesis', { session_id: session.session_id, hypothesis_id: hypothesis.hypothesis_id, status: 'supported', evidence_id: evidence.evidence_id });
-        await call('add_research_event', { session_id: session.session_id, event: 'validation_completed', payload: { validationId: 'test' } });
+        const evidence = await call('add_research_evidence', {
+            session_id: session.session_id,
+            type: 'Validation',
+            source: 'test',
+            measurement: { passed: true },
+            confidence: 1,
+            limitations: []
+        });
+        const hypothesis = await call('add_research_hypothesis', {
+            session_id: session.session_id,
+            statement: 'Output remains stable',
+            provenance: ['test run'],
+            confidence: 0.8
+        });
+        await call('promote_research_hypothesis', {
+            session_id: session.session_id,
+            hypothesis_id: hypothesis.hypothesis_id,
+            status: 'supported',
+            evidence_id: evidence.evidence_id
+        });
+        await call('add_research_event', {
+            session_id: session.session_id,
+            event: 'validation_completed',
+            payload: { validationId: 'test' }
+        });
         await call('link_research_artifacts', { session_id: session.session_id, relation: 'final_report', ids: ['report-1'] });
         const loaded = await call('get_research_session', { id: session.session_id });
         assert.equal(loaded.session.integrity.valid, true);
@@ -55,9 +88,26 @@ test('MCP: baseline suites and hash-chained research-session tools work end-to-e
         assert.ok(run.findings.every((f: any) => f.successfulRuns === 5 && f.warmups.length === 1));
         const comparison = await call('compare_benchmarks', { before: run, after: run });
         assert.equal(comparison.findings.length, 2);
-        const before = await call('capture_baseline', { command: process.execPath, args: ['-e', 'process.stdout.write("x")'], repetitions: 5 });
-        const after = await call('capture_baseline', { command: process.execPath, args: ['-e', 'process.stdout.write("x")'], repetitions: 5 });
-        const baselineComparison = await call('compare_baselines', { before_id: before.findings[0].baseline_id, after_id: after.findings[0].baseline_id });
+        const before = await call('capture_baseline', {
+            command: process.execPath,
+            args: [
+                '-e',
+                'process.stdout.write("x")'
+            ],
+            repetitions: 5
+        });
+        const after = await call('capture_baseline', {
+            command: process.execPath,
+            args: [
+                '-e',
+                'process.stdout.write("x")'
+            ],
+            repetitions: 5
+        });
+        const baselineComparison = await call('compare_baselines', {
+            before_id: before.findings[0].baseline_id,
+            after_id: after.findings[0].baseline_id
+        });
         assert.equal(baselineComparison.operation, 'benchmark_comparison');
     }
     finally {
@@ -68,7 +118,17 @@ test('MCP: baseline suites and hash-chained research-session tools work end-to-e
     }
 });
 test('MCP full schema profile recursively rejects undeclared object properties', async () => {
-    const child = spawn(process.execPath, [server], { stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, REVERSE_MCP_SCHEMA_PROFILE: 'full' } });
+    const child = spawn(process.execPath, [server], {
+        stdio: [
+            'pipe',
+            'pipe',
+            'pipe'
+        ],
+        env: {
+            ...process.env,
+            REVERSE_MCP_SCHEMA_PROFILE: 'full'
+        }
+    });
     const rl = readline.createInterface({ input: child.stdout! });
     const response = new Promise<any>(resolve => rl.once('line', line => resolve(JSON.parse(line))));
     try {

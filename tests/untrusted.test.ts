@@ -14,7 +14,18 @@ test('wrapUntrusted keeps arrays as arrays in text and wraps them for structured
     assert.equal(w.structured.untrustedContent.truncatedStrings, 0);
 });
 test('wrapUntrusted enforces the total response budget and marks omitted findings', () => {
-    const w: any = wrapUntrusted({ status: 'completed', findings: Array.from({ length: 1800 }, (_, i) => ({ id: i, detail: 'x'.repeat(1000) })), coverage: { complete: true, notes: [] }, limitations: [] });
+    const w: any = wrapUntrusted({
+        status: 'completed',
+        findings: Array.from({ length: 1800 }, (_, i) => ({
+            id: i,
+            detail: 'x'.repeat(1000)
+        })),
+        coverage: {
+            complete: true,
+            notes: []
+        },
+        limitations: []
+    });
     assert.ok(Buffer.byteLength(JSON.stringify(w.text)) <= 1024 * 1024);
     assert.equal(w.text.status, 'partial');
     assert.equal(w.text.coverage.complete, false);

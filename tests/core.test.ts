@@ -1,8 +1,75 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {mkdtemp,writeFile,rm} from 'node:fs/promises';import os from 'node:os';import path from 'node:path';import {analyzeBinary} from '../dist/analysis-binary.js';import {analyzeDependencies} from '../dist/analysis-dependencies.js';import {runBenchmark,compareBenchmarks} from '../dist/benchmark-engine.js';import {validateBehavior} from '../dist/benchmark-validation.js';
-let dir:string;test('fixture setup',async()=>{dir=await mkdtemp(path.join(os.tmpdir(),'reverse-test-'));const elf=Buffer.alloc(64);elf.set([0x7f,0x45,0x4c,0x46,2,1,1]);elf.writeUInt16LE(62,18);await writeFile(path.join(dir,'sample.elf'),elf);await writeFile(path.join(dir,'package.json'),JSON.stringify({dependencies:{alpha:'^1.2.0'},devDependencies:{beta:'~2.0.0'}}));});
-test('recognizes ELF header',async()=>{const r=await analyzeBinary(path.join(dir,'sample.elf'));assert.equal(r.findings[0].format,'ELF');assert.equal(r.findings[0].architecture,'x86_64');assert.equal(r.findings[0].bitness,64);assert.equal(r.status,'completed');});
-test('reads direct npm dependencies',async()=>{const r=await analyzeDependencies(dir);assert.equal(r.findings.length,2);assert.equal(r.findings[0].name,'alpha');});
-test('runs a command benchmark without a shell',async()=>{const r=await runBenchmark({command:process.execPath,args:['-e','process.stdout.write("ok")'],repetitions:2});assert.equal(r.findings[0].repetitionsCompleted,2);assert.equal(r.findings[0].runs[0].stdout,'ok');});
-test('compares benchmark results',async()=>{const a={findings:[{meanDurationMs:100}]},b={findings:[{meanDurationMs:90}]};const r=await compareBenchmarks(a,b);assert.equal(r.findings[0].improved,false);assert.equal(r.findings[0].verdict,'insufficient_evidence');assert.equal(r.findings[0].changePercent,-10);});
-test('validates expected output',async()=>{const r=await validateBehavior({command:process.execPath,args:['-e','process.stdout.write("pass")']},{exitCode:0,stdout:'pass'},1);assert.equal(r.findings[0].passed,true);});
-test('fixture cleanup',async()=>{await rm(dir,{recursive:true,force:true});});
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { analyzeBinary } from '../dist/analysis-binary.js';
+import { analyzeDependencies } from '../dist/analysis-dependencies.js';
+import { runBenchmark, compareBenchmarks } from '../dist/benchmark-engine.js';
+import { validateBehavior } from '../dist/benchmark-validation.js';
+let dir: string;
+test('fixture setup', async () => {
+    dir = await mkdtemp(path.join(os.tmpdir(), 'reverse-test-'));
+    const elf = Buffer.alloc(64);
+    elf.set([
+        0x7f,
+        0x45,
+        0x4c,
+        0x46,
+        2,
+        1,
+        1
+    ]);
+    elf.writeUInt16LE(62, 18);
+    await writeFile(path.join(dir, 'sample.elf'), elf);
+    await writeFile(path.join(dir, 'package.json'), JSON.stringify({
+        dependencies: { alpha: '^1.2.0' },
+        devDependencies: { beta: '~2.0.0' }
+    }));
+});
+test('recognizes ELF header', async () => {
+    const r = await analyzeBinary(path.join(dir, 'sample.elf'));
+    assert.equal(r.findings[0].format, 'ELF');
+    assert.equal(r.findings[0].architecture, 'x86_64');
+    assert.equal(r.findings[0].bitness, 64);
+    assert.equal(r.status, 'completed');
+});
+test('reads direct npm dependencies', async () => {
+    const r = await analyzeDependencies(dir);
+    assert.equal(r.findings.length, 2);
+    assert.equal(r.findings[0].name, 'alpha');
+});
+test('runs a command benchmark without a shell', async () => {
+    const r = await runBenchmark({
+        command: process.execPath,
+        args: [
+            '-e',
+            'process.stdout.write("ok")'
+        ],
+        repetitions: 2
+    });
+    assert.equal(r.findings[0].repetitionsCompleted, 2);
+    assert.equal(r.findings[0].runs[0].stdout, 'ok');
+});
+test('compares benchmark results', async () => {
+    const a = { findings: [{ meanDurationMs: 100 }] };
+    const b = { findings: [{ meanDurationMs: 90 }] };
+    const r = await compareBenchmarks(a, b);
+    assert.equal(r.findings[0].improved, false);
+    assert.equal(r.findings[0].verdict, 'insufficient_evidence');
+    assert.equal(r.findings[0].changePercent, -10);
+});
+test('validates expected output', async () => {
+    const r = await validateBehavior({
+        command: process.execPath,
+        args: [
+            '-e',
+            'process.stdout.write("pass")'
+        ]
+    }, {
+        exitCode: 0,
+        stdout: 'pass'
+    }, 1);
+    assert.equal(r.findings[0].passed, true);
+});
+test('fixture cleanup', async () => { await rm(dir, { recursive: true, force: true }); });
