@@ -38,6 +38,8 @@ Tool definitions include `title`, `annotations` and an `outputSchema`; command-e
 | `trace_execution` | `target`, optional `pid` | Frida dynamic trace under CONTROLLED_EXECUTION |
 | `get_hotspots` | `pid` | Function hotspots from perf/sample when available |
 | `get_process_io` | `pid` | Per-process disk I/O (Linux `/proc/pid/io`) |
+| `generate_change_report` | `target`, optional before/after/validation | Before/after report with residual risks |
+| `verify_evidence_integrity` | `session` or `session_id` | Hash-chain + optional HMAC verify |
 | `create_benchmark_suite` | `cases` | Create a named, interleaved benchmark suite (2–10 cases) |
 | `run_benchmark_suite` | `id` | Run suite cases round-robin with warm-ups and repeated samples |
 | `compare_benchmarks` | `before`, `after` | Compare matching cases in two suite results |

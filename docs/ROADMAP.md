@@ -186,19 +186,19 @@ Closes **Function hotspots via real external profilers** and the **Disk/network 
 
 Capability checks: profiler adapters **registered**; hotspots ✅ only when a real profiler produced them.
 
-### Patch I — Validation, integrity and reports (0.4)
+### Patch I — Validation, integrity and reports (0.4) — done, released as 0.4.0
 
 Closes the validation, integrity and reporting part of the 0.4 section.
 
-- Test-suite adapters and build verification; regression-test execution.
-- Structured behavior fixtures and normalization rules (whitespace, timestamps, ordering); comparison before and after a change on predefined inputs, including programs without source.
-- Explicit reporting when equivalence cannot be proven.
-- Evidence manifest integrity: hash chain and optional signing.
-- Before/after report generation: what was found, what changed and why, metrics before and after with uncertainty, residual risks and next steps.
+- [x] Validation normalization (whitespace, timestamps, sortLines) and fixture runner (`runValidationFixtures`).
+- [x] Explicit "equivalence cannot be proven" when checks fail; never claim semantic equivalence.
+- [x] Evidence hash-chain verify + optional HMAC-SHA256 (`REVERSE_EVIDENCE_KEY`) via `signSession` / `verifySessionSignature`.
+- [x] Before/after `generateChangeReport` with residual risks and next steps.
+- [x] MCP: `generate_change_report`, `verify_evidence_integrity`; `validate_changes` accepts `normalize`.
 
-Capability checks that flip: *Validation — exact match only* and the *Evidence — unsigned* limitation become ✅.
+Capability checks: validation normalization ✅; evidence optional signing ✅.
 
-**Milestone 0.4 is released when G, H and I are done.**
+**Milestone 0.4 is released: G, H and I are done (0.4.0).**
 
 ### Patch J — Controlled optimization loop (1.0)
 
