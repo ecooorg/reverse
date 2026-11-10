@@ -335,7 +335,7 @@ check('Binary', 'sections, imports or symbols are produced where the format allo
     const has = (f.sections?.length ?? 0) > 0 || (f.imports?.length ?? 0) > 0 ||
         (f.exports?.length ?? 0) > 0 || (f.symbols?.length ?? 0) > 0 || (f.loadCommands?.length ?? 0) > 0;
     assert.ok(has, 'expected at least sections, imports, exports, symbols or load commands on the host binary');
-    c.detail(`sections=${f.sections?.length ?? 0} imports=${f.imports?.length ?? 0} ` +
+    c.note(`sections=${f.sections?.length ?? 0} imports=${f.imports?.length ?? 0} ` +
         `exports=${f.exports?.length ?? 0} symbols=${f.symbols?.length ?? 0}`);
     // Disassembly / call graph remain out of scope for patch E (provider engines in F).
     c.limit('no disassembly, decompilation or control-flow graph (provider engines in patch F)');
@@ -1713,7 +1713,7 @@ check('Docs', 'docs/MCP.md says tools return structuredContent', async (c) => {
     try {
         const obj = await s.call('get_inventory', { limit: 3 });
         assert.deepEqual(obj.envelope.structuredContent, obj.value);
-        const arr = await s.call('list_analyzers', 'run_provider', {});
+        const arr = await s.call('list_analyzers', {});
         assert.deepEqual(arr.envelope.structuredContent, {
             items: arr.value,
             untrustedContent: arr.envelope.structuredContent.untrustedContent
