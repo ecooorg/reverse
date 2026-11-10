@@ -269,7 +269,7 @@ check('Legacy Windows', 'legacy analysis report preserves the declared authoriza
     const b = Buffer.alloc(64);
     b.write('MZ', 0, 'ascii');
     const authorization = {
-        basis: 'open_source', licenseOrConsentReference: 'LICENSE',
+        basis: 'open_source' as const, licenseOrConsentReference: 'LICENSE',
         declaredBy: 'capability-test', declaredAt: '2026-11-10T00:00:00.000Z'
     };
     const r: any = await analyzeLegacyWindows(await craft('legacy-authorized.exe', b), authorization);
