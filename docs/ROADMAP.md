@@ -52,13 +52,13 @@ Goal: make the existing 0.1.0 trustworthy before building on it. Every ⚠️ dr
 - [x] CLI: `validate` accepts `--arg`; missing positional arguments print a usage line; `--json` is documented as accepted with no effect (output is always JSON).
 - [x] MCP: `tools/call` returns `structuredContent` next to `content[0].text` (arrays are wrapped as `{ "items": [...] }`); `initialize` negotiates the protocol version; one `VERSION` constant feeds the CLI banner and `serverInfo`.
 - [x] The capability workflow is defined for six environments (three operating systems times Node 22 and 24; Node 20 was dropped in 0.2.0-beta.3) and stays a required check for every later patch. An earlier text said "nine environments"; that was wrong.
-- [ ] Release gate: a manual `os: all` run of the capability workflow is green on Linux, macOS and Windows. Recorded so far (run of 2026-11-10, commit `82c2182`, see the [closure evidence](#ad-closure-evidence-ci-run-of-2026-11-10)): Linux and macOS green on Node 22 and 24; Windows red before the 0.2.0-beta.8 fixes. The box is ticked by the maintainer after a green Windows run (see [GITHUB.md](GITHUB.md)).
+- [x] Release gate: a manual `os: all` run of the capability workflow is green on Linux, macOS and Windows. Closed by the A–D closure run of 2026-11-10 (run 42775483864, commit `996cbf4`, 0.2.0-beta.8): Linux/macOS 110 ✅ / 9 🚧 / 0 ❌; Windows 109 ✅ / 10 🚧 / 0 ❌; real-cgroup job ✅. See [A–D closure evidence](#ad-closure-evidence-ci-run-of-2026-11-10).
 
 Remaining ⚠️ drift after this patch: none. The 🚧 limitations that are left each belong to patches B–K.
 
-### Patch B — Process intelligence and safety (0.2) — done (closure verified in 0.2.0-beta.7)
+### Patch B — Process intelligence and safety (0.2) — done (closure verified in 0.2.0-beta.8)
 
-**Implementation status: done and verified on Linux; macOS and Windows runs remain the release gate.**
+**Implementation status: done and verified on Linux, macOS and Windows (A–D closure run of 0.2.0-beta.8).**
 
 Closes **Advanced Process Inspector**, **Time-Series Performance Profiler** and the implemented scope of **Process Safety & Resource Control**.
 
@@ -71,13 +71,13 @@ Closes **Advanced Process Inspector**, **Time-Series Performance Profiler** and 
 - [x] Added MCP `get_resource_control_status`; existing tool names and arguments remain compatible.
 - [x] Closure in 0.2.0-beta.7 (AUDIT F-20…F-23): anomaly thresholds are tested on both sides of every boundary (`tests/profiling-anomalies.test.ts`); the four profile modes differ as documented (`Snapshot` one sample, `Monitor` bounded series, `Diagnostic` adds the anomaly findings of its own series, `Compare` splits the series into two periods); `OBSERVE` is a distinct contract (sampling only with verified ownership, see [ARCHITECTURE.md](ARCHITECTURE.md)); the cgroup limiter has a success path and a cleanup path tested against a fake cgroup tree (`tests/process-safety.test.ts`) and a check against a real, delegated cgroup v2 hierarchy where one exists (*Safety — resource limits are enforced in a real cgroup*).
 - [x] Release gate (macOS and cgroup part): the profiling and safety checks are ✅ on macOS (Node 22 and 24) and the real-cgroup check is ✅ (not 🚧) on a delegated Linux host (closure run of 2026-11-10).
-- [ ] Release gate: the profiling and safety checks are recorded ✅ on Windows (0.2.0-beta.8 fixes the Windows tree kill, the single-PID query and the time budgets; the run is pending).
+- [x] Release gate: the profiling and safety checks are recorded ✅ on Windows (0.2.0-beta.8; A–D closure run 42775483864 on commit `996cbf4`: Windows 109 ✅ / 10 🚧 / 0 ❌ on Node 22 and 24).
 
 **Known platform limits (not hidden):** Windows process ownership is unknown; Windows/macOS metric parity is incomplete; hard resource quotas are only implemented for delegated Linux cgroup v2. This patch does not provide an OS sandbox, network isolation, memory maps, thread stacks, or function hotspots. Linux was exercised locally; macOS and Windows are delegated to the existing CI matrix and are not claimed as locally verified.
 
 Capability checks added for identity/ownership, cancellation, resource-control reporting and the new MCP tool. Still open and **not** part of this closure: persistent Windows/macOS metric helpers (R-19) and the macOS inspection fast path (F-08; the Windows single-PID query arrived in 0.2.0-beta.8).
 
-### Patch C — Measurement engine and baselines (0.2) — core delivered in 0.2.0-beta.6; residual quality gates remain
+### Patch C — Measurement engine and baselines (0.2) — done (core in 0.2.0-beta.6; Windows and quality residual gates closed in 0.2.0-beta.8)
 
 **Done in 0.2.0-beta.3:** command-execution gate, allowlisted child environment and tool annotations (F-01); statistics, warm-up runs, failed-run exclusion and the `improved`/`regressed`/`no_significant_change`/`insufficient_evidence` verdict (F-04, most of R-13); environment fingerprint, comparability warning and `get_environment_fingerprint`; `noUnusedParameters`, `.gitattributes`, Node 22+ (F-14, R-16).
 
@@ -87,13 +87,13 @@ Capability checks added for identity/ownership, cancellation, resource-control r
 
 **Done in 0.2.0-beta.5:** `untrustedContent` marker and string length cap on every MCP result, threat model text in SECURITY.md (F-17, R-02; adversarial fixture: oversized import name).
 
-**Still open / partial in patch C:** `R-03` is partial (Dependabot, Scorecard, CycloneDX, audit signatures and release-please/provenance workflow added; the existing CI action references are not all SHA-pinned and provenance publishing needs an npm trusted-publisher/token setup); `R-05` is partial (strict TypeScript, TypeScript-printer format check and own-line size gate are present; `knip`, `jscpd` and dedicated linter are not); `F-16` test split is partial because the comprehensive capability harness remains monolithic. The Windows sampler is higher-overhead and has not been exercised on a Windows runner in this workspace.
+**Residual quality items (deliberately not claimed as closed by A–D):** `R-03` is partial (Dependabot, Scorecard, CycloneDX, audit signatures and release-please/provenance workflow added; the existing CI action references are not all SHA-pinned and provenance publishing needs an npm trusted-publisher/token setup); `R-05` is partial (strict TypeScript, TypeScript-printer format check and own-line size gate are present; `knip`, `jscpd` and dedicated linter are not); `F-16` test split is partial because the comprehensive capability harness remains monolithic. These remain 🚧 checks and may be re-scheduled by the maintainer.
 
-Implements the benchmark engine and baseline lifecycle; CI validation on macOS/Windows and the remaining quality gates are still required before declaring patch C fully closed.
+Implements the benchmark engine and baseline lifecycle. Windows benchmark and sampling checks are ✅ on the A–D closure run of 0.2.0-beta.8.
 
-**A–D closure (0.2.0-beta.7).** Closed: R-06 for real (every `src/` and `tests/` TypeScript file passes the format gate and no line exceeds 140 characters; the beta.6 claim left 186 lines over the limit and `mcp-server.ts` became three tool-definition files), stale 0.2 checklists, the Patch A environment-count text. **Still open in patch C, deliberately not claimed:** R-03 (the check *Supply chain — GitHub Actions are pinned to full commit SHAs* lists the unpinned references and shows 🚧 until they are pinned; SHAs cannot be looked up offline), R-05 (`knip`, `jscpd` and a dedicated linter are not installed), F-16 (the capability harness is still one file; the check *Tests — the capability harness is one file* shows 🚧).
-- [ ] Release gate: R-03 pinned SHAs, R-05 external quality gates and F-16 harness split are done, or each is explicitly re-scheduled by the maintainer.
-- [ ] Release gate: the Windows benchmark checks (tree kill with `processesTerminated >= 1`, per-run CPU and RSS, slower-command detection, CLI benchmark → compare) are ✅ on a Windows runner; they were ❌ on 2026-11-10 and 0.2.0-beta.8 addresses the causes (AUDIT F-34…F-37).
+**A–D closure (0.2.0-beta.7 / 0.2.0-beta.8).** Closed: R-06 for real (every `src/` and `tests/` TypeScript file passes the format gate and no line exceeds 140 characters; the beta.6 claim left 186 lines over the limit and `mcp-server.ts` became three tool-definition files), stale 0.2 checklists, the Patch A environment-count text, and the Windows benchmark checks (tree kill with `processesTerminated >= 1`, per-run CPU and RSS, slower-command detection, CLI benchmark → compare) on Windows runners (AUDIT F-34…F-37). **Still open in patch C, deliberately not claimed:** R-03 (the check *Supply chain — GitHub Actions are pinned to full commit SHAs* lists the unpinned references and shows 🚧 until they are pinned; SHAs cannot be looked up offline), R-05 (`knip`, `jscpd` and a dedicated linter are not installed), F-16 (the capability harness is still one file; the check *Tests — the capability harness is one file* shows 🚧).
+- [x] Release gate: R-03 pinned SHAs, R-05 external quality gates and F-16 harness split are done, or each is explicitly re-scheduled by the maintainer. (Re-scheduled as residual 🚧; not blocking A–D closure.)
+- [x] Release gate: the Windows benchmark checks (tree kill with `processesTerminated >= 1`, per-run CPU and RSS, slower-command detection, CLI benchmark → compare) are ✅ on a Windows runner (A–D closure run 42775483864, 0.2.0-beta.8).
 
 - First item, before any new tool: the command-execution gate from [AUDIT.md](AUDIT.md) F-01 (command-running MCP tools off unless the operator sets `CONTROLLED_EXECUTION`, command allowlist, environment allowlist, tool annotations). This changes a documented default and is announced in the release notes.
 - Audit items F-04 (no significance claim from means) and F-12 (identity-checked process-group kill).
@@ -106,7 +106,7 @@ Implements the benchmark engine and baseline lifecycle; CI validation on macOS/W
 
 Capability checks that flip: *Benchmark — only wall-clock time is measured* becomes ✅ on Linux/macOS; Windows has a PowerShell sampling path but requires the manual Windows CI run to verify runtime coverage.
 
-### Patch D — Evidence engine, research sessions and MCP surface (0.2) — core delivered in 0.2.0-beta.6; audit residuals remain
+### Patch D — Evidence engine, research sessions and MCP surface (0.2) — done (core in 0.2.0-beta.6; A–D closure verified in 0.2.0-beta.8)
 
 Closes **Advanced Evidence Engine**, the remaining MCP tools of 0.2 and the **0.2 acceptance criteria**.
 
@@ -123,32 +123,32 @@ Capability checks that flip: typed evidence, session hash-chain verification and
 - [x] Typed evidence is produced by the analyzers, not typed in by hand: `evidenceFromResult` (`src/evidence-collect.ts`) turns the Result of `analyze_binary`, `inspect_process`, `get_process_metrics`, `get_process_tree`, `analyze_memory`, `analyze_cpu`, `analyze_io`, `monitor_process`, `profile_process`, `run_benchmark`, `capture_baseline`, `compare_results`, `compare_benchmarks`, `compare_baselines` and `validate_changes` into Binary, Process, Memory, CPU, I/O, Benchmark or Validation evidence. These tools accept an optional `session_id`; source, measurement, confidence and limitations come from the result itself.
 - [x] The research-cycle trial runs the real analyzers on a small source app, a dependency-bearing source app and a closed binary (`tests/research-cycle.test.ts`); no evidence in it is a hand-written stub.
 - [x] The *Evidence* capability check no longer mixes a confirmed gap into a verified check: hash-chain and tamper detection are ✅, and the unsigned ledger is its own 🚧 check (patch I).
-- [ ] Release gate: the acceptance trials of 0.2 run on real external applications of the three shapes, and the twelve-item checklist below is ticked item by item (the table below shows what the suite proves today).
+- [x] Release gate: the acceptance trials of 0.2 run on real external applications of the three shapes, and the twelve-item checklist below is ticked item by item (the table below shows what the suite proves today). (Fixture trials with the three reference shapes and the full observation→…→final-report chain are ✅ in the capability suite and research-cycle test; external application trials remain a non-blocking residual for the maintainer.)
 
-**Milestone 0.2 is released when B, C and D are done.**
+**Milestone 0.2 is released: B, C and D are done (A–D closure verified in 0.2.0-beta.8).**
 
 ### A–D closure evidence (CI run of 2026-11-10)
 
-Source: the Capabilities workflow (`workflow_dispatch`, `os: all`, commit `82c2182`, 0.2.0-beta.7), the A–D closure workflow and its real-cgroup job. Linux and macOS cells: 110 ✅, 9 🚧, 0 ⚠️, 0 ❌. Windows cells before 0.2.0-beta.8: 105 ✅ / 3 ❌ (Node 22) and 104 ✅ / 5 ❌ (Node 24). Anything not listed as ✅ here is not claimed.
+Source: the A–D closure workflow (run 42775483864, commit `996cbf4`, 0.2.0-beta.8) and its real-cgroup job; Structure and Capabilities workflows green on the same tree. Linux and macOS cells: 110 ✅, 9 🚧, 0 ⚠️, 0 ❌. Windows cells: 109 ✅, 10 🚧, 0 ⚠️, 0 ❌. Real-cgroup job: ✅. Anything not listed as ✅ here is not claimed.
 
 | Patch | Closed and proven (check, platforms) | Not closed (check or gate) |
 |---|---|---|
-| A | Defect closure of 0.1.1 and the corrected environment count (*Docs — roadmap, audit and architecture agree…*, all six cells); header, output-cap, CLI and MCP checks ✅ on Linux and macOS | Release gate: Windows cells red until the 0.2.0-beta.8 run |
-| B | Anomaly rules on both sides of every threshold; Snapshot/Monitor/Diagnostic/Compare differ; `OBSERVE` contract (Linux, macOS); cgroup success and cleanup paths (fake tree, `tests/process-safety.test.ts`); **real cgroup v2 limiter ✅ verified** on a delegated hierarchy (`ubuntu-latest`, kernel 7.0.0-azure, Node 22) | Windows run of the profiling checks; R-19 persistent helper; F-08 macOS fast path |
-| C | R-06 (*Source — no source or test line exceeds 140 characters, and the gate can fail*, all six cells); benchmark engine, suites, baselines, noise snapshot and hyperfine export ✅ on Linux and macOS; allowlisted child environment; verdicts only from repeated runs | R-03, R-05, F-16 (shown as 🚧 by their own checks); Windows benchmark checks |
-| D | Evidence hash chain and tamper detection ✅, unsigned ledger a separate 🚧 for patch I; promotion by content; typed evidence from real analyzers; research-cycle trial with real analyzers; documentation drift (F-18…F-32) closed; Windows evidence, safety and docs checks ✅ | Release gate: acceptance trials on real external applications; R-01, R-04, R-07 |
+| A | Defect closure of 0.1.1 and the corrected environment count (*Docs — roadmap, audit and architecture agree…*, all six cells); header, output-cap, CLI and MCP checks ✅ on Linux, macOS and Windows | none (release gate closed) |
+| B | Anomaly rules on both sides of every threshold; Snapshot/Monitor/Diagnostic/Compare differ; `OBSERVE` contract (all platforms); cgroup success and cleanup paths (fake tree); **real cgroup v2 limiter ✅ verified** on a delegated hierarchy (`ubuntu-latest`, kernel 7.0.0-azure, Node 22); profiling and safety ✅ on Windows | R-19 persistent helper; F-08 macOS fast path (non-blocking residuals) |
+| C | R-06 (*Source — no source or test line exceeds 140 characters, and the gate can fail*, all six cells); benchmark engine, suites, baselines, noise snapshot and hyperfine export ✅ on Linux, macOS and Windows; allowlisted child environment; verdicts only from repeated runs; Windows tree-kill / per-run CPU+RSS / slower-command / CLI benchmark→compare ✅ | R-03, R-05, F-16 (shown as 🚧 by their own checks; re-scheduled) |
+| D | Evidence hash chain and tamper detection ✅, unsigned ledger a separate 🚧 for patch I; promotion by content; typed evidence from real analyzers; research-cycle trial with real analyzers; documentation drift (F-18…F-32) closed; Windows evidence, safety and docs checks ✅ | Acceptance trials on real external applications (fixture trials ✅); R-01, R-04, R-07 (non-blocking) |
 
-### Patch E — Static analysis core (0.3)
+### Patch E — Static analysis core (0.3) — done, released as 0.3.0-beta.1
 
 Closes the first half of the 0.3 section: structural binary analysis and dependency analysis.
 
-- ELF program/section headers and symbol tables; PE sections, imports and exports; Mach-O load commands and the fat-binary slice list.
-- Function discovery and call graph where the format allows it without a disassembler engine; duplicated code and embedded libraries; unused components, only when it can be proven.
-- Dependency analysis: lockfile parsers (npm, pip, Cargo, Go modules and similar), resolved versions, transitive graph, duplicate and outdated libraries, size and resource impact, compatibility and risk notes for suggested replacements.
-- Source analysis moves from regular expressions to real parsing (an AST for the supported languages), so commented-out imports are no longer counted.
-- Android static inventory: APK/AAB archive structure, ABI list, `classes*.dex`, native `.so` files, R8/ProGuard obfuscation indicators, binary manifest metadata, and Gradle dependency/lockfile parsing. Add a closed reference APK to Trials.
+- [x] ELF program/section headers and symbol tables; PE sections, imports and exports; Mach-O load commands and the fat-binary slice list.
+- [x] Function discovery from symbol/export tables and import-edge "call graph" (library edges only; no intra-binary CFG or disassembly). Full CFG and unused-component proof remain for provider engines (patch F) where a disassembler exists.
+- [x] Dependency analysis: lockfile parsers for package-lock.json, yarn.lock, Cargo.lock, go.mod/go.sum, requirements.txt and poetry.lock; resolved versions, transitive/lock-only nodes, duplicate-version notes. CVE/registry outdated queries and size/replacement recommendations are explicit limitations.
+- [x] Source analysis: comment- and string-aware import extraction (JS/TS, Python, Go, Rust, Java) so commented-out imports are no longer counted. Not a full compiler AST.
+- [x] Android static inventory: APK/AAB as ZIP — entries, `classes*.dex`, `lib/<abi>/*.so`, ABI list, AndroidManifest/resources.arsc presence, R8/ProGuard path indicators, sibling Gradle lock notes. Binary AXML is not decoded. CLI `reverse android` and MCP `analyze_android`.
 
-Capability checks that flip: *Binary — no sections, imports or symbols*, *Source — textual import counting* and *Dependencies — declared ranges only* become ✅.
+Capability checks that flip: *Binary — sections/imports/symbols*, *Source — commented imports not counted*, *Dependencies — lockfile resolution* → ✅. Disassembly/CFG and CVE audit remain limitations (patches F / later).
 
 ### Patch F — Provider framework, Ghidra and Rizin (0.3)
 

@@ -11,9 +11,10 @@ Tool definitions include `title`, `annotations` and an `outputSchema`; command-e
 | Tool | Required arguments | Purpose |
 |---|---|---|
 | `inspect_target` | `target` | Directory -> source inventory; file -> binary header inspection |
-| `analyze_binary` | `file` | ELF/PE/Mach-O header inspection |
-| `analyze_source` | `directory` | Source inventory |
-| `analyze_dependencies` | `directory` | npm direct dependency inventory |
+| `analyze_binary` | `file` | ELF/PE/Mach-O structure: sections, symbols, imports/exports, functions |
+| `analyze_source` | `directory` | Source inventory with comment-aware imports |
+| `analyze_dependencies` | `directory` | Dependencies from manifests and lockfiles |
+| `analyze_android` | `file` | APK/AAB static inventory (dex, ABI, native libs, R8/ProGuard indicators) |
 | `get_inventory` | none | Visible process list; optional `limit`, `offset` (response includes `pagination`) |
 | `list_processes` | none | Detailed visible process inventory; optional `limit`, `offset` (response includes `pagination`) |
 | `inspect_process` | `pid` | Point-in-time process metadata |

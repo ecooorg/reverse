@@ -87,7 +87,7 @@ The Result envelope contains `schemaVersion`, `id`, `target`, `operation`, `stat
 Every response must make clear which kind of statement it carries, and a model assumption must never be presented as a measured fact:
 
 1. **Measured facts** — observations from sampling, benchmarks and process inspection.
-2. **Static analysis results** — facts derived from files, headers, manifests and, later, disassembly.
+2. **Static analysis results** — facts derived from files, headers, sections/symbols/imports, lockfiles, source imports and APK/AAB inventory; disassembly remains provider-backed (patch F).
 3. **Hypotheses and analogies** — proposed by the agent or a similarity provider. They are stored only in the **hypothesis ledger**, never as evidence and never inside a `measured` or `static` finding. Records carry `hypothesis_id`, `target_id`, statement, provenance, confidence, status and optional `promotionEvidenceId`. Promotion to `supported` requires same-session Validation evidence with `passed: true` or Benchmark evidence with the verdict `improved`, confidence of at least 0.5 and an intact hash; refuted hypotheses are retained. MCP records mark them `kind: "hypothesis"`.
 4. **Confirmed optimization results** — a before/after comparison backed by measurements and validation.
 
@@ -159,7 +159,7 @@ Reverse
     └── simpleperf / Perfetto / dumpsys
 ```
 
-### Android analysis extension (planned across patches E–J)
+### Android analysis extension (static inventory in E; deeper adapters planned F–J)
 
 Android packages are treated as analysis targets without expanding the core with heavyweight reverse-engineering engines. The static layer will inventory APK/AAB archives, parse binary `AndroidManifest.xml` (permissions, components, exported components and debug flags), and list `classes*.dex`, `lib/<abi>/*.so`, assets and resources. Dependency analysis will read `build.gradle`, `build.gradle.kts`, `gradle.lockfile` and `libs.versions.toml`, plus available `META-INF` metadata in built APKs.
 

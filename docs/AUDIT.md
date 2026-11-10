@@ -6,6 +6,20 @@ IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H*
 
 ---
 
+## Audit 7 — 2026-11-10 — A–D closure verified green (0.2.0-beta.8)
+
+**Scope.** The successful A–D closure run of 0.2.0-beta.8 (run 42775483864, commit `996cbf4a3c4212b2251c9ac5adc6f736354e3038`), Structure and Capabilities workflows, and the real-cgroup job.
+
+**What the logs prove.** All six matrix cells and the real-cgroup job succeeded. Linux (Node 22/24) and macOS (Node 22/24): 110 ✅, 9 🚧, 0 ⚠️, 0 ❌. Windows (Node 22/24): 109 ✅, 10 🚧, 0 ⚠️, 0 ❌. Real-cgroup: 1 ✅. The extra Windows limitation is the Linux-only real-cgroup check (expected 🚧). Key A–D checks (hash-chain/tamper, promotion by content, real analyzer evidence, anomaly rules both sides, profile modes, OBSERVE contract, tree-kill timeout, R-06 line length, docs agreement) are ✅ on every platform. Matrix: success; cgroup-real: success.
+
+**Consequence.** Patches A, B, C and D are closed. Release gates that depended on a green Windows run are satisfied. Residual 🚧 items (R-03 SHA pins, R-05 external quality tools, F-16 harness split, acceptance trials on real external apps, R-19 persistent helpers, F-08 macOS fast path) remain non-blocking and are recorded as such in [ROADMAP.md](ROADMAP.md).
+
+| ID | Sev | Area | Finding | Status |
+|---|---|---|---|---|
+| F-19 | Medium | CI | No recorded green run of the capability workflow on macOS and Windows | Status: closed in 0.2.0-beta.8, A–D closure (run 42775483864) |
+
+---
+
 ## Audit 6 — 2026-11-10 — A–D closure run of 0.2.0-beta.8 (red cells without a report)
 
 **Scope.** The A–D closure run of 0.2.0-beta.8 (run 42770029602, commit `58ab0d0`) was read against the workflows and the unit tests. Structure and Capabilities were green; the closure workflow was red.
@@ -61,7 +75,7 @@ Tasks F-34…F-38 are tracked in the [approved audit backlog](ROADMAP.md#approve
 | ID | Sev | Area | Finding | Status |
 |---|---|---|---|---|
 | F-18 | Low | Docs | Patch A said "nine environments" next to "(6 environments)" | Status: closed in 0.2.0-beta.7, A–D closure |
-| F-19 | Medium | CI | No recorded green run of the capability workflow on macOS and Windows | open: release gate in Patch A |
+| F-19 | Medium | CI | No recorded green run of the capability workflow on macOS and Windows | Status: closed in 0.2.0-beta.8, A–D closure (run 42775483864) |
 | F-20 | **High** | Safety | `withProcessResourceLimits`: only refusals were tested; moving the process, writing limits and cleanup were not | Status: closed in 0.2.0-beta.7, A–D closure |
 | F-21 | Medium | Profiling | `detect_resource_anomalies` thresholds had no behavioral tests | Status: closed in 0.2.0-beta.7, A–D closure |
 | F-22 | Medium | Safety | `OBSERVE` behaved exactly like `READ_ONLY` | Status: closed in 0.2.0-beta.7, A–D closure |
