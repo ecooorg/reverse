@@ -71,8 +71,8 @@ Copy protection, dongles and license checks are reported as facts but are not de
 - **Analysis Core:** bounded file/header inspection, source inventory, direct manifest dependency inventory.
 - **Process Core:** point-in-time process inventory and selected-process inspection.
 - **Measurement Core:** bounded OS process sampling and repeated command benchmarks (wall-clock, sampled CPU time and peak RAM, binary size).
-- **Validation Core:** exact caller-supplied stdout/stderr/exit-code checks. This is not semantic equivalence checking.
-- **Evidence Core:** timestamped, source-linked evidence records and local JSON artifacts.
+- **Validation Core:** exact caller-supplied stdout/stderr/exit-code checks with optional normalization (whitespace, timestamps, sortLines) and JSON fixture runner. This is not semantic equivalence checking.
+- **Evidence Core:** timestamped, source-linked evidence records, hash-chained research sessions, optional HMAC-SHA256 integrity (`REVERSE_EVIDENCE_KEY`), and local JSON artifacts.
 - **AI Interface:** CLI and an independent MCP stdio server over the same TypeScript functions.
 - **Provider boundary:** optional specialist engines can be registered behind `AnalyzerProvider`.
 
@@ -87,7 +87,7 @@ The Result envelope contains `schemaVersion`, `id`, `target`, `operation`, `stat
 Every response must make clear which kind of statement it carries, and a model assumption must never be presented as a measured fact:
 
 1. **Measured facts** — observations from sampling, benchmarks and process inspection.
-2. **Static analysis results** — facts derived from files, headers, sections/symbols/imports, lockfiles, source imports and APK/AAB inventory; disassembly remains provider-backed (patch F).
+2. **Static analysis results** — facts derived from files, headers, sections/symbols/imports, lockfiles, comment-aware source imports and APK/AAB inventory (patch E). Deeper disassembly/decompilation is provider-backed (Ghidra postScript function list, Rizin; patch F).
 3. **Hypotheses and analogies** — proposed by the agent or a similarity provider. They are stored only in the **hypothesis ledger**, never as evidence and never inside a `measured` or `static` finding. Records carry `hypothesis_id`, `target_id`, statement, provenance, confidence, status and optional `promotionEvidenceId`. Promotion to `supported` requires same-session Validation evidence with `passed: true` or Benchmark evidence with the verdict `improved`, confidence of at least 0.5 and an intact hash; refuted hypotheses are retained. MCP records mark them `kind: "hypothesis"`.
 4. **Confirmed optimization results** — a before/after comparison backed by measurements and validation.
 
@@ -299,13 +299,24 @@ The existing tools, the implemented 0.2 process tools and `get_environment_finge
 
 The 0.2 MCP surface includes benchmark-suite creation/execution/comparison and research-session creation, event/evidence attachment, hypothesis recording/promotion and retrieval. The live tool contract is listed in [MCP.md](MCP.md).
 
-Candidates for later releases, depending on providers: `get_hotspots` and `trace_execution` (require a real profiler or Frida/GDB provider).
+Provider-backed dynamic surface (patches G–H): `trace_execution` (Frida attach sample under CONTROLLED_EXECUTION), `get_hotspots` (perf/sample when present), `get_process_io` (Linux). Full continuous profiling and Windows ETW sessions remain limited.
+
+## Implemented in 0.3–0.4 (patches E–I)
+
+- **Static analysis (E):** ELF/PE/Mach-O structure (sections, symbols, imports/exports, fat slices); lockfile dependency resolution; comment-aware source imports; APK/AAB ZIP inventory.
+- **Providers (F):** in-process `AnalyzerProvider` registry, executable discovery, Ghidra/Rizin/JADX/Apktool/ghidra-similarity adapters; `run_provider` MCP tool.
+- **Dynamic (G):** Frida attach sample (modules/threads/backtraces); GDB/LLDB batch attach or file inspect; both gated by `CONTROLLED_EXECUTION`.
+- **Hotspots (H):** `get_hotspots` via perf/sample when available; `get_process_io` on Linux; profiler presence adapters for eBPF/ETW/Instruments/Valgrind/simpleperf.
+- **Validation & integrity (I):** normalization options, fixture runner, change reports, hash-chain verify, optional HMAC session signatures.
+- **CLI (0.4.1):** `binary`, `source`, `dependencies`, `android`, `hotspots`, `fixtures`, `analyzers`, `doctor`, `mcp`, process/benchmark commands.
+
+Live MCP tool names are listed only in [MCP.md](MCP.md).
 
 ## Extension contract
 
 Implement `AnalyzerProvider` from `src/providers-registry.ts`, declare concrete capabilities, check availability without side effects, and return structured observations with explicit coverage and limitations. Never report `available: true` unless the executable and required runtime are actually detected. Provider registration is in-process via `registerProvider` / `bootstrapExternalProviders`; adapters probe PATH and `GHIDRA_INSTALL_DIR` without fabricating results.
 
-Providers are independent so that connecting Ghidra, Rizin, Frida, GDB, eBPF, ETW or Instruments does not require rewriting the core. The core must not depend exclusively on any single engine; engines are connected through the common interface. Execution-environment providers (patch N) use the same independence rule. Provider integrations: Ghidra, Rizin, JADX and Apktool adapters are implemented in Patch F (opt-in, detect-only). Frida and GDB (0.4), then Linux (eBPF), Windows (ETW) and macOS (Instruments) remain later. Android adapters are scheduled across patches E–J; GPU and network analyzers remain later extensions.
+Providers are independent so that connecting Ghidra, Rizin, Frida, GDB, eBPF, ETW or Instruments does not require rewriting the core. The core must not depend exclusively on any single engine; engines are connected through the common interface. Execution-environment providers (patch N) use the same independence rule. Provider integrations implemented: Ghidra (headless import + postScript functions), Rizin, JADX, Apktool (F); Frida and GDB batch/attach under CONTROLLED_EXECUTION (G); perf/eBPF/ETW/Instruments/Valgrind/simpleperf detect adapters and Linux/macOS hotspots (H). GPU, network and execution-environment providers remain later (N/K). Android static inventory is in E; device-side profiling remains partial.
 
 ## Size guidance
 

@@ -200,7 +200,7 @@ Closes the validation, integrity and reporting part of the 0.4 section.
 
 Capability checks: validation normalization ✅; evidence optional signing ✅.
 
-**Milestone 0.4 is released: G, H and I are done (0.4.0).**
+**Milestone 0.4 is released: G, H and I are done (0.4.0).** Hardening and full doc/audit alignment: **0.4.1** (A–I-closed; Audit 8).
 
 ### Patch J — Controlled optimization loop (1.0)
 
@@ -268,11 +268,15 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-06 | (a)–(c) protocol errors | closed in 0.2.0-beta.2; stateful revisions through 2025-11-25, titles, output schemas and annotations in 0.2.0-beta.6; stateless 2026 protocol remains open |
 | F-07 | Page size and `CLK_TCK` read from the OS; one documented CPU-percent convention | closed in 0.2.0-beta.6 |
 | F-08 | Single-PID fast path for inspection and sampling; cached `btime`, page size, tick rate | Linux inspection fast path and cached constants in 0.2.0-beta.6; Windows single-PID query in 0.2.0-beta.8; macOS remains partial |
-| F-09 | File and size caps, `lstat`, `.wasm` | closed in 0.2.0-beta.2; real parser (AST) in **E** |
-| F-10 | Dependency groups kept per group, `peerDependencies` | **E** |
+| F-09 | File and size caps, `lstat`, `.wasm`; comment-aware imports | closed in 0.2.0-beta.2 (caps); comment-aware imports closed in **0.3.0-beta.1 / E** (not full AST) |
+| F-10 | Dependency groups kept per group, `peerDependencies`, lockfiles | closed in **0.3.0-beta.1 / E** |
 | F-11 | Streamed hashing, atomic evidence writes, lookup by evidence id, one evidence code path | closed in 0.2.0-beta.6 (shared atomic JSON writer) |
 | F-12 | Process-group kill with identity-checked sweep; real counts on Windows | closed in 0.2.0-beta.6 |
-| F-13 | Mach-O CPU type and fat slice table, PE `e_lfanew` beyond the buffer reported as `partial` | **E** |
+| F-13 | Mach-O CPU type and fat slice table, PE `e_lfanew` beyond the buffer reported as `partial` | closed in **0.3.0-beta.1 / E** (hardened 0.4.1) |
+| F-50 | CLI android help text wrong | closed in **0.4.1** |
+| F-51 | Ghidra import-only without postScript | closed in **0.4.1** |
+| F-52 | Frida/GDB trivial probes only | closed in **0.4.1** |
+| R-25 | Docs lagged E–I implementation | closed in **0.4.1** |
 | F-14 | Remaining: `.gitattributes`, `noUnusedParameters` | closed in 0.2.0-beta.3 |
 | F-15 | Documentation drift and the planned-tools check | closed in 0.2.0-beta.2 |
 | F-16 | Split the test suite into flat `tests/<area>.test.ts` files with pure fixtures; statistics, `CappedBuffer`, MCP error paths, `/proc` parser | partial in 0.2.0-beta.6: statistics, benchmark suites, evidence, research cycle, untrusted output and parser tests split; capability harness remains large; 0.2.0-beta.7: capability harness still monolithic (check *Tests — the capability harness is one file* shows 🚧); new unit tests added for anomalies, modes, cgroup limiter, evidence collection and MCP evidence |

@@ -6,6 +6,42 @@ IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H*
 
 ---
 
+## Audit 8 — 2026-11-10 — Patches E–I implemented (0.3.0-beta.1 → 0.4.1)
+
+**Scope.** Static analysis core (E), provider framework with Ghidra/Rizin/JADX/Apktool (F), Frida/GDB dynamic adapters (G), native profilers and hotspots (H), validation normalization, evidence HMAC integrity and change reports (I). Cumulative hardening released as **0.4.1** (`A-I-closed`).
+
+**What was verified in code (not claimed from absent CI alone).**
+
+- ELF/PE/Mach-O structure parsers emit sections/symbols/imports where the format allows; large ELF section headers are re-fetched beyond the 2 MiB prefix; Mach-O short buffers no longer throw.
+- Source inventory blanks comments but keeps string literal import paths; commented-out imports are not counted.
+- Lockfile resolution (npm/yarn/Cargo/Go/poetry) and package.json groups; status `completed` with limitation when lockfile is absent.
+- APK/AAB ZIP inventory (dex, native libs, ABI, manifest presence); binary AXML not decoded.
+- Providers register via `bootstrapExternalProviders`; missing tools return `unsupported` with limitations — results are never fabricated.
+- Ghidra headless: import + `ReverseListFns` postScript (up to 500 function names when analysis succeeds). Rizin/rabin2 emit real tool text. JADX/Apktool run when installed.
+- Frida under `CONTROLLED_EXECUTION`: attach sample with modules, threads and backtraces (`REVERSE_FRIDA` JSON). GDB/LLDB: batch attach + backtrace or file inspect under the same gate.
+- `get_hotspots`: perf top (Linux) / sample (macOS) under CONTROLLED_EXECUTION; otherwise process-level only. `get_process_io`: Linux `/proc/pid/io`.
+- Validation: optional normalize (whitespace/timestamps/sortLines); fixture runner; explicit non-proof of semantic equivalence. Evidence: hash-chain verify + optional HMAC-SHA256 (`REVERSE_EVIDENCE_KEY`). Change reports via `generate_change_report`.
+
+**Residual / non-claims (not closed by E–I).**
+
+- Full CFG, interactive decompile/xrefs, BSim scores without operator corpus.
+- Continuous Frida call-frequency profiles and `Java.perform` session scripts.
+- Windows ETW auto hotspot sessions; per-process network I/O.
+- Merkle roots / public-key detached signatures; full test-framework discovery (jest/pytest).
+- Prior residuals: R-03, R-05, F-16, R-19, F-08, external acceptance trials.
+
+| ID | Sev | Area | Finding | Status |
+|---|---|---|---|---|
+| F-10 | Medium | Dependencies | Dependency groups and lockfile resolution incomplete | Status: closed in 0.3.0-beta.1, patch E (groups + lockfiles; CVE/size still limitation) |
+| F-13 | Medium | Binary | Mach-O CPU/fat and PE beyond-buffer handling | Status: closed in 0.3.0-beta.1 / 0.4.1, patch E (CPU map, fat slices, bounds, ELF shdrs re-read) |
+| F-09 (parser depth) | Medium | Source | Caps done earlier; real comment-aware import extraction | Status: closed in 0.3.0-beta.1, patch E (comment-aware imports; not a full AST) |
+| F-50 | Low | Docs/CLI | CLI help listed android as package.json dependencies | Status: closed in 0.4.1, A–I-closed |
+| F-51 | Medium | Providers | Ghidra adapter was import-only without postScript | Status: closed in 0.4.1, A–I-closed (postScript function dump) |
+| F-52 | Medium | Dynamic | Frida/GDB registered but only trivial probes | Status: closed in 0.4.1, A–I-closed (attach sample / batch attach; still not continuous profiling) |
+| R-25 | Low | Docs | ROADMAP/ARCHITECTURE lagged implemented providers and MCP tools | Status: closed in 0.4.1, A–I-closed (doc revision) |
+
+---
+
 ## Audit 7 — 2026-11-10 — A–D closure verified green (0.2.0-beta.8)
 
 **Scope.** The successful A–D closure run of 0.2.0-beta.8 (run 42775483864, commit `996cbf4a3c4212b2251c9ac5adc6f736354e3038`), Structure and Capabilities workflows, and the real-cgroup job.

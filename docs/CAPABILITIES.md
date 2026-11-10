@@ -38,3 +38,15 @@ Do not interpret `coverage.complete: true` as proof of correctness. It only desc
 ## Process safety contract
 
 Process sampling remains read-only. It captures an OS start-time identity token and stops if the token changes between samples, reducing PID-reuse contamination. Ownership can be verified against the current UID on Linux/macOS; Windows ownership is reported as unknown. `withProcessResourceLimits` is an opt-in library API: it requires `CONTROLLED_EXECUTION`, `confirm: true`, verified ownership, a stable identity token, and a delegated Linux cgroup v2 hierarchy. It moves the target into a temporary cgroup for the duration of the supplied callback, then attempts to restore it and remove the cgroup. It does not provide a general sandbox.
+
+
+## Validation and integrity (patch I)
+
+| Capability | Works when | Limitation |
+|---|---|---|
+| Exact stdout/stderr/exit validation | Always (caller-supplied expected) | Not semantic equivalence |
+| Normalization | `normalize.whitespace` / `timestamps` / `sortLines` | Optional; off by default |
+| Fixture directory runner | `run_validation_fixtures` / CLI `fixtures` | JSON cases only; no jest/pytest discovery |
+| Evidence hash-chain verify | Research sessions | Detects edits to stored chain |
+| Optional HMAC signature | `REVERSE_EVIDENCE_KEY` set | Not public-key / Merkle |
+| Change report | `generate_change_report` | Aggregates caller evidence; does not invent metrics |
