@@ -6,6 +6,25 @@ IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H*
 
 ---
 
+## Audit 6 — 2026-11-10 — A–D closure run of 0.2.0-beta.8 (red cells without a report)
+
+**Scope.** The A–D closure run of 0.2.0-beta.8 (run 42770029602, commit `58ab0d0`) was read against the workflows and the unit tests. Structure and Capabilities were green; the closure workflow was red.
+
+**What the logs prove.** Every report that exists is clean: Linux (Node 22 and 24) and macOS (Node 22) show 110 ✅, 9 🚧, 0 ⚠️, 0 ❌, and the real-cgroup job is ✅. The supplied logs hold **no** report for Windows and for macOS on Node 24: those cells ended before the capability suite, so nothing says why they were red. The difference to the Capabilities workflow is the cause of the red: Capabilities runs the unit tests and the built-target structure check on Linux only, the closure workflow runs them on every operating system, so these tests had never run on macOS or Windows.
+
+**Method of this audit.** Linux sandbox, Node 22. The old unit tests were run against a build whose `inspectProcess` was slowed by 400 ms (the cost of a `ps` or PowerShell sample): 4 of 9 tests of `profiling-modes` and `mcp-evidence` failed. With the patched tests all 66 unit tests pass at normal speed and at the slowed speed. **Not run:** any Windows or macOS job. The root cause is established by that reproduction, not by the missing logs.
+
+| ID | Sev | Area | Finding | Status |
+|---|---|---|---|---|
+| F-39 | Medium | Tests | Monitor, Diagnostic and Compare in `tests/profiling-modes.test.ts` and the `OBSERVE` Compare check in `tests/mcp-evidence.test.ts` asserted 3–4 samples inside fixed 600–1000 ms windows; with a sample cost of 0.1–1.5 s (`ps`, PowerShell) they cannot hold. AGENTS.md §7 forbids tests that depend on timing luck | Status: fix in 0.2.0-beta.8, A–D closure (`tests/sampling-window.ts` derives the window from the measured cost of one sample; no assertion weakened); closed when the closure run is green on every cell |
+| F-40 | Low | CI | A closure cell that failed in the static gates or the unit tests wrote no JSON report and no log, and the closure record silently omitted it | Status: closed in 0.2.0-beta.8, A–D closure (both steps keep a log in the cell's artifact; the record names every cell without a report) |
+
+**Still open, deliberately.** Whether Windows and macOS on Node 24 are green is decided by the next closure run. Unit tests still run on Linux only in the Capabilities workflow; running them elsewhere stays a closure-only gate.
+
+Tasks F-39 and F-40 are tracked in the [approved audit backlog](ROADMAP.md#approved-audit-backlog-audit-1-approved-2026-11-09). Audit 5 follows.
+
+---
+
 ## Audit 5 — 2026-11-10 — CI evidence for 0.2.0-beta.7 (A–D closure, Windows)
 
 **Scope.** The Capabilities run (`workflow_dispatch`, `os: all`, commit `82c2182`) and the A–D closure run of 0.2.0-beta.7 were read against the source. Nothing new was reviewed; the question was why the suite was red and what the logs prove.

@@ -307,6 +307,13 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-37 | Four Windows checks assumed Linux timing | C/D tests, fix in 0.2.0-beta.8 (delays and windows scaled, assertions unchanged) |
 | F-38 | No single copyable closure record from the A–D closure workflow | closed in 0.2.0-beta.8 |
 
+### Findings (Audit 6, A–D closure run of 0.2.0-beta.8, 2026-11-10)
+
+| ID | Task | Patch / status |
+|---|---|---|
+| F-39 | Profile-mode and `OBSERVE` unit tests assumed Linux sample cost (3–4 samples in 600–1000 ms) | C/D tests, fix in 0.2.0-beta.8 (window derived from the measured sample cost, assertions unchanged); closed when the closure run is green |
+| F-40 | A closure cell that failed before the capability suite left no log and no row in the record | closed in 0.2.0-beta.8 |
+
 ### Recommendations
 
 | ID | Task | Patch |
@@ -450,6 +457,8 @@ Sequencing principle: do not start with Ghidra and do not try to implement every
 - [x] Windows single-PID inspection through a filtered WMI query, with fallback to the full table (AUDIT F-36, F-08 Windows part).
 - [x] Windows time budgets of four capability checks scaled; no assertion weakened (AUDIT F-37).
 - [x] A–D closure workflow writes one closure record; closure evidence of the 2026-11-10 run recorded in this file (AUDIT F-38).
+- [x] Unit tests no longer assume Linux sample cost: the observation window follows the measured cost of one sample, no assertion weakened (AUDIT F-39).
+- [x] A–D closure cells keep the log of the static gates and unit tests, and the record names cells without a report (AUDIT F-40).
 - Open and recorded by checks, not claimed: the Windows run of the Capabilities workflow, R-19 (persistent helper), F-08 (macOS), R-03, R-05, F-16, R-01, R-04.
 
 ## 0.2.0-beta.7 — A–D closure
