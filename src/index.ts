@@ -32,3 +32,7 @@ export { analyzeJavascript } from './analysis-javascript.js';
 export { analyzeDotnet } from './analysis-dotnet.js';
 export { analyzeWasm } from './analysis-wasm.js';
 export { startHttpMcp } from './mcp-http.js';
+export { listPrompts, getPrompt } from './mcp-prompts.js';
+export { listResources, readResource } from './mcp-resources.js';
+export { setupAgent } from './cli-setup.js';
+export { evaluateAgentPrompts } from './agent-eval.js';
