@@ -5,7 +5,6 @@ import os from 'node:os';
 import path from 'node:path';
 import { analyzeLegacyWindows } from '../dist/legacy-windows.js';
 import { EvidenceEngine } from '../dist/evidence-engine.js';
-
 test('legacy Windows detector recognizes DOS MZ and 16-bit NE', async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), 'reverse-legacy-'));
     try {
@@ -19,9 +18,11 @@ test('legacy Windows detector recognizes DOS MZ and 16-bit NE', async () => {
         assert.equal(r.findings[0].format, 'Windows NE');
         assert.equal(r.findings[0].bitness, 16);
         assert.equal(r.findings[0].compatibilityFindings[0].needsExecutionEnvironment, true);
-    } finally { await rm(dir, { recursive: true, force: true }); }
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
 });
-
 test('legacy analysis requires a declared authorization record', async () => {
     const previous = process.env.REVERSE_HOME;
     const dir = await mkdtemp(path.join(os.tmpdir(), 'reverse-auth-'));
@@ -35,8 +36,12 @@ test('legacy analysis requires a declared authorization record', async () => {
         });
         assert.equal(authorized.authorization?.basis, 'open_source');
         assert.equal((await engine.requireLegacyAuthorization(session.session_id)).session_id, session.session_id);
-    } finally {
-        if (previous === undefined) delete process.env.REVERSE_HOME; else process.env.REVERSE_HOME = previous;
+    }
+    finally {
+        if (previous === undefined)
+            delete process.env.REVERSE_HOME;
+        else
+            process.env.REVERSE_HOME = previous;
         await rm(dir, { recursive: true, force: true });
     }
 });
