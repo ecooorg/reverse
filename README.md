@@ -61,7 +61,7 @@ Output is always JSON; `--json` is accepted and has no effect. Reverse stores ev
 
 ## CI diagnostics
 
-All GitHub Actions workflows publish a ZIP artifact with detailed logs and a separate `AI-DEBUG-SUMMARY.md` artifact, including on failed runs. Paste the summary into an AI chat to share run identity, failing steps, exit codes and relevant error lines without attaching the full log archive. See [GITHUB.md](docs/GITHUB.md) for artifact contents and limitations.
+All GitHub Actions workflows publish a ZIP artifact with detailed logs and a separate `AI-DEBUG-SUMMARY.md` artifact, including on failed runs. The summary includes the earliest failed step, failure category, command lines, file/line references, surrounding error context, step inventory, capability-check failures/drift and JUnit failures when available; recognized secret-like values are redacted. Paste it into an AI chat to diagnose most CI failures without attaching the full archive. See [GITHUB.md](docs/GITHUB.md) for artifact contents and limitations.
 
 ## MCP connection
 

@@ -31,7 +31,8 @@
     "size:check": "node tests/size-gate.mjs",
     "quality:static": "node tests/quality-static.mjs",
     "quality": "npm run build && npm run format:check && npm run size:check && tsc -p tsconfig.tests.json",
-    "ci:summary": "node tests/ci-ai-summary.mjs"
+    "ci:summary": "node tests/ci-ai-summary.mjs",
+    "ci:summary:test": "node --test tests/ci-ai-summary.test.mjs"
   },
   "engines": {
     "node": ">=22"
