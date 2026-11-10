@@ -1368,23 +1368,21 @@ check('Providers', 'built-ins implemented; Ghidra/Rizin/JADX/Apktool registered;
     await import('../dist/providers-bootstrap.js').catch(() => import('../dist/providers-registry.js'));
     const list: any[] = listProviders();
     assert.equal(list.find(p => p.name === 'builtin-native-header')?.state, 'implemented');
-    for (const n of ['ghidra', 'rizin', 'jadx', 'apktool', 'ghidra-similarity']) {
+    for (const n of [
+        'ghidra', 'rizin', 'jadx', 'apktool', 'ghidra-similarity',
+        'frida', 'gdb', 'perf', 'ebpf', 'etw', 'instruments', 'valgrind', 'simpleperf'
+    ]) {
         const p = list.find(x => x.name === n);
         assert.ok(p, n + ' should be registered');
         assert.equal(p.state, 'registered', n);
         assert.ok(p.capabilities.length > 0, n);
-    }
-    for (const n of ['frida', 'gdb', 'perf', 'ebpf', 'etw', 'instruments']) {
-        const p = list.find(x => x.name === n);
-        assert.ok(p, n);
-        assert.equal(p.state, 'extension-point');
     }
     // Absent tools must not fabricate analysis results
     const { runProvider } = await import('../dist/providers-registry.js');
     const absent = await runProvider('ghidra', '/nonexistent-binary-for-provider-test');
     assert.ok(absent.status === 'unsupported' || absent.status === 'failed' || absent.status === 'partial');
     assert.ok((absent.limitations?.length ?? 0) > 0);
-    c.limit('Frida, GDB, perf, eBPF, ETW and Instruments remain extension points until their patches');
+    c.limit('Hotspots require a real profiler under CONTROLLED_EXECUTION; absent tools stay unsupported');
 });
 check('Providers', 'a custom provider can be registered, listed and status-checked; duplicates are refused', async () => {
     const name = `verify-provider-${process.pid}`;
@@ -1553,6 +1551,9 @@ const DOCUMENTED_TOOLS = ['inspect_target',
     'get_inventory',
     'inspect_process',
     'profile_process',
+    'trace_execution',
+    'get_hotspots',
+    'get_process_io',
     'list_processes',
     'monitor_process',
     'get_process_metrics',
