@@ -5,6 +5,7 @@ import readline from 'node:readline';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { inspectionCostMs, windowFor } from './sampling-window.js';
 const server = path.resolve('dist/mcp-server.js');
 type Call = (name: string, args: unknown) => Promise<any>;
 async function withServer(env: Record<string, string>, run: (call: Call, home: string) => Promise<void>) {
@@ -115,7 +116,9 @@ test('MCP: a refused command records no evidence', async () => {
 test('MCP: OBSERVE verifies ownership before sampling, READ_ONLY does not, and every tool name is kept', async () => {
     const child = sleeper();
     try {
-        const args = { pid: child.pid, durationMs: 600, intervalMs: 100 };
+        // Compare needs four samples; a sample costs milliseconds on Linux and hundreds of them with ps or PowerShell.
+        const durationMs = windowFor(600, 4, await inspectionCostMs(child.pid!));
+        const args = { pid: child.pid, durationMs, intervalMs: 100 };
         await withServer({ REVERSE_MODE: 'OBSERVE' }, async (call) => {
             const r = ok(await call('profile_process', args));
             if (process.platform === 'win32') {

@@ -5,6 +5,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { profileProcess } from '../dist/profiling-profiler.js';
+import { inspectionCostMs, windowFor } from './sampling-window.js';
 const home = await mkdtemp(path.join(os.tmpdir(), 'reverse-modes-'));
 process.env.REVERSE_HOME = home;
 const children: ChildProcess[] = [];
@@ -30,7 +31,8 @@ test('Snapshot takes exactly one sample and no mode-specific extras', async () =
     assert.equal(f.periods, undefined);
 });
 test('Monitor keeps sampling until the bounded duration and adds no extras', async () => {
-    const { f } = await finding(target(), 'Monitor', 800);
+    const pid = target();
+    const { f } = await finding(pid, 'Monitor', windowFor(800, 3, await inspectionCostMs(pid)));
     assert.equal(f.mode, 'Monitor');
     assert.ok(f.sampleCount >= 3, `samples: ${f.sampleCount}`);
     assert.ok(f.durationMs >= 700);
@@ -38,14 +40,16 @@ test('Monitor keeps sampling until the bounded duration and adds no extras', asy
     assert.equal(f.periods, undefined);
 });
 test('Diagnostic adds the deterministic anomaly findings of the same series', async () => {
-    const { f } = await finding(target(), 'Diagnostic', 800);
+    const pid = target();
+    const { f } = await finding(pid, 'Diagnostic', windowFor(800, 3, await inspectionCostMs(pid)));
     assert.equal(f.mode, 'Diagnostic');
     assert.ok(f.sampleCount >= 3);
     assert.ok(Array.isArray(f.anomalies), 'anomalies array is present even when empty');
     assert.equal(f.periods, undefined);
 });
 test('Compare splits the observation into two periods', async () => {
-    const { f } = await finding(target(), 'Compare', 1000);
+    const pid = target();
+    const { f } = await finding(pid, 'Compare', windowFor(1000, 4, await inspectionCostMs(pid)));
     assert.equal(f.mode, 'Compare');
     assert.ok(f.sampleCount >= 4, `samples: ${f.sampleCount}`);
     assert.equal(f.periods.first.sampleCount + f.periods.second.sampleCount, f.sampleCount);
@@ -53,12 +57,13 @@ test('Compare splits the observation into two periods', async () => {
 });
 test('a profile is persisted as JSON and the series respects identity and cancellation', async () => {
     const pid = target();
+    const duration = windowFor(5000, 3, await inspectionCostMs(pid));
     const ac = new AbortController();
     setTimeout(() => ac.abort(), 250);
-    const { r, f } = await finding(pid, 'Monitor', 5000, { signal: ac.signal });
+    const { r, f } = await finding(pid, 'Monitor', duration, { signal: ac.signal });
     assert.equal(r.status, 'partial');
     assert.match(r.limitations.join(' '), /cancelled/i);
-    assert.ok(f.sampleCount >= 1 && f.durationMs < 4000);
+    assert.ok(f.sampleCount >= 1 && f.durationMs < duration - 1000);
     assert.ok(f.artifactPath.startsWith(home));
 });
 test('verified ownership (OBSERVE) accepts an owned process and refuses an unverifiable or foreign one', async () => {
