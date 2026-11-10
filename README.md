@@ -89,6 +89,10 @@ The server writes protocol messages to stdout. Do not add logging to stdout; dia
 7. Analogies and AI guesses are hypotheses, kept apart from facts and promoted only by same-session Validation or Benchmark evidence.
 8. The legacy track is for open-source software or software whose developers and rights holders consent; see [SECURITY.md](docs/SECURITY.md).
 
+## Current release (0.4.1)
+
+Patches **A–I** are closed: static analysis (ELF/PE/Mach-O, lockfiles, source, APK), provider adapters (Ghidra/Rizin/JADX/Apktool/Frida/GDB/profilers), hotspots, validation normalization, evidence HMAC integrity and change reports. See [docs/ROADMAP.md](docs/ROADMAP.md), [docs/CAPABILITIES.md](docs/CAPABILITIES.md) and [docs/AUDIT.md](docs/AUDIT.md).
+
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
