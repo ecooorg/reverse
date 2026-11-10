@@ -1606,7 +1606,8 @@ const DOCUMENTED_TOOLS = [
     'add_research_evidence',
     'link_research_artifacts',
     'generate_change_report',
-    'verify_evidence_integrity'
+    'verify_evidence_integrity',
+    'run_validation_fixtures'
 ];
 check('MCP', 'handshake: initialize, ping and tools/list', async () => {
     const s = startMcp();
