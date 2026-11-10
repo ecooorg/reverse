@@ -130,3 +130,49 @@ test('writes a standalone summary when the log directory is absent', async (t) =
   assert.equal(stats.logs, 0);
   assert.match(markdown, /No step logs found/);
 });
+
+
+test('prioritizes capability test failures over incidental formatting words', async (t) => {
+  const { root, logsDir } = await fixture(t);
+  const log = [
+    'Running capability suite',
+    '✔ Docs — formatting guidance is current (1.2ms)',
+    '✖ Docs — every audit ID is tracked in the approved backlog (3.6ms)',
+    '  AssertionError [ERR_ASSERTION]: IDs missing from the approved audit backlog',
+    "  actual: [ 'F-63', 'F-64', 'F-65' ]",
+    '✖ MCP — handshake: initialize, ping and tools/list (50ms)',
+    '  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal',
+    "  + 'analyze_legacy_windows'",
+    'Formatting gate is also mentioned in an unrelated capability description.',
+  ].join('\n');
+  await writeFile(path.join(logsDir, '07-exercise-capabilities.log'), log);
+  await writeFile(path.join(logsDir, '07-exercise-capabilities.exit'), '1\n');
+  const { markdown } = await buildSummary({ rootDir: root, logsDir, env, host });
+  assert.match(markdown, /Test \/ capability suite failure/);
+  assert.doesNotMatch(markdown, /Category: Formatting gate/);
+  assert.match(markdown, /every audit ID is tracked in the approved backlog/);
+  assert.match(markdown, /MCP — handshake: initialize, ping and tools\/list/);
+  assert.match(markdown, /F-63/);
+});
+
+test('lists actionable capability report records and JUnit failures even when step logs are sparse', async (t) => {
+  const { root, logsDir } = await fixture(t);
+  const reports = path.join(root, 'capability-reports');
+  await mkdir(reports);
+  await writeFile(path.join(logsDir, '09-capability-report.log'), 'capability report emitted\n');
+  await writeFile(path.join(logsDir, '09-capability-report.exit'), '1\n');
+  await writeFile(path.join(reports, 'capability-linux.json'), JSON.stringify({
+    platform: 'linux', node: 'v22.0.0', totals: { verified: 10, limitation: 1, drift: 0, failed: 2 },
+    records: [
+      { area: 'Docs', name: 'audit backlog', status: 'failed', detail: "IDs missing: F-63, F-64, F-65" },
+      { area: 'MCP', name: 'tools/list', status: 'failed', detail: 'Expected 60 tools, got 58' },
+    ],
+  }));
+  await writeFile(path.join(reports, 'junit-linux.xml'), '<testsuite><testcase classname="mcp" name="tools list"><failure message="tool names differ">analyze_legacy_windows missing</failure></testcase></testsuite>');
+  const { markdown, stats } = await buildSummary({ rootDir: root, logsDir, env, host });
+  assert.equal(stats.capabilityIssues, 2);
+  assert.equal(stats.junitFailures, 1);
+  assert.match(markdown, /F-63, F-64, F-65/);
+  assert.match(markdown, /Expected 60 tools, got 58/);
+  assert.match(markdown, /analyze_legacy_windows missing/);
+});

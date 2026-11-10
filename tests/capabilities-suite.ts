@@ -1622,6 +1622,8 @@ const DOCUMENTED_TOOLS = [
     'generate_change_report',
     'verify_evidence_integrity',
     'run_validation_fixtures',
+    'declare_legacy_authorization',
+    'analyze_legacy_windows',
     'create_change_workspace',
     'apply_change',
     'rollback_change',

@@ -8,7 +8,7 @@ const MAX_EXCERPT_LINES = 100;
 const MAX_EXCERPT_CHARS = 18000;
 const MAX_SUMMARY_CHARS = 120000;
 
-const ERROR_PATTERN = /(?:\berror\b|\bfailed\b|\bfailure\b|\bexception\b|\bfatal\b|\bERR!\b|\bTS\d{4}\b|\bnot ok\b|\bAssertionError\b|\bTypeError\b|\bReferenceError\b|\bSyntaxError\b|\bTimeoutError\b|\bdrift\b|\bno tests? found\b)/i;
+const ERROR_PATTERN = /(?:\berror\b|\bfailed\b|\bfailure\b|\bexception\b|\bfatal\b|\bERR!\b|\bTS\d{4}\b|\bnot ok\b|\bAssertionError\b|\bTypeError\b|\bReferenceError\b|\bSyntaxError\b|\bTimeoutError\b|\bdrift\b|\bno tests? found\b|(?:^|\s)✖(?:\s|$))/i;
 const WARNING_PATTERN = /(?:\bwarning\b|\bwarn\b|\bdeprecated\b|\bskipped\b|\bTODO\b)/i;
 const SECRET_PATTERNS = [
   [/\bgithub_pat_[A-Za-z0-9_]{20,}\b/gi, '[REDACTED_GITHUB_TOKEN]'],
@@ -33,16 +33,30 @@ function normalizeExitCode(value) {
 
 function classifyFailure(name, content) {
   const text = `${name}\n${content}`.toLowerCase();
+  // Concrete compiler/runtime/test evidence must win over incidental words in
+  // a capability name or a later summary (for example, a test named 'Formatting').
+  if (/\bts\d{4}\b|typescript.*error|error ts\d{4}|tsc -p/.test(text)) return 'TypeScript compilation';
+  if (/typeerror|referenceerror|syntaxerror|uncaught exception|\berr_test_failure\b/.test(text)) return 'Runtime / test-runner exception';
+  if (/(?:^|\n)\s*✖\s|not ok \d+|assertionerror|testcodefailure|test failed|tests? failed|failed test cases?|reverse capability failed/.test(text)) return 'Test / capability suite failure';
   if (/line length|too long|characters?\)/.test(text)) return 'Line-length / size gate';
-  if (/format|formatter|formatting drift/.test(text)) return 'Formatting gate';
-  if (/typescript|\bts\d{4}\b|tsc -p/.test(text)) return 'TypeScript compilation';
-  if (/assertionerror|test failed|not ok |tests? failed|failures? \d+/.test(text)) return 'Test failure';
+  if (/format:check|formatter|formatting drift|typescript format check failed/.test(text)) return 'Formatting gate';
   if (/npm err!|npm ci|eresolve|enoent|cannot find package|module_not_found/.test(text)) return 'Dependency / package setup';
   if (/timed? ?out|timeout|signal: sigterm|job was cancelled/.test(text)) return 'Timeout / cancellation';
   if (/structure check|import graph|markdown link|unexpected file|layout/.test(text)) return 'Repository structure';
   if (/audit|vulnerabilit|signature|sbom/.test(text)) return 'Supply-chain / security check';
-  if (/typeerror|referenceerror|syntaxerror|exception|uncaught/.test(text)) return 'Runtime exception';
+  if (/\berror\b|\bfailed\b|\bfailure\b/.test(text)) return 'Unclassified command failure';
   return 'Unclassified failure';
+}
+
+function extractTestFailureNames(lines) {
+  const found = [];
+  for (const line of lines) {
+    const tap = line.match(/^\s*(?:✖\s+|not ok\s+\d+\s+-\s+)(.+?)(?:\s+\([\d.]+ms\))?\s*$/);
+    if (tap) found.push(redact(tap[1]));
+    const annotation = line.match(/::error title=Reverse capability failed::(.+)$/);
+    if (annotation) found.push(redact(annotation[1].replace(/%0A/g, ' ').replace(/%25/g, '%')));
+  }
+  return [...new Set(found)].slice(0, 50);
 }
 
 function extractFileReferences(lines) {
@@ -120,6 +134,7 @@ function excerptFor(content) {
     warningCount: warningIndexes.length,
     fileReferences: extractFileReferences(lines),
     commands: extractCommands(lines),
+    testFailures: extractTestFailureNames(lines),
     errorLines: errorIndexes.slice(0, 100).map((index) => `${index + 1}: ${redact(lines[index])}`),
   };
 }
@@ -275,6 +290,10 @@ export async function buildSummary({ logsDir = DEFAULT_LOG_DIR, rootDir = '.', e
       const category = classifyFailure(step.name, step.content);
       out.push(`### ${step.name}`, `- Exit code: \`${step.exitCode}\``, `- Category: ${category}`, `- Error-like lines: ${step.excerpt.errorCount}; warning-like lines: ${step.excerpt.warningCount}`);
       if (step.excerpt.commands.length) out.push(`- Commands detected: ${step.excerpt.commands.map((command) => `\`${command}\``).join('; ')}`);
+      if (step.excerpt.testFailures.length) {
+        out.push('- Test/capability failure markers:');
+        for (const failure of step.excerpt.testFailures) out.push(`  - ${failure}`);
+      }
       if (step.excerpt.fileReferences.length) out.push(`- File/line references: ${step.excerpt.fileReferences.map((file) => `\`${file}\``).join(', ')}`);
       out.push('', `**${step.excerpt.kind}:**`, '```text', step.excerpt.text, '```', '');
       if (step.stepSummary.trim()) out.push('**Step summary:**', '```text', redact(step.stepSummary.trim()).slice(0, 6000), '```', '');
@@ -338,10 +357,11 @@ export async function buildSummary({ logsDir = DEFAULT_LOG_DIR, rootDir = '.', e
     '',
     '1. Start with the earliest recorded failed step, not the last visible symptom. Separate primary causes from downstream failures.',
     '2. Use the exact error text, command, file path and line number above as evidence. Do not invent missing diagnostics.',
-    '3. If the report contains a compiler/formatter/test error, identify the smallest source change that resolves it without weakening gates or deleting tests.',
+    '3. Prefer concrete compiler diagnostics, assertion failures, TAP failure names, capability JSON records and JUnit details over broad keyword matches. Do not classify a test failure as formatting merely because a test or summary mentions formatting.',
     '4. If evidence is insufficient, request only the named missing log or report file; do not request the whole archive by default.',
     '5. Provide the exact commands to rerun and clearly label checks that have not actually been run.',
-    '6. Do not claim a fix or a green CI run until the relevant checks have been executed successfully.',
+    '6. Correlate duplicate evidence across step logs, GitHub annotations, capability JSON and JUnit; report each root cause once while preserving every affected check/test name.',
+    '7. Do not claim a fix or a green CI run until the relevant checks have been executed successfully.',
     '',
     '## 10. Companion artifact',
     '',
