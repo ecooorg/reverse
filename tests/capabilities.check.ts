@@ -1549,6 +1549,7 @@ const DOCUMENTED_TOOLS = ['inspect_target',
     'analyze_binary',
     'analyze_source',
     'analyze_dependencies',
+    'analyze_android',
     'get_inventory',
     'inspect_process',
     'profile_process',
@@ -1637,7 +1638,7 @@ check('MCP', 'protocol errors: unknown method, unknown tool (-32602), garbage in
         await s.close();
     }
 });
-check('MCP', 'all 34 tools are listed with stable names and schemas', async () => {
+check('MCP', 'all documented tools are listed with stable names and schemas', async () => {
     const s = startMcp();
     try {
         await s.req('initialize', {});
@@ -1697,7 +1698,7 @@ check('MCP', 'tool errors (missing file, bad PID) surface as isError results, no
 check('MCP', '"reverse mcp" starts the same stdio server', async () => {
     const s = startMcp([CLI, 'mcp']);
     try {
-        assert.equal((await s.req('tools/list')).result.tools.length, 34);
+        assert.equal((await s.req('tools/list')).result.tools.length, DOCUMENTED_TOOLS.length);
     }
     finally {
         await s.close();
