@@ -14,6 +14,7 @@ import { analyzeAndroid } from './analysis-android.js';
 import { analyzeJavascript } from './analysis-javascript.js';
 import { analyzeDotnet } from './analysis-dotnet.js';
 import { analyzeWasm } from './analysis-wasm.js';
+import { analyzeLegacyWindows } from './legacy-windows.js';
 import { listProcesses, inspectProcess, getProcessMetrics, getProcessTree } from './process-inspector.js';
 import { analyzeMemory, analyzeCpu, analyzeIo } from './process-inspector.js';
 import { profileProcess, monitorProcess, detectResourceAnomalies } from './profiling-profiler.js';
@@ -163,6 +164,12 @@ async function call(name: string, a: any, signal?: AbortSignal) {
             found: !!(await new EvidenceEngine().getResearchSession(a.id)), session: await new EvidenceEngine().getResearchSession(a.id)
         };
         case 'create_research_session': return new EvidenceEngine().createResearchSession(a.target_id);
+        case 'declare_legacy_authorization': return new EvidenceEngine().declareAuthorization(a.session_id, {
+            basis: a.basis, licenseOrConsentReference: a.license_or_consent_reference, declaredBy: a.declared_by
+        });
+        case 'analyze_legacy_windows':
+            await new EvidenceEngine().requireLegacyAuthorization(a.session_id);
+            return analyzeLegacyWindows(a.file);
         case 'add_research_hypothesis': return new EvidenceEngine().addHypothesis(a.session_id, {
             statement: a.statement, provenance: a.provenance, confidence: a.confidence
         });

@@ -36,7 +36,14 @@ export interface SessionEntry {
     at: string;
     payload: unknown;
 }
+export interface AuthorizationRecord {
+    basis: 'open_source' | 'written_consent';
+    licenseOrConsentReference: string;
+    declaredBy: string;
+    declaredAt: string;
+}
 export interface ResearchSession {
+    authorization?: AuthorizationRecord;
     session_id: string;
     target_id: string;
     createdAt: string;
@@ -122,6 +129,32 @@ export class EvidenceEngine {
         await this.appendEntry(session, 'event', { event: 'session_created', target_id: targetId });
         await this.saveSession(session);
         return session;
+    }
+    async declareAuthorization(sessionId: string, input: {
+        basis: 'open_source' | 'written_consent';
+        licenseOrConsentReference: string;
+        declaredBy: string;
+    }): Promise<ResearchSession> {
+        if (!['open_source', 'written_consent'].includes(input.basis))
+            throw new Error('Authorization basis must be open_source or written_consent.');
+        if (!input.licenseOrConsentReference?.trim() || !input.declaredBy?.trim())
+            throw new Error('A license/consent reference and declarant are required.');
+        const s = await this.requireSession(sessionId);
+        s.authorization = {
+            basis: input.basis,
+            licenseOrConsentReference: input.licenseOrConsentReference.trim().slice(0, 2048),
+            declaredBy: input.declaredBy.trim().slice(0, 256),
+            declaredAt: now()
+        };
+        await this.appendEntry(s, 'event', { event: 'legacy_authorization_declared', authorization: s.authorization });
+        await this.saveSession(s);
+        return s;
+    }
+    async requireLegacyAuthorization(sessionId: string): Promise<ResearchSession> {
+        const s = await this.requireSession(sessionId);
+        if (!s.authorization)
+            throw new Error('Legacy analysis requires a declared open-source license or written consent of the developers and rights holders.');
+        return s;
     }
     async addSessionEvent(sessionId: string, event: string, payload: unknown = {}): Promise<ResearchSession> {
         const s = await this.requireSession(sessionId);
