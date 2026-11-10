@@ -155,14 +155,14 @@ Capability checks that flip: *Binary — sections/imports/symbols*, *Source — 
 Closes the second half of the 0.3 section and the **Plugin loading and provider lifecycle** item.
 
 - [x] Provider contract (`AnalyzerProvider`), executable discovery (`providers-discover`), availability probes without analysis side effects, timeouts, `shutdown`, in-process registration lifecycle (`registerProvider` / `bootstrapExternalProviders`).
-- [x] Opt-in Ghidra adapter (`providers-ghidra`) and Rizin adapter (`providers-rizin`); results normalized into `Result` with coverage and limitations; never fabricated when the tool is absent.
+- [x] Opt-in Ghidra adapter with headless import + postScript function dump; Rizin/rabin2 structured inspect; never fabricated when absent.
 - [x] Opt-in JADX and Apktool providers (`providers-android-tools`) for DEX/Smali/resources; native `.so` remains Ghidra/Rizin when available.
 - [x] Disassembly/decompilation data only via adapters when tools exist on the host.
 - [x] `SimilarityProvider` contract + `ghidra-similarity` adapter (H-03); no bundled corpus (H-06).
 
-Capability checks that flip: *Providers — Ghidra/Rizin/JADX/Apktool registered* → ✅; Frida/GDB/perf/eBPF/ETW/Instruments stay extension-point 🚧.
+Capability checks that flip: *Providers — Ghidra/Rizin/JADX/Apktool registered* → ✅. Frida/GDB/perf/eBPF/ETW/Instruments become registered adapters in patches G–H.
 
-**Milestone 0.3 is released when E and F are done.**
+**Milestone 0.3 is released: E and F are done (0.3.0-beta.2).**
 
 ### Patch G — Dynamic analysis: Frida and GDB (0.4) — done, released as 0.4.0-beta.1
 
@@ -170,8 +170,9 @@ Closes the dynamic-analysis part of the 0.4 section.
 
 - [x] Opt-in Frida and GDB/LLDB adapters (`providers-frida`, `providers-gdb`): detect install, never fabricate results.
 - [x] Tracing/attach only under `CONTROLLED_EXECUTION`; otherwise structured `unsupported`.
-- [x] MCP `trace_execution` (Frida) and GDB batch inspect via `run_provider` / library API.
-- [x] ADB env passthrough for Frida device transport; Java/ART and deep hooks remain partial (session scripts are host-specific).
+- [x] MCP `trace_execution` (Frida): attach sample with modules/threads/backtraces under CONTROLLED_EXECUTION.
+- [x] GDB/LLDB batch attach (`bt`, threads) or file inspect under CONTROLLED_EXECUTION.
+- [x] ADB env passthrough for Frida; continuous call-frequency and Java.perform remain host scripts.
 
 Capability checks: Frida/GDB are **registered** adapters (not labels).
 
@@ -194,7 +195,8 @@ Closes the validation, integrity and reporting part of the 0.4 section.
 - [x] Explicit "equivalence cannot be proven" when checks fail; never claim semantic equivalence.
 - [x] Evidence hash-chain verify + optional HMAC-SHA256 (`REVERSE_EVIDENCE_KEY`) via `signSession` / `verifySessionSignature`.
 - [x] Before/after `generateChangeReport` with residual risks and next steps.
-- [x] MCP: `generate_change_report`, `verify_evidence_integrity`; `validate_changes` accepts `normalize`.
+- [x] MCP: `generate_change_report`, `verify_evidence_integrity`, `run_validation_fixtures`; `validate_changes` accepts `normalize`.
+- [x] CLI: `hotspots`, `fixtures`; android help text corrected.
 
 Capability checks: validation normalization ✅; evidence optional signing ✅.
 
