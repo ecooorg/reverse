@@ -1,3 +1,3 @@
 // Single source of truth for the product version. Keep in sync with package.json
 // (the capability suite checks that they match).
-export const VERSION = '0.5.0-beta.2';
+export const VERSION = '1.0.0-beta.1';

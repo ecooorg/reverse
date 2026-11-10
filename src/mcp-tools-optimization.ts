@@ -167,5 +167,32 @@ export const optimizationTools: any[] = [
             },
             required: ['confirm']
         }
+    },
+    {
+        name: 'analyze_javascript',
+        description: 'Static JS/TS/Electron inventory for a directory or entry file.',
+        inputSchema: {
+            type: 'object',
+            properties: { path: { type: 'string' } },
+            required: ['path']
+        }
+    },
+    {
+        name: 'analyze_dotnet',
+        description: 'Detect .NET CLI header in a PE image.',
+        inputSchema: {
+            type: 'object',
+            properties: { file: { type: 'string' } },
+            required: ['file']
+        }
+    },
+    {
+        name: 'analyze_wasm',
+        description: 'WebAssembly binary section inventory.',
+        inputSchema: {
+            type: 'object',
+            properties: { file: { type: 'string' } },
+            required: ['file']
+        }
     }
 ];

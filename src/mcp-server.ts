@@ -9,6 +9,9 @@ import { analyzeBinary } from './analysis-binary.js';
 import { analyzeSource } from './analysis-source.js';
 import { analyzeDependencies } from './analysis-dependencies.js';
 import { analyzeAndroid } from './analysis-android.js';
+import { analyzeJavascript } from './analysis-javascript.js';
+import { analyzeDotnet } from './analysis-dotnet.js';
+import { analyzeWasm } from './analysis-wasm.js';
 import { listProcesses, inspectProcess, getProcessMetrics, getProcessTree } from './process-inspector.js';
 import { analyzeMemory, analyzeCpu, analyzeIo } from './process-inspector.js';
 import { profileProcess, monitorProcess, detectResourceAnomalies } from './profiling-profiler.js';
@@ -126,6 +129,9 @@ async function call(name: string, a: any, signal?: AbortSignal) {
         case 'adb_emu_snapshot_load': return adbEmuSnapshotLoad(a.snapshotName, { confirm: !!a.confirm }, { serial: a.serial });
         case 'run_optimization_trial': return runOptimizationTrial(a.shape, { confirm: !!a.confirm });
         case 'run_all_reference_trials': return runAllReferenceTrials({ confirm: !!a.confirm });
+        case 'analyze_javascript': return analyzeJavascript(a.path);
+        case 'analyze_dotnet': return analyzeDotnet(a.file);
+        case 'analyze_wasm': return analyzeWasm(a.file);
         case 'get_evidence': {
             const p = await new EvidenceEngine().get(a.id);
             if (!p)

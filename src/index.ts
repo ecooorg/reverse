@@ -28,3 +28,7 @@ export { runApkPipeline } from './optimization-apk.js';
 export { createGitWorktreeWorkspace, removeGitWorktree } from './optimization-git.js';
 export { adbInstall, adbPmClear, adbEmuSnapshotLoad } from './optimization-adb.js';
 export { runOptimizationTrial, runAllReferenceTrials } from './optimization-trial.js';
+export { analyzeJavascript } from './analysis-javascript.js';
+export { analyzeDotnet } from './analysis-dotnet.js';
+export { analyzeWasm } from './analysis-wasm.js';
+export { startHttpMcp } from './mcp-http.js';

@@ -71,6 +71,12 @@ Commands:
   validate --command CMD [--arg A]... --expected FILE.json [--cwd DIR] [--timeout MS] [--repeat N]
   hotspots <pid> [--duration MS] Function hotspots (perf/sample when available)
   fixtures <dir>                Run JSON validation fixtures from a directory
+  workspace <path> --confirm true   Create change workspace (CONTROLLED_EXECUTION)
+  decide --verdict V [--validation true|false]  Optimization decision from evidence
+  javascript <path>             JS/TS/Electron static inventory
+  dotnet <file>                 Detect .NET CLI header in PE
+  wasm <file>                   WebAssembly section inventory
+  mcp-http                      Optional HTTP MCP (REVERSE_MCP_HTTP=1 + TOKEN)
   analyzers                     List adapters and providers
   doctor                        Check local runtime and store readiness
   mcp                           Start the MCP stdio server
@@ -138,6 +144,65 @@ async function main() {
         case 'fixtures': {
             const { runValidationFixtures } = await import('./benchmark-validation.js');
             out = await runValidationFixtures(positional('fixtures <dir>'));
+            break;
+        }
+        case 'workspace': {
+            const { createChangeWorkspace } = await import('./optimization-workspace.js');
+            out = await createChangeWorkspace(positional('workspace <path>'), {
+                confirm: value('confirm', 'false') === 'true'
+            });
+            break;
+        }
+        case 'decide': {
+            const { decideOptimization } = await import('./optimization-decision.js');
+            out = decideOptimization({
+                performanceVerdict: value('verdict'),
+                validationPassed: value('validation') === 'true'
+                    ? true
+                    : value('validation') === 'false' ? false : null
+            });
+            break;
+        }
+        case 'javascript': {
+            const { analyzeJavascript } = await import('./analysis-javascript.js');
+            out = await analyzeJavascript(positional('javascript <path>'));
+            break;
+        }
+        case 'dotnet': {
+            const { analyzeDotnet } = await import('./analysis-dotnet.js');
+            out = await analyzeDotnet(positional('dotnet <file>'));
+            break;
+        }
+        case 'wasm': {
+            const { analyzeWasm } = await import('./analysis-wasm.js');
+            out = await analyzeWasm(positional('wasm <file>'));
+            break;
+        }
+        case 'mcp-http': {
+            const { startHttpMcp } = await import('./mcp-http.js');
+            // Wire a minimal tool dispatcher via dynamic import of server logic
+            const { analyzeBinary } = await import('./analysis-binary.js');
+            const { analyzeJavascript } = await import('./analysis-javascript.js');
+            const { analyzeDotnet } = await import('./analysis-dotnet.js');
+            const { analyzeWasm } = await import('./analysis-wasm.js');
+            const { listProviders } = await import('./providers-registry.js');
+            out = startHttpMcp(async (name, args) => {
+                if (name === 'analyze_binary')
+                    return analyzeBinary(args.file);
+                if (name === 'analyze_javascript')
+                    return analyzeJavascript(args.path);
+                if (name === 'analyze_dotnet')
+                    return analyzeDotnet(args.file);
+                if (name === 'analyze_wasm')
+                    return analyzeWasm(args.file);
+                if (name === 'list_analyzers')
+                    return { providers: listProviders() };
+                throw new Error('Tool not exposed over HTTP in this build: ' + name);
+            });
+            if ((out as any).status === 'completed') {
+                console.error('HTTP MCP listening (see JSON result). Ctrl+C to stop.');
+                await new Promise(() => { });
+            }
             break;
         }
         case 'analyzers':
