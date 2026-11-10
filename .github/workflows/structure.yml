@@ -43,8 +43,8 @@ jobs:
       matrix:
         os: ${{ fromJSON(github.event_name == 'workflow_dispatch' && (inputs.os == 'all' && '["ubuntu-latest","windows-latest","macos-latest"]' || format('["{0}"]', inputs.os)) || '["ubuntu-latest"]') }}
     steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
       - name: Facts about the checkout
@@ -116,7 +116,7 @@ jobs:
 
       - name: Upload job logs (merged later, ci-quiet)
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ci-parts-logs-structure-${{ matrix.os }}
           path: |
@@ -132,7 +132,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/upload-artifact/merge@v7
+      - uses: actions/upload-artifact/merge@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ github.workflow }}
           pattern: ci-parts-*
