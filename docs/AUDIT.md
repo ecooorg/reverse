@@ -6,6 +6,17 @@ IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H*
 
 ---
 
+## Audit 11 — 2026-11-10 — Patch K (1.0.0-beta.1)
+
+**Scope.** JS/Electron, .NET and WASM analyzers as providers; optional authenticated HTTP MCP transport.
+
+| ID | Sev | Area | Finding | Status |
+|---|---|---|---|---|
+| F-58 | Medium | Runtime | No JS/Electron/.NET/WASM analyzers | Status: closed in 1.0.0-beta.1, patch K |
+| F-59 | Low | MCP | No optional HTTP transport with auth | Status: closed in 1.0.0-beta.1, patch K |
+
+---
+
 ## Audit 10 — 2026-11-10 — Patch J completed (0.5.0-beta.2)
 
 **Scope.** Remaining J items: git worktree workspaces, adb install/pm clear/emu snapshot, fixture E2E trials for three reference shapes.

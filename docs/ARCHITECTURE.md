@@ -321,6 +321,12 @@ Live MCP tool names are listed only in [MCP.md](MCP.md).
 - Fixture E2E trials for small_source, deps_source, closed_binary shapes.
 - Agent still orchestrates what to change and when to measure.
 
+## Runtime analyzers (patch K, 1.0.0-beta.1)
+
+- Built-in providers: `javascript`, `dotnet`, `wasm` (static / structural only).
+- Optional HTTP JSON-RPC tool gateway with Bearer token (`mcp-http.ts`).
+- Additional domains stay extension-points until a concrete adapter is required.
+
 ## Extension contract
 
 Implement `AnalyzerProvider` from `src/providers-registry.ts`, declare concrete capabilities, check availability without side effects, and return structured observations with explicit coverage and limitations. Never report `available: true` unless the executable and required runtime are actually detected. Provider registration is in-process via `registerProvider` / `bootstrapExternalProviders`; adapters probe PATH and `GHIDRA_INSTALL_DIR` without fabricating results.

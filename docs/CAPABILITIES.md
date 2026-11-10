@@ -69,3 +69,12 @@ Process sampling remains read-only. It captures an OS start-time identity token 
 | Directory workspace + git worktree | ✅ gated |
 | ADB install / pm clear / emu snapshot | ✅ when adb present; test device policy |
 | Reference-shape E2E trials | ✅ fixture-based |
+
+## Runtime analyzers (patch K, 1.0.0-beta.1)
+
+| Analyzer | Works | Limitation |
+|---|---|---|
+| JavaScript / Electron | Directory inventory, electron hints | No runtime execution |
+| .NET | PE CLI directory detect | No IL decompile |
+| WASM | Section inventory | No code validation |
+| HTTP MCP | Token-gated POST /rpc | Optional; localhost default |

@@ -215,15 +215,17 @@ Closes the research cycle (investigation, diagnosis, hypotheses, experiment, ver
 
 Released as **0.5.0-beta.2**. External licensed reference apps remain optional operator data; fixtures cover the three shapes.
 
-### Patch K — Runtime analyzers and on-demand extensions (1.0)
+### Patch K — Runtime analyzers and on-demand extensions (1.0) — done in 1.0.0-beta.1
 
 Closes the remaining **Later** items.
 
-- JavaScript/Electron, .NET and WebAssembly analyzers, delivered as providers on the framework from patch F.
-- Optional HTTP MCP transport, only with a concrete deployment need and with authentication.
-- Remaining extensions are added only when a real need appears, each with its own adapter, contracts, requirements and tests: Browser, GPU, Network, Database, Firmware, Container, Cloud, Compiler, Algorithm, Energy. Android is delivered through patches E–J.
+- [x] JavaScript/Electron static inventory (`analyze_javascript` / provider `javascript`).
+- [x] .NET CLI-header detection on PE (`analyze_dotnet` / provider `dotnet`).
+- [x] WebAssembly section inventory (`analyze_wasm` / provider `wasm`).
+- [x] Optional HTTP MCP: `REVERSE_MCP_HTTP=1` + `REVERSE_MCP_TOKEN` (Bearer), POST `/rpc` on localhost by default (`mcp-http` CLI).
+- [x] Further extensions (Browser, GPU, Network, …) remain on-demand extension-points when a real need appears.
 
-**Version 1.0 is released when J and K are done.**
+**Version 1.0.0-beta.1** ships J+K core. Final 1.0 label may follow green multi-OS capability matrix and acceptance policy.
 
 ### Patch L — Agent integration and distribution (post-1.0, 1.x)
 
@@ -282,6 +284,13 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | R-25 | Docs lagged E–I implementation | closed in **0.4.1** |
 | F-14 | Remaining: `.gitattributes`, `noUnusedParameters` | closed in 0.2.0-beta.3 |
 | F-15 | Documentation drift and the planned-tools check | closed in 0.2.0-beta.2 |
+| F-53 | No isolated change workspace before J | closed in **0.5.0-beta.1 / J** |
+| F-54 | No deterministic optimization decision helper | closed in **0.5.0-beta.1 / J** |
+| F-55 | No git worktree path for changes | closed in **0.5.0-beta.2 / J** |
+| F-56 | No adb install/pm clear/snapshot helpers | closed in **0.5.0-beta.2 / J** |
+| F-57 | No E2E reference-shape trials | closed in **0.5.0-beta.2 / J** |
+| F-58 | No JS/Electron/.NET/WASM analyzers | closed in **1.0.0-beta.1 / K** |
+| F-59 | No optional HTTP MCP with auth | closed in **1.0.0-beta.1 / K** |
 | F-16 | Split the test suite into flat `tests/<area>.test.ts` files with pure fixtures; statistics, `CappedBuffer`, MCP error paths, `/proc` parser | partial in 0.2.0-beta.6: statistics, benchmark suites, evidence, research cycle, untrusted output and parser tests split; capability harness remains large; 0.2.0-beta.7: capability harness still monolithic (check *Tests — the capability harness is one file* shows 🚧); new unit tests added for anomalies, modes, cgroup limiter, evidence collection and MCP evidence |
 | F-17 | Threat model: agent as untrusted caller, prompt injection through target data | closed in 0.2.0-beta.5 |
 
