@@ -12,6 +12,9 @@ import { createEtwProvider } from './providers-native-profile.js';
 import { createInstrumentsProvider } from './providers-native-profile.js';
 import { createValgrindProvider } from './providers-native-profile.js';
 import { createSimpleperfProvider } from './providers-native-profile.js';
+import { createJavascriptProvider } from './providers-runtime.js';
+import { createDotnetProvider } from './providers-runtime.js';
+import { createWasmProvider } from './providers-runtime.js';
 let done = false;
 /** Register opt-in external adapters once. Safe to call multiple times. */
 export function bootstrapExternalProviders(): void {
@@ -31,7 +34,10 @@ export function bootstrapExternalProviders(): void {
         createEtwProvider(),
         createInstrumentsProvider(),
         createValgrindProvider(),
-        createSimpleperfProvider()
+        createSimpleperfProvider(),
+        createJavascriptProvider(),
+        createDotnetProvider(),
+        createWasmProvider()
     ]) {
         try {
             registerProvider(p);
