@@ -222,9 +222,18 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
+      - name: Test AI debugging summary generator
+        if: always()
+        run: |
+          mkdir -p ci-logs
+          export GITHUB_STEP_SUMMARY=ci-logs/10-test-ci-ai-summary-generator.summary.md
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/10-test-ci-ai-summary-generator.exit' EXIT
+          {
+          npm run ci:summary:test
+          } > ci-logs/10-test-ci-ai-summary-generator.log 2>&1
       - name: Generate AI debugging summary
         if: always()
-        run: node tests/ci-ai-summary.mjs
+        run: npm run ci:summary
       - name: Upload standalone AI debugging summary
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -332,9 +341,18 @@ jobs:
           echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | node node_modules/reverse-compact/dist/mcp-server.js | grep -q '"inspect_target"'
           } > ../ci-logs/06-installed-mcp-server-answers-tools-list.log 2>&1
 
+      - name: Test AI debugging summary generator
+        if: always()
+        run: |
+          mkdir -p ci-logs
+          export GITHUB_STEP_SUMMARY=ci-logs/07-test-ci-ai-summary-generator.summary.md
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/07-test-ci-ai-summary-generator.exit' EXIT
+          {
+          npm run ci:summary:test
+          } > ci-logs/07-test-ci-ai-summary-generator.log 2>&1
       - name: Generate AI debugging summary
         if: always()
-        run: node tests/ci-ai-summary.mjs
+        run: npm run ci:summary
       - name: Upload standalone AI debugging summary
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -375,9 +393,18 @@ jobs:
           node tests/capability-report.mjs reports/*.json
           } > ci-logs/01-merge-reports-annotate-drift-fail-on-bro.log 2>&1
 
+      - name: Test AI debugging summary generator
+        if: always()
+        run: |
+          mkdir -p ci-logs
+          export GITHUB_STEP_SUMMARY=ci-logs/02-test-ci-ai-summary-generator.summary.md
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/02-test-ci-ai-summary-generator.exit' EXIT
+          {
+          npm run ci:summary:test
+          } > ci-logs/02-test-ci-ai-summary-generator.log 2>&1
       - name: Generate AI debugging summary
         if: always()
-        run: node tests/ci-ai-summary.mjs
+        run: npm run ci:summary
       - name: Upload standalone AI debugging summary
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

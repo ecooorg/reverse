@@ -114,9 +114,18 @@ jobs:
           fi
           } > ci-logs/04-job-summary-and-annotations.log 2>&1
 
+      - name: Test AI debugging summary generator
+        if: always()
+        run: |
+          mkdir -p ci-logs
+          export GITHUB_STEP_SUMMARY=ci-logs/05-test-ci-ai-summary-generator.summary.md
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/05-test-ci-ai-summary-generator.exit' EXIT
+          {
+          npm run ci:summary:test
+          } > ci-logs/05-test-ci-ai-summary-generator.log 2>&1
       - name: Generate AI debugging summary
         if: always()
-        run: node tests/ci-ai-summary.mjs
+        run: npm run ci:summary
       - name: Upload standalone AI debugging summary
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

@@ -22,40 +22,80 @@ jobs:
       - name: Install dependencies
         run: |
           mkdir -p ci-logs
+          export GITHUB_STEP_SUMMARY=ci-logs/01-install-dependencies.summary.md
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/01-install-dependencies.exit' EXIT
+          {
+          mkdir -p ci-logs
           if npm ci --ignore-scripts > ci-logs/01-npm-ci.log 2>&1; then rc=0; else rc=$?; fi
           [ "$rc" = 0 ] || echo "$rc" > ci-logs/01-npm-ci.exit
           exit "$rc"
+          } > ci-logs/01-install-dependencies.log 2>&1
       - name: Audit production dependencies
         if: always() && hashFiles('node_modules/.package-lock.json') != ''
         run: |
           mkdir -p ci-logs
+          export GITHUB_STEP_SUMMARY=ci-logs/02-audit-production-dependencies.summary.md
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/02-audit-production-dependencies.exit' EXIT
+          {
+          mkdir -p ci-logs
           if npm audit --omit=dev > ci-logs/02-npm-audit-production.log 2>&1; then rc=0; else rc=$?; fi
           [ "$rc" = 0 ] || echo "$rc" > ci-logs/02-npm-audit-production.exit
           exit "$rc"
+          } > ci-logs/02-audit-production-dependencies.log 2>&1
       - name: Verify npm signatures
         if: always() && hashFiles('node_modules/.package-lock.json') != ''
         run: |
           mkdir -p ci-logs
+          export GITHUB_STEP_SUMMARY=ci-logs/03-verify-npm-signatures.summary.md
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/03-verify-npm-signatures.exit' EXIT
+          {
+          mkdir -p ci-logs
           if npm audit signatures > ci-logs/03-npm-audit-signatures.log 2>&1; then rc=0; else rc=$?; fi
           [ "$rc" = 0 ] || echo "$rc" > ci-logs/03-npm-audit-signatures.exit
           exit "$rc"
+          } > ci-logs/03-verify-npm-signatures.log 2>&1
       - name: Generate CycloneDX SBOM
         if: always() && hashFiles('node_modules/.package-lock.json') != ''
         run: |
           mkdir -p ci-logs
+          export GITHUB_STEP_SUMMARY=ci-logs/04-generate-cyclonedx-sbom.summary.md
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/04-generate-cyclonedx-sbom.exit' EXIT
+          {
+          mkdir -p ci-logs
           if npm sbom --sbom-format cyclonedx > reverse.cdx.json 2> ci-logs/04-generate-cyclonedx-sbom.log; then rc=0; else rc=$?; fi
           [ "$rc" = 0 ] || echo "$rc" > ci-logs/04-generate-cyclonedx-sbom.exit
           exit "$rc"
+          } > ci-logs/04-generate-cyclonedx-sbom.log 2>&1
       - name: Check SBOM is non-empty and names the package
         if: always() && hashFiles('reverse.cdx.json') != ''
         run: |
           mkdir -p ci-logs
+          export GITHUB_STEP_SUMMARY=ci-logs/05-check-sbom-is-non-empty-and-names-the-pa.summary.md
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/05-check-sbom-is-non-empty-and-names-the-pa.exit' EXIT
+          {
+          mkdir -p ci-logs
           if node -e "const s=require('./reverse.cdx.json'); if(s.bomFormat!=='CycloneDX'||!String(s.metadata?.component?.purl).startsWith('pkg:npm/reverse-compact@')) process.exit(1)" > ci-logs/05-check-sbom.log 2>&1; then rc=0; else rc=$?; fi
           [ "$rc" = 0 ] || echo "$rc" > ci-logs/05-check-sbom.exit
           exit "$rc"
+          } > ci-logs/05-check-sbom-is-non-empty-and-names-the-pa.log 2>&1
+      - name: Test AI debugging summary generator
+        if: always()
+        run: |
+          mkdir -p ci-logs
+          export GITHUB_STEP_SUMMARY=ci-logs/06-test-ci-ai-summary-generator.summary.md
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/06-test-ci-ai-summary-generator.exit' EXIT
+          {
+          npm run ci:summary:test
+          } > ci-logs/06-test-ci-ai-summary-generator.log 2>&1
       - name: Generate AI debugging summary
         if: always()
-        run: node tests/ci-ai-summary.mjs
+        run: |
+          mkdir -p ci-logs
+          export GITHUB_STEP_SUMMARY=ci-logs/07-generate-ai-debugging-summary.summary.md
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/07-generate-ai-debugging-summary.exit' EXIT
+          {
+          npm run ci:summary
+          } > ci-logs/07-generate-ai-debugging-summary.log 2>&1
       - name: Upload detailed CI logs (downloaded as a ZIP archive)
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -72,3 +112,28 @@ jobs:
           path: AI-DEBUG-SUMMARY.md
           retention-days: 14
           if-no-files-found: warn
+
+      - name: Upload job logs (merged later, ci-quiet)
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ci-parts-logs-npm-integrity
+          path: |
+            ci-logs/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  logs:
+    name: all logs (one artifact)
+    needs: [npm-integrity]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/upload-artifact/merge@v6
+        with:
+          name: ${{ github.workflow }}
+          pattern: ci-parts-*
+          separate-directories: true
+          delete-merged: true
+          retention-days: 14
