@@ -114,6 +114,18 @@ jobs:
           fi
           } > ci-logs/04-job-summary-and-annotations.log 2>&1
 
+      - name: Generate AI debugging summary
+        if: always()
+        run: node tests/ci-ai-summary.mjs
+      - name: Upload standalone AI debugging summary
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ai-debug-summary-${{ github.job }}-${{ matrix.os || 'ubuntu-latest' }}${{ matrix.node && format('-node{0}', matrix.node) || '' }}
+          path: AI-DEBUG-SUMMARY.md
+          retention-days: 14
+          if-no-files-found: warn
+
       - name: Upload job logs (merged later, ci-quiet)
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

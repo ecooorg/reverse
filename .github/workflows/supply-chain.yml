@@ -19,10 +19,56 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --ignore-scripts
-      - run: npm audit --omit=dev
-      - run: npm audit signatures
+      - name: Install dependencies
+        run: |
+          mkdir -p ci-logs
+          if npm ci --ignore-scripts > ci-logs/01-npm-ci.log 2>&1; then rc=0; else rc=$?; fi
+          [ "$rc" = 0 ] || echo "$rc" > ci-logs/01-npm-ci.exit
+          exit "$rc"
+      - name: Audit production dependencies
+        if: always() && hashFiles('node_modules/.package-lock.json') != ''
+        run: |
+          mkdir -p ci-logs
+          if npm audit --omit=dev > ci-logs/02-npm-audit-production.log 2>&1; then rc=0; else rc=$?; fi
+          [ "$rc" = 0 ] || echo "$rc" > ci-logs/02-npm-audit-production.exit
+          exit "$rc"
+      - name: Verify npm signatures
+        if: always() && hashFiles('node_modules/.package-lock.json') != ''
+        run: |
+          mkdir -p ci-logs
+          if npm audit signatures > ci-logs/03-npm-audit-signatures.log 2>&1; then rc=0; else rc=$?; fi
+          [ "$rc" = 0 ] || echo "$rc" > ci-logs/03-npm-audit-signatures.exit
+          exit "$rc"
       - name: Generate CycloneDX SBOM
-        run: npm sbom --sbom-format cyclonedx > reverse.cdx.json
+        if: always() && hashFiles('node_modules/.package-lock.json') != ''
+        run: |
+          mkdir -p ci-logs
+          if npm sbom --sbom-format cyclonedx > reverse.cdx.json 2> ci-logs/04-generate-cyclonedx-sbom.log; then rc=0; else rc=$?; fi
+          [ "$rc" = 0 ] || echo "$rc" > ci-logs/04-generate-cyclonedx-sbom.exit
+          exit "$rc"
       - name: Check SBOM is non-empty and names the package
-        run: node -e "const s=require('./reverse.cdx.json'); if(s.bomFormat!=='CycloneDX'||!String(s.metadata?.component?.purl).startsWith('pkg:npm/reverse-compact@')) process.exit(1)"
+        if: always() && hashFiles('reverse.cdx.json') != ''
+        run: |
+          mkdir -p ci-logs
+          if node -e "const s=require('./reverse.cdx.json'); if(s.bomFormat!=='CycloneDX'||!String(s.metadata?.component?.purl).startsWith('pkg:npm/reverse-compact@')) process.exit(1)" > ci-logs/05-check-sbom.log 2>&1; then rc=0; else rc=$?; fi
+          [ "$rc" = 0 ] || echo "$rc" > ci-logs/05-check-sbom.exit
+          exit "$rc"
+      - name: Generate AI debugging summary
+        if: always()
+        run: node tests/ci-ai-summary.mjs
+      - name: Upload detailed CI logs (downloaded as a ZIP archive)
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: supply-chain-detailed-logs
+          path: ci-logs/
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Upload standalone AI debugging summary
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: supply-chain-ai-debug-summary
+          path: AI-DEBUG-SUMMARY.md
+          retention-days: 14
+          if-no-files-found: warn

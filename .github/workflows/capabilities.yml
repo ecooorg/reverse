@@ -94,8 +94,13 @@ jobs:
           } > ci-logs/02-npm-ci-ignore-scripts.log 2>&1
       - name: Static quality gates (format and own-line budget)
         run: |
+          mkdir -p ci-logs
+          export GITHUB_STEP_SUMMARY=ci-logs/02-static-quality-gates.summary.md
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/02-static-quality-gates.exit' EXIT
+          {
           npm run format:check
           npm run size:check
+          } > ci-logs/02-static-quality-gates.log 2>&1
       - name: Build library, CLI and MCP server
         run: |
           mkdir -p ci-logs
@@ -217,6 +222,18 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
+      - name: Generate AI debugging summary
+        if: always()
+        run: node tests/ci-ai-summary.mjs
+      - name: Upload standalone AI debugging summary
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ai-debug-summary-${{ github.job }}-${{ matrix.os || 'ubuntu-latest' }}${{ matrix.node && format('-node{0}', matrix.node) || '' }}
+          path: AI-DEBUG-SUMMARY.md
+          retention-days: 14
+          if-no-files-found: warn
+
       - name: Upload job logs (merged later, ci-quiet)
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -315,6 +332,18 @@ jobs:
           echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | node node_modules/reverse-compact/dist/mcp-server.js | grep -q '"inspect_target"'
           } > ../ci-logs/06-installed-mcp-server-answers-tools-list.log 2>&1
 
+      - name: Generate AI debugging summary
+        if: always()
+        run: node tests/ci-ai-summary.mjs
+      - name: Upload standalone AI debugging summary
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ai-debug-summary-${{ github.job }}-${{ matrix.os || 'ubuntu-latest' }}${{ matrix.node && format('-node{0}', matrix.node) || '' }}
+          path: AI-DEBUG-SUMMARY.md
+          retention-days: 14
+          if-no-files-found: warn
+
       - name: Upload job logs (merged later, ci-quiet)
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -345,6 +374,18 @@ jobs:
           {
           node tests/capability-report.mjs reports/*.json
           } > ci-logs/01-merge-reports-annotate-drift-fail-on-bro.log 2>&1
+
+      - name: Generate AI debugging summary
+        if: always()
+        run: node tests/ci-ai-summary.mjs
+      - name: Upload standalone AI debugging summary
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ai-debug-summary-${{ github.job }}-${{ matrix.os || 'ubuntu-latest' }}${{ matrix.node && format('-node{0}', matrix.node) || '' }}
+          path: AI-DEBUG-SUMMARY.md
+          retention-days: 14
+          if-no-files-found: warn
 
       - name: Upload job logs (merged later, ci-quiet)
         if: always()
