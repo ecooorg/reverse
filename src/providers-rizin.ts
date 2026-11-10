@@ -3,24 +3,27 @@ import { promisify } from 'node:util';
 import { result } from './core-types.js';
 import type { AnalyzerProvider, ProviderRunOptions } from './providers-registry.js';
 import { findExecutable, COMMON_BIN_DIRS } from './providers-discover.js';
-
 const execFileAsync = promisify(execFile);
-
-let cached: { path: string; version?: string } | null | undefined;
-let cachedRabin: { path: string; version?: string } | null | undefined;
-
+let cached: {
+    path: string;
+    version?: string;
+} | null | undefined;
+let cachedRabin: {
+    path: string;
+    version?: string;
+} | null | undefined;
 async function resolveRizin() {
-    if (cached !== undefined) return cached;
+    if (cached !== undefined)
+        return cached;
     cached = await findExecutable(['rizin', 'rz', 'radare2', 'r2'], COMMON_BIN_DIRS, ['-v']);
     return cached;
 }
-
 async function resolveRabin() {
-    if (cachedRabin !== undefined) return cachedRabin;
+    if (cachedRabin !== undefined)
+        return cachedRabin;
     cachedRabin = await findExecutable(['rabin2', 'rz-bin'], COMMON_BIN_DIRS, ['-v']);
     return cachedRabin;
 }
-
 export function createRizinProvider(): AnalyzerProvider {
     return {
         name: 'rizin',
@@ -42,7 +45,7 @@ export function createRizinProvider(): AnalyzerProvider {
             return parts.join(' ') || undefined;
         },
         async analyze(target: string, opts?: ProviderRunOptions) {
-            const timeoutMs = opts?.timeoutMs ?? 60_000;
+            const timeoutMs = opts?.timeoutMs ?? 60000;
             const rabin = await resolveRabin();
             const rizin = await resolveRizin();
             if (!rabin && !rizin) {
@@ -65,20 +68,17 @@ export function createRizinProvider(): AnalyzerProvider {
                         maxBuffer: 4 * 1024 * 1024,
                         signal: opts?.signal as any
                     });
-                    findings.rabinInfo = stdout.toString().slice(0, 100_000);
+                    findings.rabinInfo = stdout.toString().slice(0, 100000);
                     findings.tool = rabin.path;
-                } else if (rizin) {
-                    const { stdout } = await execFileAsync(
-                        rizin.path,
-                        ['-q', '-c', 'iI;iS;ii;iE;afl', target],
-                        {
-                            timeout: timeoutMs,
-                            windowsHide: true,
-                            maxBuffer: 4 * 1024 * 1024,
-                            signal: opts?.signal as any
-                        }
-                    );
-                    findings.rizinCommands = stdout.toString().slice(0, 100_000);
+                }
+                else if (rizin) {
+                    const { stdout } = await execFileAsync(rizin.path, ['-q', '-c', 'iI;iS;ii;iE;afl', target], {
+                        timeout: timeoutMs,
+                        windowsHide: true,
+                        maxBuffer: 4 * 1024 * 1024,
+                        signal: opts?.signal as any
+                    });
+                    findings.rizinCommands = stdout.toString().slice(0, 100000);
                     findings.tool = rizin.path;
                 }
                 return result(target, 'rizin_analyze', [findings], {
@@ -93,7 +93,8 @@ export function createRizinProvider(): AnalyzerProvider {
                         notes: ['Rizin/rabin2 invoked successfully.']
                     }
                 });
-            } catch (e: any) {
+            }
+            catch (e: any) {
                 if (opts?.signal?.aborted) {
                     return result(target, 'rizin_analyze', [], {
                         status: 'partial',

@@ -12,7 +12,9 @@ export const processTools: any[] = [
         }
     },
     {
-        name: 'analyze_binary', description: 'Inspect ELF, PE or Mach-O structure: headers, sections, symbols, imports/exports and function list. Not disassembly or decompilation.', inputSchema: {
+        name: 'analyze_binary',
+        description: 'Inspect ELF/PE/Mach-O structure (sections, symbols, imports/exports). Not disassembly.',
+        inputSchema: {
             type: 'object', properties: {
                 file: {
                     type: 'string'
@@ -21,7 +23,9 @@ export const processTools: any[] = [
         }
     },
     {
-        name: 'analyze_source', description: 'Inventory source files and external imports (comment- and string-aware) in a directory.', inputSchema: {
+        name: 'analyze_source',
+        description: 'Inventory source files and external imports (comment- and string-aware) in a directory.',
+        inputSchema: {
             type: 'object', properties: {
                 directory: {
                     type: 'string'
@@ -30,7 +34,9 @@ export const processTools: any[] = [
         }
     },
     {
-        name: 'analyze_dependencies', description: 'Resolve dependencies from package.json plus lockfiles (npm, yarn, Cargo, Go, pip/poetry) when present.', inputSchema: {
+        name: 'analyze_dependencies',
+        description: 'Resolve dependencies from package.json plus lockfiles (npm, yarn, Cargo, Go, pip/poetry) when present.',
+        inputSchema: {
             type: 'object', properties: {
                 directory: {
                     type: 'string'
@@ -39,7 +45,9 @@ export const processTools: any[] = [
         }
     },
     {
-        name: 'analyze_android', description: 'Static inventory of an APK/AAB: dex, native libs, ABIs, manifest presence, R8/ProGuard indicators.', inputSchema: {
+        name: 'analyze_android',
+        description: 'Static inventory of an APK/AAB: dex, native libs, ABIs, manifest presence, R8/ProGuard indicators.',
+        inputSchema: {
             type: 'object', properties: {
                 file: {
                     type: 'string'

@@ -2,12 +2,10 @@ import { glob, readFile, lstat, open } from 'node:fs/promises';
 import path from 'node:path';
 import { result } from './core-types.js';
 import { fileEvidence } from './core-util.js';
-
 const MAX_FILES = 5000;
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
 const SKIP = new Set(['node_modules', '.git', 'dist', 'build', '.next', 'coverage']);
 const SOURCE = /\.(ts|tsx|js|jsx|mjs|cjs|py|rs|go|java|cs|cpp|c|h|hpp)$/i;
-
 /** Strip //, /* *\/, # (python), and string/template literals enough to avoid counting commented imports. */
 function codeWithoutCommentsAndStrings(src: string, ext: string): string {
     const out: string[] = [];
@@ -20,18 +18,21 @@ function codeWithoutCommentsAndStrings(src: string, ext: string): string {
         // line comment
         if (!isPy && c === '/' && c2 === '/') {
             i += 2;
-            while (i < n && src[i] !== '\n') i++;
+            while (i < n && src[i] !== '\n')
+                i++;
             continue;
         }
         if (isPy && c === '#') {
             i++;
-            while (i < n && src[i] !== '\n') i++;
+            while (i < n && src[i] !== '\n')
+                i++;
             continue;
         }
         // block comment
         if (!isPy && c === '/' && c2 === '*') {
             i += 2;
-            while (i < n && !(src[i] === '*' && src[i + 1] === '/')) i++;
+            while (i < n && !(src[i] === '*' && src[i + 1] === '/'))
+                i++;
             i += 2;
             continue;
         }
@@ -53,8 +54,10 @@ function codeWithoutCommentsAndStrings(src: string, ext: string): string {
                     i += 2;
                     let depth = 1;
                     while (i < n && depth > 0) {
-                        if (src[i] === '{') depth++;
-                        else if (src[i] === '}') depth--;
+                        if (src[i] === '{')
+                            depth++;
+                        else if (src[i] === '}')
+                            depth--;
                         i++;
                     }
                     continue;
@@ -69,62 +72,73 @@ function codeWithoutCommentsAndStrings(src: string, ext: string): string {
     }
     return out.join('');
 }
-
 function extractImports(code: string, ext: string): string[] {
     const names: string[] = [];
     if (/\.(ts|tsx|js|jsx|mjs|cjs)$/i.test(ext)) {
-        for (const m of code.matchAll(
-            /(?:import\s+(?:[\s\S]*?\s+from\s+)?|export\s+[\s\S]*?\s+from\s+|require\s*\(\s*)['"]([^./][^'"]*)['"]/g
-        )) {
+        const importRe = /(?:import\s+(?:[\s\S]*?\s+from\s+)?|export\s+[\s\S]*?\s+from\s+|require\s*\(\s*)['"]([^./][^'"]*)['"]/g;
+        for (const m of code.matchAll(importRe)) {
             names.push(m[1].split('/')[0]);
         }
-    } else if (ext === '.py') {
+    }
+    else if (ext === '.py') {
         for (const m of code.matchAll(/(?:^|\n)\s*(?:from\s+([A-Za-z_][\w.]*)\s+import|import\s+([A-Za-z_][\w.]*))/g)) {
             const mod = (m[1] || m[2] || '').split('.')[0];
-            if (mod) names.push(mod);
+            if (mod)
+                names.push(mod);
         }
-    } else if (ext === '.go') {
+    }
+    else if (ext === '.go') {
         for (const m of code.matchAll(/import\s+(?:\w+\s+)?["']([^."'][^"']*)["']/g)) {
             names.push(m[1].split('/')[0] === m[1] ? m[1] : m[1]);
         }
         for (const m of code.matchAll(/["']([a-z][\w.\/-]+)["']/g)) {
-            if (m[1].includes('.')) names.push(m[1]);
+            if (m[1].includes('.'))
+                names.push(m[1]);
         }
-    } else if (ext === '.rs') {
+    }
+    else if (ext === '.rs') {
         for (const m of code.matchAll(/(?:^|\n)\s*use\s+([a-zA-Z_][\w:]*)/g)) {
             names.push(m[1].split('::')[0]);
         }
-    } else if (ext === '.java') {
+    }
+    else if (ext === '.java') {
         for (const m of code.matchAll(/(?:^|\n)\s*import\s+(static\s+)?([a-zA-Z_][\w.]*)\s*;/g)) {
             names.push(m[2].split('.')[0]);
         }
     }
     return names;
 }
-
 export async function analyzeSource(root: string) {
     const base = path.resolve(root);
     const files: string[] = [];
     let bytes = 0;
     const candidates = (async function* () {
-        for await (const p of glob('**/*', { cwd: base })) yield p;
+        for await (const p of glob('**/*', { cwd: base }))
+            yield p;
         try {
-            for await (const p of glob('.github/**/*', { cwd: base })) yield p;
-        } catch { /* no .github */ }
+            for await (const p of glob('.github/**/*', { cwd: base }))
+                yield p;
+        }
+        catch { /* no .github */ }
     })();
     for await (const rel of candidates) {
-        if (files.length >= MAX_FILES) break;
+        if (files.length >= MAX_FILES)
+            break;
         const parts = rel.split(/[\\/]/);
-        if (parts.some(x => SKIP.has(x)) || parts.some(x => x.startsWith('.') && x !== '.github')) continue;
+        if (parts.some(x => SKIP.has(x)) || parts.some(x => x.startsWith('.') && x !== '.github'))
+            continue;
         const name = parts.at(-1) ?? '';
-        if (!SOURCE.test(name)) continue;
+        if (!SOURCE.test(name))
+            continue;
         const f = path.join(base, rel);
         try {
             const st = await lstat(f);
-            if (!st.isFile()) continue;
+            if (!st.isFile())
+                continue;
             bytes += st.size;
             files.push(f);
-        } catch { /* vanished */ }
+        }
+        catch { /* vanished */ }
     }
     const extCount: Record<string, number> = {};
     const imports: Record<string, number> = {};
@@ -142,7 +156,8 @@ export async function analyzeSource(root: string) {
                     continue;
                 }
                 t = await fh.readFile('utf8');
-            } finally {
+            }
+            finally {
                 await fh.close();
             }
             lines += t.split(/\r?\n/).length;
@@ -150,21 +165,23 @@ export async function analyzeSource(root: string) {
             for (const pkg of extractImports(cleaned, x)) {
                 imports[pkg] = (imports[pkg] ?? 0) + 1;
             }
-        } catch { /* unreadable */ }
+        }
+        catch { /* unreadable */ }
     }
     let manifest: Record<string, unknown> = {};
     try {
         manifest = JSON.parse(await readFile(path.join(base, 'package.json'), 'utf8'));
-    } catch { /* none */ }
+    }
+    catch { /* none */ }
     const ev = await fileEvidence(base + '/');
     return result(base, 'source_inventory', [{
-        fileCount: files.length,
-        totalBytes: bytes,
-        approximateLines: lines,
-        filesByExtension: extCount,
-        externalImportReferences: Object.entries(imports).sort((a, b) => b[1] - a[1]).slice(0, 100),
-        packageManifest: manifest
-    }], {
+            fileCount: files.length,
+            totalBytes: bytes,
+            approximateLines: lines,
+            filesByExtension: extCount,
+            externalImportReferences: Object.entries(imports).sort((a, b) => b[1] - a[1]).slice(0, 100),
+            packageManifest: manifest
+        }], {
         evidence: [ev],
         status: files.length >= MAX_FILES ? 'partial' : 'completed',
         limitations: [

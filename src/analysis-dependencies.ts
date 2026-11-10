@@ -1,7 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { result } from './core-types.js';
-
 export interface DepFinding {
     name: string;
     declaredVersion?: string | null;
@@ -10,36 +9,44 @@ export interface DepFinding {
     direct: boolean;
     notes?: string[];
 }
-
 interface LockNode {
     version: string;
     deps: Record<string, string>;
     dev?: boolean;
 }
-
 async function tryRead(p: string): Promise<string | null> {
     try {
         return await readFile(p, 'utf8');
-    } catch {
+    }
+    catch {
         return null;
     }
 }
-
-function parsePackageLock(text: string): { nodes: Map<string, LockNode>; rootDeps: string[] } {
+function parsePackageLock(text: string): {
+    nodes: Map<string, LockNode>;
+    rootDeps: string[];
+} {
     const nodes = new Map<string, LockNode>();
     const rootDeps: string[] = [];
     let data: any;
     try {
         data = JSON.parse(text);
-    } catch {
+    }
+    catch {
         return { nodes, rootDeps };
     }
     if (data.packages && typeof data.packages === 'object') {
-        for (const [key, val] of Object.entries(data.packages) as [string, any][]) {
-            if (!val || typeof val !== 'object') continue;
+        for (const [key, val] of Object.entries(data.packages) as [
+            string,
+            any
+        ][]) {
+            if (!val || typeof val !== 'object')
+                continue;
             if (key === '') {
-                for (const d of Object.keys(val.dependencies ?? {})) rootDeps.push(d);
-                for (const d of Object.keys(val.devDependencies ?? {})) rootDeps.push(d);
+                for (const d of Object.keys(val.dependencies ?? {}))
+                    rootDeps.push(d);
+                for (const d of Object.keys(val.devDependencies ?? {}))
+                    rootDeps.push(d);
                 continue;
             }
             const name = key.replace(/^node_modules\//, '').replace(/\/node_modules\//g, '>');
@@ -58,28 +65,33 @@ function parsePackageLock(text: string): { nodes: Map<string, LockNode>; rootDep
     }
     if (data.dependencies && typeof data.dependencies === 'object') {
         const walk = (obj: any, parent: string | null) => {
-            for (const [name, val] of Object.entries(obj) as [string, any][]) {
-                if (!val || typeof val !== 'object') continue;
+            for (const [name, val] of Object.entries(obj) as [
+                string,
+                any
+            ][]) {
+                if (!val || typeof val !== 'object')
+                    continue;
                 const ver = String(val.version ?? '?');
                 nodes.set(name, {
                     version: ver,
                     deps: val.dependencies
-                        ? Object.fromEntries(
-                            Object.entries(val.dependencies).map(([k, v]: [string, any]) =>
-                                [k, String(v.version ?? v)])
-                        )
+                        ? Object.fromEntries(Object.entries(val.dependencies).map(([k, v]: [
+                            string,
+                            any
+                        ]) => [k, String(v.version ?? v)]))
                         : {},
                     dev: !!val.dev
                 });
-                if (!parent) rootDeps.push(name);
-                if (val.dependencies) walk(val.dependencies, name);
+                if (!parent)
+                    rootDeps.push(name);
+                if (val.dependencies)
+                    walk(val.dependencies, name);
             }
         };
         walk(data.dependencies, null);
     }
     return { nodes, rootDeps };
 }
-
 function parseCargoLock(text: string): Map<string, LockNode> {
     const nodes = new Map<string, LockNode>();
     let name = '', version = '';
@@ -109,18 +121,19 @@ function parseCargoLock(text: string): Map<string, LockNode> {
         }
         if (line.startsWith('dependencies') || line.match(/^\s*"/)) {
             const m = line.match(/"([^"]+)"/);
-            if (m) deps.push(m[1].split(/\s+/)[0]);
+            if (m)
+                deps.push(m[1].split(/\s+/)[0]);
         }
     }
     flush();
     return nodes;
 }
-
 function parseGoSum(text: string): Map<string, LockNode> {
     const nodes = new Map<string, LockNode>();
     for (const line of text.split(/\r?\n/)) {
         const parts = line.trim().split(/\s+/);
-        if (parts.length < 2) continue;
+        if (parts.length < 2)
+            continue;
         const mod = parts[0];
         const ver = parts[1].replace(/\/go\.mod$/, '');
         if (!nodes.has(mod) || ver > (nodes.get(mod)?.version ?? '')) {
@@ -129,18 +142,18 @@ function parseGoSum(text: string): Map<string, LockNode> {
     }
     return nodes;
 }
-
 function parseRequirements(text: string): Map<string, string> {
     const out = new Map<string, string>();
     for (const line of text.split(/\r?\n/)) {
         const t = line.trim();
-        if (!t || t.startsWith('#') || t.startsWith('-')) continue;
+        if (!t || t.startsWith('#') || t.startsWith('-'))
+            continue;
         const m = t.match(/^([A-Za-z0-9_.-]+)\s*([=<>!~].+)?/);
-        if (m) out.set(m[1].toLowerCase(), (m[2] ?? '*').trim());
+        if (m)
+            out.set(m[1].toLowerCase(), (m[2] ?? '*').trim());
     }
     return out;
 }
-
 function parseYarnLock(text: string): Map<string, LockNode> {
     const nodes = new Map<string, LockNode>();
     let currentKeys: string[] = [];
@@ -162,24 +175,22 @@ function parseYarnLock(text: string): Map<string, LockNode> {
     }
     return nodes;
 }
-
 export async function analyzeDependencies(root: string) {
     const base = path.resolve(root);
     const findings: DepFinding[] = [];
     const limitations: string[] = [];
     const notes: string[] = [];
     let complete = true;
-
     let pkg: any = null;
     const pkgText = await tryRead(path.join(base, 'package.json'));
     if (pkgText) {
         try {
             pkg = JSON.parse(pkgText);
-        } catch {
+        }
+        catch {
             limitations.push('package.json present but not valid JSON.');
         }
     }
-
     const declared: Record<string, string> = {};
     if (pkg) {
         for (const [k, v] of Object.entries({
@@ -191,7 +202,6 @@ export async function analyzeDependencies(root: string) {
             declared[k] = String(v);
         }
     }
-
     const lockText = await tryRead(path.join(base, 'package-lock.json'));
     let npmNodes = new Map<string, LockNode>();
     let rootDeps: string[] = [];
@@ -200,20 +210,22 @@ export async function analyzeDependencies(root: string) {
         npmNodes = parsed.nodes;
         rootDeps = parsed.rootDeps;
         notes.push('Parsed package-lock.json.');
-    } else {
+    }
+    else {
         const yarnText = await tryRead(path.join(base, 'yarn.lock'));
         if (yarnText) {
             npmNodes = parseYarnLock(yarnText);
             notes.push('Parsed yarn.lock (resolved versions only).');
-        } else if (pkg) {
+        }
+        else if (pkg) {
             limitations.push('No package-lock.json or yarn.lock; only declared ranges from package.json.');
             complete = false;
         }
     }
-
     const seen = new Set<string>();
     const addNpm = (name: string, direct: boolean) => {
-        if (seen.has(name)) return;
+        if (seen.has(name))
+            return;
         seen.add(name);
         const node = npmNodes.get(name);
         const resolved = node?.version ?? null;
@@ -234,14 +246,16 @@ export async function analyzeDependencies(root: string) {
             notes: notesLocal.length ? notesLocal : undefined
         });
     };
-
-    for (const name of Object.keys(declared)) addNpm(name, true);
-    for (const name of rootDeps) addNpm(name, true);
+    for (const name of Object.keys(declared))
+        addNpm(name, true);
+    for (const name of rootDeps)
+        addNpm(name, true);
     for (const key of npmNodes.keys()) {
-        if (key.includes('@') && /\d/.test(key)) continue;
-        if (!seen.has(key) && !key.includes('/')) addNpm(key, false);
+        if (key.includes('@') && /\d/.test(key))
+            continue;
+        if (!seen.has(key) && !key.includes('/'))
+            addNpm(key, false);
     }
-
     const cargoLock = await tryRead(path.join(base, 'Cargo.lock'));
     const cargoToml = await tryRead(path.join(base, 'Cargo.toml'));
     if (cargoLock || cargoToml) {
@@ -275,7 +289,8 @@ export async function analyzeDependencies(root: string) {
             }
         }
         for (const [n, node] of nodes) {
-            if (seen.has('cargo:' + n)) continue;
+            if (seen.has('cargo:' + n))
+                continue;
             findings.push({
                 name: n,
                 resolvedVersion: node.version,
@@ -285,7 +300,6 @@ export async function analyzeDependencies(root: string) {
         }
         notes.push(cargoLock ? 'Parsed Cargo.lock.' : 'Cargo.toml only (no lock).');
     }
-
     const goSum = await tryRead(path.join(base, 'go.sum'));
     const goMod = await tryRead(path.join(base, 'go.mod'));
     if (goSum || goMod) {
@@ -307,7 +321,8 @@ export async function analyzeDependencies(root: string) {
             }
         }
         for (const [n, node] of nodes) {
-            if (seen.has('go:' + n)) continue;
+            if (seen.has('go:' + n))
+                continue;
             findings.push({
                 name: n,
                 resolvedVersion: node.version,
@@ -317,10 +332,10 @@ export async function analyzeDependencies(root: string) {
         }
         notes.push(goSum ? 'Parsed go.sum.' : 'go.mod only.');
     }
-
     for (const reqFile of ['requirements.txt', 'requirements.in', 'dev-requirements.txt']) {
         const t = await tryRead(path.join(base, reqFile));
-        if (!t) continue;
+        if (!t)
+            continue;
         for (const [name, ver] of parseRequirements(t)) {
             findings.push({
                 name,
@@ -349,31 +364,33 @@ export async function analyzeDependencies(root: string) {
                 version = '';
             }
             const nm = line.match(/^name\s*=\s*"([^"]+)"/);
-            if (nm) name = nm[1];
+            if (nm)
+                name = nm[1];
             const ver = line.match(/^version\s*=\s*"([^"]+)"/);
-            if (ver) version = ver[1];
+            if (ver)
+                version = ver[1];
         }
         if (name) {
             findings.push({ name, resolvedVersion: version, source: 'poetry.lock', direct: false });
         }
         notes.push('Parsed poetry.lock.');
     }
-
     const byName = new Map<string, Set<string>>();
     for (const f of findings) {
-        if (!f.resolvedVersion) continue;
+        if (!f.resolvedVersion)
+            continue;
         const set = byName.get(f.name) ?? new Set();
         set.add(f.resolvedVersion);
         byName.set(f.name, set);
     }
     const duplicates: string[] = [];
     for (const [n, vers] of byName) {
-        if (vers.size > 1) duplicates.push(`${n} (${[...vers].join(', ')})`);
+        if (vers.size > 1)
+            duplicates.push(`${n} (${[...vers].join(', ')})`);
     }
     if (duplicates.length) {
         notes.push(`Possible duplicate versions: ${duplicates.slice(0, 20).join('; ')}`);
     }
-
     if (!findings.length) {
         return result(base, 'dependency_analysis', [], {
             status: 'partial',
@@ -383,14 +400,10 @@ export async function analyzeDependencies(root: string) {
             coverage: { examined: true, complete: false, notes: ['No recognized dependency manifests.'] }
         });
     }
-
-    limitations.push(
-        'No CVE/vulnerability database lookup.',
-        'Outdated detection is limited to declared-vs-resolved mismatch notes; no registry query.',
-        'Size/resource impact and replacement recommendations are not computed.',
-        'Transitive graph edges are recovered from lockfiles where present; not a full install-time resolution.'
-    );
-
+    limitations.push('No CVE/vulnerability database lookup.');
+    limitations.push('Outdated detection is limited to declared-vs-resolved mismatch notes; no registry query.');
+    limitations.push('Size/resource impact and replacement recommendations are not computed.');
+    limitations.push('Transitive graph edges are recovered from lockfiles where present; not a full install-time resolution.');
     return result(base, 'dependency_analysis', findings.slice(0, 5000), {
         status: complete ? 'completed' : 'partial',
         limitations,

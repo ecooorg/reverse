@@ -2,7 +2,6 @@ import { open, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { result } from './core-types.js';
 import { fileEvidence } from './core-util.js';
-
 export interface BinarySection {
     name: string;
     addr?: string;
@@ -11,7 +10,6 @@ export interface BinarySection {
     type?: string;
     flags?: string;
 }
-
 export interface BinarySymbol {
     name: string;
     addr?: string;
@@ -19,7 +17,6 @@ export interface BinarySymbol {
     type?: string;
     bind?: string;
 }
-
 export interface BinaryFinding {
     format: string;
     architecture: string;
@@ -31,33 +28,44 @@ export interface BinaryFinding {
     imports?: string[];
     exports?: string[];
     symbols?: BinarySymbol[];
-    functions?: { name: string; addr?: string; size?: number }[];
+    functions?: {
+        name: string;
+        addr?: string;
+        size?: number;
+    }[];
     /** Library/module edges only (import table); not a full intra-binary CFG. */
-    callGraphEdges?: { from: string; to: string; kind: 'import' | 'export' }[];
+    callGraphEdges?: {
+        from: string;
+        to: string;
+        kind: 'import' | 'export';
+    }[];
     loadCommands?: string[];
-    slices?: { offset: number; size: number; arch: string }[];
+    slices?: {
+        offset: number;
+        size: number;
+        arch: string;
+    }[];
 }
-
 const u16 = (b: Buffer, o: number, le = true) => (le ? b.readUInt16LE(o) : b.readUInt16BE(o));
 const u32 = (b: Buffer, o: number, le = true) => (le ? b.readUInt32LE(o) : b.readUInt32BE(o));
-const u64 = (b: Buffer, o: number, le = true) =>
-    (le ? b.readBigUInt64LE(o) : b.readBigUInt64BE(o)).toString(16);
-
+const u64 = (b: Buffer, o: number, le = true) => (le ? b.readBigUInt64LE(o) : b.readBigUInt64BE(o)).toString(16);
 const MAX_HEADER = 2 * 1024 * 1024;
-
-async function readPrefix(abs: string, max: number): Promise<{ buf: Buffer; size: number }> {
+async function readPrefix(abs: string, max: number): Promise<{
+    buf: Buffer;
+    size: number;
+}> {
     const s = await stat(abs);
     const n = Math.min(s.size, max);
     const h = await open(abs, 'r');
     const buf = Buffer.alloc(n);
     try {
         await h.read(buf, 0, n, 0);
-    } finally {
+    }
+    finally {
         await h.close();
     }
     return { buf, size: s.size };
 }
-
 function parseElf(b: Buffer, fileSize: number): BinaryFinding {
     const cls = b[4];
     const le = b[5] === 1;
@@ -71,7 +79,6 @@ function parseElf(b: Buffer, fileSize: number): BinaryFinding {
     const e_shnum = u16(b, is64 ? 60 : 48, le);
     const e_shstrndx = u16(b, is64 ? 62 : 50, le);
     const entry = is64 ? u64(b, 24, le) : u32(b, 24, le).toString(16);
-
     const f: BinaryFinding = {
         format: 'ELF',
         bitness: is64 ? 64 : cls === 1 ? 32 : null,
@@ -80,7 +87,6 @@ function parseElf(b: Buffer, fileSize: number): BinaryFinding {
         fileSize,
         entryPoint: entry
     };
-
     const sections: BinarySection[] = [];
     let shstrtab: Buffer = Buffer.alloc(0);
     if (e_shoff > 0 && e_shnum > 0 && e_shentsize >= (is64 ? 64 : 40) &&
@@ -89,7 +95,8 @@ function parseElf(b: Buffer, fileSize: number): BinaryFinding {
             const sho = e_shoff + e_shstrndx * e_shentsize;
             const sh_offset = is64 ? Number(le ? b.readBigUInt64LE(sho + 24) : b.readBigUInt64BE(sho + 24)) : u32(b, sho + 16, le);
             const sh_size = is64 ? Number(le ? b.readBigUInt64LE(sho + 32) : b.readBigUInt64BE(sho + 32)) : u32(b, sho + 20, le);
-            if (sh_offset + sh_size <= b.length) shstrtab = b.subarray(sh_offset, sh_offset + Math.min(sh_size, 65536));
+            if (sh_offset + sh_size <= b.length)
+                shstrtab = b.subarray(sh_offset, sh_offset + Math.min(sh_size, 65536));
         }
         const SHT: Record<number, string> = {
             0: 'NULL', 1: 'PROGBITS', 2: 'SYMTAB', 3: 'STRTAB', 4: 'RELA', 5: 'HASH',
@@ -121,15 +128,16 @@ function parseElf(b: Buffer, fileSize: number): BinaryFinding {
             });
         }
         f.sections = sections;
-
         const symbols: BinarySymbol[] = [];
         const imports: string[] = [];
         const exports: string[] = [];
         for (const sec of sections) {
-            if ((sec.type !== 'SYMTAB' && sec.type !== 'DYNSYM') || sec.offset == null || sec.size <= 0) continue;
+            if ((sec.type !== 'SYMTAB' && sec.type !== 'DYNSYM') || sec.offset == null || sec.size <= 0)
+                continue;
             const entSize = is64 ? 24 : 16;
             const count = Math.min(Math.floor(sec.size / entSize), 4096);
-            if (sec.offset + count * entSize > b.length) continue;
+            if (sec.offset + count * entSize > b.length)
+                continue;
             let strtab: Buffer = Buffer.alloc(0);
             const strName = sec.name === '.dynsym' ? '.dynstr' : '.strtab';
             const strSec = sections.find(s => s.name === strName);
@@ -144,7 +152,8 @@ function parseElf(b: Buffer, fileSize: number): BinaryFinding {
                     const end = strtab.indexOf(0, st_name);
                     name = strtab.toString('utf8', st_name, end === -1 ? Math.min(st_name + 128, strtab.length) : end);
                 }
-                if (!name) continue;
+                if (!name)
+                    continue;
                 const info = is64 ? b[so + 4] : b[so + 12];
                 const bind = info >> 4;
                 const typ = info & 0xf;
@@ -154,17 +163,21 @@ function parseElf(b: Buffer, fileSize: number): BinaryFinding {
                 const size = is64 ? Number(le ? b.readBigUInt64LE(so + 16) : b.readBigUInt64BE(so + 16)) : u32(b, so + 8, le);
                 const shndx = is64 ? u16(b, so + 6, le) : u16(b, so + 14, le);
                 symbols.push({ name, addr: value, size, type: typeStr, bind: bindStr });
-                if (sec.type === 'DYNSYM' && shndx === 0 && bind !== 0) imports.push(name);
-                if (bind === 1 && typ === 2 && shndx !== 0) exports.push(name);
+                if (sec.type === 'DYNSYM' && shndx === 0 && bind !== 0)
+                    imports.push(name);
+                if (bind === 1 && typ === 2 && shndx !== 0)
+                    exports.push(name);
             }
         }
-        if (symbols.length) f.symbols = symbols.slice(0, 2000);
-        if (imports.length) f.imports = [...new Set(imports)].slice(0, 500);
-        if (exports.length) f.exports = [...new Set(exports)].slice(0, 500);
+        if (symbols.length)
+            f.symbols = symbols.slice(0, 2000);
+        if (imports.length)
+            f.imports = [...new Set(imports)].slice(0, 500);
+        if (exports.length)
+            f.exports = [...new Set(exports)].slice(0, 500);
     }
     return f;
 }
-
 function parsePe(b: Buffer, fileSize: number): BinaryFinding {
     const peOff = u32(b, 0x3c);
     if (peOff + 24 > b.length || b.toString('ascii', peOff, peOff + 4) !== 'PE\0\0') {
@@ -185,19 +198,18 @@ function parsePe(b: Buffer, fileSize: number): BinaryFinding {
         fileSize,
         entryPoint: entryRva.toString(16)
     };
-
     const ddOff = peOff + 24 + (is64 ? 112 : 96);
     let importRva = 0, exportRva = 0;
     if (ddOff + 16 <= b.length) {
         exportRva = u32(b, ddOff);
         importRva = u32(b, ddOff + 8);
     }
-
     const secTable = peOff + 24 + optSize;
     const sections: BinarySection[] = [];
     for (let i = 0; i < numSections && i < 96; i++) {
         const so = secTable + i * 40;
-        if (so + 40 > b.length) break;
+        if (so + 40 > b.length)
+            break;
         const name = b.toString('ascii', so, so + 8).replace(/\0.*$/, '');
         const vsize = u32(b, so + 8);
         const vaddr = u32(b, so + 12);
@@ -213,36 +225,38 @@ function parsePe(b: Buffer, fileSize: number): BinaryFinding {
         });
     }
     f.sections = sections;
-
     const rvaToOff = (rva: number): number | null => {
         for (const s of sections) {
             const va = parseInt(s.addr ?? '0', 16);
             const sz = s.size || 0;
-            if (rva >= va && rva < va + sz && s.offset != null) return s.offset + (rva - va);
+            if (rva >= va && rva < va + sz && s.offset != null)
+                return s.offset + (rva - va);
         }
         return null;
     };
-
     const imports: string[] = [];
     if (importRva) {
         let off = rvaToOff(importRva);
         if (off != null) {
             for (let i = 0; i < 256; i++) {
-                if (off + 20 > b.length) break;
+                if (off + 20 > b.length)
+                    break;
                 const nameRva = u32(b, off + 12);
-                if (nameRva === 0) break;
+                if (nameRva === 0)
+                    break;
                 const nameOff = rvaToOff(nameRva);
                 if (nameOff != null && nameOff < b.length) {
                     const end = b.indexOf(0, nameOff);
                     const dll = b.toString('utf8', nameOff, end === -1 ? nameOff + 64 : end);
-                    if (dll) imports.push(dll);
+                    if (dll)
+                        imports.push(dll);
                 }
                 off += 20;
             }
         }
     }
-    if (imports.length) f.imports = imports;
-
+    if (imports.length)
+        f.imports = imports;
     const exports: string[] = [];
     if (exportRva) {
         const expOff = rvaToOff(exportRva);
@@ -257,17 +271,17 @@ function parsePe(b: Buffer, fileSize: number): BinaryFinding {
                     if (nOff != null && nOff < b.length) {
                         const end = b.indexOf(0, nOff);
                         const nm = b.toString('utf8', nOff, end === -1 ? nOff + 128 : end);
-                        if (nm) exports.push(nm);
+                        if (nm)
+                            exports.push(nm);
                     }
                 }
             }
         }
     }
-    if (exports.length) f.exports = exports;
-
+    if (exports.length)
+        f.exports = exports;
     return f;
 }
-
 function parseMachO(b: Buffer, fileSize: number, magic: number): BinaryFinding {
     const le = magic === 0xfeedface || magic === 0xfeedfacf;
     const is64 = magic === 0xfeedfacf || magic === 0xcffaedfe;
@@ -291,7 +305,8 @@ function parseMachO(b: Buffer, fileSize: number, magic: number): BinaryFinding {
     for (let i = 0; i < ncmds && i < 256 && off + 8 <= end; i++) {
         const cmd = u32(b, off, le);
         const cmdsize = u32(b, off + 4, le);
-        if (cmdsize < 8) break;
+        if (cmdsize < 8)
+            break;
         const LC: Record<number, string> = {
             0x1: 'SEGMENT', 0x19: 'SEGMENT_64', 0x2: 'SYMTAB', 0xe: 'LOAD_DYLIB',
             0xc: 'LOAD_DYLINKER', 0x80000022: 'DYLD_INFO_ONLY', 0x2b: 'BUILD_VERSION'
@@ -304,11 +319,14 @@ function parseMachO(b: Buffer, fileSize: number, magic: number): BinaryFinding {
             let secOff = off + (is64 ? 72 : 56);
             for (let s = 0; s < nsects && s < 64; s++) {
                 const ent = is64 ? 80 : 68;
-                if (secOff + ent > b.length) break;
+                if (secOff + ent > b.length)
+                    break;
                 const sname = b.toString('ascii', secOff, secOff + 16).replace(/\0.*$/, '');
                 const addr = is64 ? u64(b, secOff + 32, le) : u32(b, secOff + 32, le).toString(16);
                 const size = is64 ? Number(le ? b.readBigUInt64LE(secOff + 40) : b.readBigUInt64BE(secOff + 40)) : u32(b, secOff + 36, le);
-                const fileoff = is64 ? Number(le ? b.readBigUInt64LE(secOff + 48) : b.readBigUInt64BE(secOff + 48)) : u32(b, secOff + 40, le);
+                const fileoff = is64
+                    ? Number(le ? b.readBigUInt64LE(secOff + 48) : b.readBigUInt64BE(secOff + 48))
+                    : u32(b, secOff + 40, le);
                 sections.push({
                     name: `${segName},${sname}`,
                     addr,
@@ -333,22 +351,29 @@ function parseMachO(b: Buffer, fileSize: number, magic: number): BinaryFinding {
         }
         off += cmdsize;
     }
-    if (loadCommands.length) f.loadCommands = loadCommands;
-    if (sections.length) f.sections = sections;
-    if (f.imports) f.imports = [...new Set(f.imports)].slice(0, 200);
+    if (loadCommands.length)
+        f.loadCommands = loadCommands;
+    if (sections.length)
+        f.sections = sections;
+    if (f.imports)
+        f.imports = [...new Set(f.imports)].slice(0, 200);
     return f;
 }
-
 function parseFat(b: Buffer, fileSize: number): BinaryFinding {
     const le = false;
     const nfat = u32(b, 4, le);
-    const slices: { offset: number; size: number; arch: string }[] = [];
+    const slices: {
+        offset: number;
+        size: number;
+        arch: string;
+    }[] = [];
     const archMap: Record<number, string> = {
         7: 'x86', 0x1000007: 'x86_64', 12: 'ARM', 0x100000c: 'ARM64'
     };
     for (let i = 0; i < Math.min(nfat, 8); i++) {
         const o = 8 + i * 20;
-        if (o + 20 > b.length) break;
+        if (o + 20 > b.length)
+            break;
         const cpu = u32(b, o, le);
         const offset = u32(b, o + 8, le);
         const size = u32(b, o + 12, le);
@@ -363,10 +388,12 @@ function parseFat(b: Buffer, fileSize: number): BinaryFinding {
         slices
     };
 }
-
-
 function deriveFunctionsAndEdges(f: BinaryFinding): void {
-    const functions: { name: string; addr?: string; size?: number }[] = [];
+    const functions: {
+        name: string;
+        addr?: string;
+        size?: number;
+    }[] = [];
     if (f.symbols) {
         for (const s of f.symbols) {
             if (s.type === 'FUNC' || (s.type === 'NOTYPE' && s.bind === 'GLOBAL' && s.name && !s.name.startsWith('.'))) {
@@ -376,39 +403,49 @@ function deriveFunctionsAndEdges(f: BinaryFinding): void {
     }
     if (f.exports) {
         for (const name of f.exports) {
-            if (!functions.some(x => x.name === name)) functions.push({ name });
+            if (!functions.some(x => x.name === name))
+                functions.push({ name });
         }
     }
-    if (functions.length) f.functions = functions.slice(0, 2000);
-    const edges: { from: string; to: string; kind: 'import' | 'export' }[] = [];
+    if (functions.length)
+        f.functions = functions.slice(0, 2000);
+    const edges: {
+        from: string;
+        to: string;
+        kind: 'import' | 'export';
+    }[] = [];
     const self = f.format || 'binary';
     if (f.imports) {
-        for (const lib of f.imports) edges.push({ from: self, to: lib, kind: 'import' });
+        for (const lib of f.imports)
+            edges.push({ from: self, to: lib, kind: 'import' });
     }
     if (f.exports) {
-        for (const name of f.exports.slice(0, 200)) edges.push({ from: self, to: name, kind: 'export' });
+        for (const name of f.exports.slice(0, 200))
+            edges.push({ from: self, to: name, kind: 'export' });
     }
-    if (edges.length) f.callGraphEdges = edges.slice(0, 500);
+    if (edges.length)
+        f.callGraphEdges = edges.slice(0, 500);
 }
-
 export async function analyzeBinary(file: string) {
     const abs = path.resolve(file);
     const { buf: b, size } = await readPrefix(abs, MAX_HEADER);
     let f: BinaryFinding = {
         format: 'unknown', architecture: 'unknown', bitness: null, endian: null, fileSize: size
     };
-
     if (b.length >= 4 && b[0] === 0x7f && b[1] === 0x45 && b[2] === 0x4c && b[3] === 0x46) {
         f = parseElf(b, size);
-    } else if (b.length >= 64 && b[0] === 0x4d && b[1] === 0x5a) {
+    }
+    else if (b.length >= 64 && b[0] === 0x4d && b[1] === 0x5a) {
         f = parsePe(b, size);
-    } else if (b.length >= 4) {
+    }
+    else if (b.length >= 4) {
         const m = u32(b, 0, false);
         if (m === 0xcafebabe && b.length >= 8) {
             const n = u32(b, 4, false);
             if (n < 0x20) {
                 f = parseFat(b, size);
-            } else {
+            }
+            else {
                 f = {
                     format: 'Java class',
                     architecture: 'JVM',
@@ -417,11 +454,11 @@ export async function analyzeBinary(file: string) {
                     fileSize: size
                 };
             }
-        } else if (m === 0xfeedface || m === 0xfeedfacf || m === 0xcefaedfe || m === 0xcffaedfe) {
+        }
+        else if (m === 0xfeedface || m === 0xfeedfacf || m === 0xcefaedfe || m === 0xcffaedfe) {
             f = parseMachO(b, size, m);
         }
     }
-
     deriveFunctionsAndEdges(f);
     const hasStruct = !!(f.sections?.length || f.imports?.length || f.exports?.length ||
         f.symbols?.length || f.functions?.length || f.loadCommands?.length || f.slices?.length);
@@ -431,9 +468,8 @@ export async function analyzeBinary(file: string) {
         'A recognized magic value does not prove the file is safe or executable.'
     ];
     if (!hasStruct && f.format !== 'unknown' && f.format !== 'Java class') {
-        limitations.unshift(
-            'Header recognized but section/symbol/import tables were not fully recovered (truncated header or unusual layout).'
-        );
+        limitations.unshift('Header recognized but section/symbol/import tables were not fully recovered '
+            + '(truncated header or unusual layout).');
     }
     if (f.format === 'ELF' && !f.symbols?.length) {
         limitations.push('No symbol table recovered (stripped binary or tables outside the read window).');

@@ -3,15 +3,12 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import path from 'node:path';
 import { platform } from 'node:os';
-
 const execFileAsync = promisify(execFile);
-
 /** Resolve an executable by name: PATH first, then optional extra directories. No side effects beyond stat/exec -v. */
-export async function findExecutable(
-    names: string[],
-    extraDirs: string[] = [],
-    versionArgs: string[] = ['--version']
-): Promise<{ path: string; version?: string } | null> {
+export async function findExecutable(names: string[], extraDirs: string[] = [], versionArgs: string[] = ['--version']): Promise<{
+    path: string;
+    version?: string;
+} | null> {
     const pathEnv = (process.env.PATH ?? '').split(path.delimiter).filter(Boolean);
     const dirs = [...pathEnv, ...extraDirs];
     const candidates: string[] = [];
@@ -24,11 +21,12 @@ export async function findExecutable(
         }
     }
     // bare names for PATH lookup via which-like
-    for (const name of names) candidates.push(name);
-
+    for (const name of names)
+        candidates.push(name);
     const seen = new Set<string>();
     for (const c of candidates) {
-        if (seen.has(c)) continue;
+        if (seen.has(c))
+            continue;
         seen.add(c);
         try {
             if (c.includes(path.sep) || path.isAbsolute(c)) {
@@ -44,13 +42,13 @@ export async function findExecutable(
             });
             const version = (stdout || stderr || '').toString().split(/\r?\n/)[0]?.trim().slice(0, 200);
             return { path: c, version: version || undefined };
-        } catch {
+        }
+        catch {
             // try next
         }
     }
     return null;
 }
-
 export const GHIDRA_DIRS = [
     process.env.GHIDRA_INSTALL_DIR ?? '',
     process.env.GHIDRA_HOME ?? '',
@@ -59,7 +57,6 @@ export const GHIDRA_DIRS = [
     path.join(process.env.HOME ?? '', 'ghidra'),
     'C:\\ghidra'
 ].filter(Boolean);
-
 export const COMMON_BIN_DIRS = [
     '/usr/local/bin',
     '/opt/homebrew/bin',

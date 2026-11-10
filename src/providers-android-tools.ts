@@ -6,24 +6,27 @@ import path from 'node:path';
 import { result } from './core-types.js';
 import type { AnalyzerProvider, ProviderRunOptions } from './providers-registry.js';
 import { findExecutable, COMMON_BIN_DIRS } from './providers-discover.js';
-
 const execFileAsync = promisify(execFile);
-
-let jadxCache: { path: string; version?: string } | null | undefined;
-let apktoolCache: { path: string; version?: string } | null | undefined;
-
+let jadxCache: {
+    path: string;
+    version?: string;
+} | null | undefined;
+let apktoolCache: {
+    path: string;
+    version?: string;
+} | null | undefined;
 async function resolveJadx() {
-    if (jadxCache !== undefined) return jadxCache;
+    if (jadxCache !== undefined)
+        return jadxCache;
     jadxCache = await findExecutable(['jadx', 'jadx.bat'], COMMON_BIN_DIRS, ['--version']);
     return jadxCache;
 }
-
 async function resolveApktool() {
-    if (apktoolCache !== undefined) return apktoolCache;
+    if (apktoolCache !== undefined)
+        return apktoolCache;
     apktoolCache = await findExecutable(['apktool', 'apktool.bat'], COMMON_BIN_DIRS, ['--version']);
     return apktoolCache;
 }
-
 export function createJadxProvider(): AnalyzerProvider {
     return {
         name: 'jadx',
@@ -49,34 +52,33 @@ export function createJadxProvider(): AnalyzerProvider {
             }
             const work = await mkdtemp(path.join(tmpdir(), 'reverse-jadx-'));
             try {
-                const { stdout, stderr } = await execFileAsync(
-                    j.path,
-                    ['--no-res', '-d', work, target],
-                    {
-                        timeout: opts?.timeoutMs ?? 120_000,
-                        windowsHide: true,
-                        maxBuffer: 4 * 1024 * 1024,
-                        signal: opts?.signal as any
-                    }
-                );
+                const { stdout, stderr } = await execFileAsync(j.path, ['--no-res', '-d', work, target], {
+                    timeout: opts?.timeoutMs ?? 120000,
+                    windowsHide: true,
+                    maxBuffer: 4 * 1024 * 1024,
+                    signal: opts?.signal as any
+                });
                 let javaFiles = 0;
                 try {
                     const walk = async (dir: string): Promise<void> => {
                         const entries = await readdir(dir, { withFileTypes: true });
                         for (const e of entries) {
                             const p = path.join(dir, e.name);
-                            if (e.isDirectory()) await walk(p);
-                            else if (e.name.endsWith('.java')) javaFiles++;
+                            if (e.isDirectory())
+                                await walk(p);
+                            else if (e.name.endsWith('.java'))
+                                javaFiles++;
                         }
                     };
                     await walk(work);
-                } catch { /* ignore */ }
+                }
+                catch { /* ignore */ }
                 return result(target, 'jadx_analyze', [{
-                    engine: 'jadx',
-                    enginePath: j.path,
-                    javaFilesExported: javaFiles,
-                    logExcerpt: `${stdout}\n${stderr}`.slice(0, 2000)
-                }], {
+                        engine: 'jadx',
+                        enginePath: j.path,
+                        javaFilesExported: javaFiles,
+                        logExcerpt: `${stdout}\n${stderr}`.slice(0, 2000)
+                    }], {
                     status: javaFiles > 0 ? 'completed' : 'partial',
                     limitations: [
                         'Resources skipped (--no-res) for bounded runs.',
@@ -88,14 +90,16 @@ export function createJadxProvider(): AnalyzerProvider {
                         notes: [`Exported ~${javaFiles} .java file(s) to a temp directory (cleaned after run).`]
                     }
                 });
-            } catch (e: any) {
+            }
+            catch (e: any) {
                 return result(target, 'jadx_analyze', [], {
                     status: 'failed',
                     limitations: [`JADX failed: ${e?.message ?? String(e)}`],
                     errors: [String(e?.message ?? e)],
                     coverage: { examined: true, complete: false, notes: [] }
                 });
-            } finally {
+            }
+            finally {
                 await rm(work, { recursive: true, force: true }).catch(() => undefined);
             }
         },
@@ -104,7 +108,6 @@ export function createJadxProvider(): AnalyzerProvider {
         }
     };
 }
-
 export function createApktoolProvider(): AnalyzerProvider {
     return {
         name: 'apktool',
@@ -131,36 +134,36 @@ export function createApktoolProvider(): AnalyzerProvider {
             const work = await mkdtemp(path.join(tmpdir(), 'reverse-apktool-'));
             const outDir = path.join(work, 'out');
             try {
-                const { stdout, stderr } = await execFileAsync(
-                    a.path,
-                    ['d', '-f', '-o', outDir, target],
-                    {
-                        timeout: opts?.timeoutMs ?? 120_000,
-                        windowsHide: true,
-                        maxBuffer: 4 * 1024 * 1024,
-                        signal: opts?.signal as any
-                    }
-                );
+                const { stdout, stderr } = await execFileAsync(a.path, ['d', '-f', '-o', outDir, target], {
+                    timeout: opts?.timeoutMs ?? 120000,
+                    windowsHide: true,
+                    maxBuffer: 4 * 1024 * 1024,
+                    signal: opts?.signal as any
+                });
                 let smali = 0, hasManifest = false;
                 try {
                     const walk = async (dir: string): Promise<void> => {
                         const entries = await readdir(dir, { withFileTypes: true });
                         for (const e of entries) {
                             const p = path.join(dir, e.name);
-                            if (e.isDirectory()) await walk(p);
-                            else if (e.name.endsWith('.smali')) smali++;
-                            else if (e.name === 'AndroidManifest.xml') hasManifest = true;
+                            if (e.isDirectory())
+                                await walk(p);
+                            else if (e.name.endsWith('.smali'))
+                                smali++;
+                            else if (e.name === 'AndroidManifest.xml')
+                                hasManifest = true;
                         }
                     };
                     await walk(outDir);
-                } catch { /* ignore */ }
+                }
+                catch { /* ignore */ }
                 return result(target, 'apktool_analyze', [{
-                    engine: 'apktool',
-                    enginePath: a.path,
-                    smaliFiles: smali,
-                    decodedManifest: hasManifest,
-                    logExcerpt: `${stdout}\n${stderr}`.slice(0, 2000)
-                }], {
+                        engine: 'apktool',
+                        enginePath: a.path,
+                        smaliFiles: smali,
+                        decodedManifest: hasManifest,
+                        logExcerpt: `${stdout}\n${stderr}`.slice(0, 2000)
+                    }], {
                     status: hasManifest || smali > 0 ? 'completed' : 'partial',
                     limitations: ['Decoded tree is temporary and removed after the run.'],
                     coverage: {
@@ -169,14 +172,16 @@ export function createApktoolProvider(): AnalyzerProvider {
                         notes: [`smali=${smali}, manifest=${hasManifest}`]
                     }
                 });
-            } catch (e: any) {
+            }
+            catch (e: any) {
                 return result(target, 'apktool_analyze', [], {
                     status: 'failed',
                     limitations: [`Apktool failed: ${e?.message ?? String(e)}`],
                     errors: [String(e?.message ?? e)],
                     coverage: { examined: true, complete: false, notes: [] }
                 });
-            } finally {
+            }
+            finally {
                 await rm(work, { recursive: true, force: true }).catch(() => undefined);
             }
         },

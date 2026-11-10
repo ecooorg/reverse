@@ -1,5 +1,4 @@
 import { result, type Result } from './core-types.js';
-
 /** Core analyzer provider contract (Patch F). */
 export interface AnalyzerProvider {
     name: string;
@@ -13,34 +12,28 @@ export interface AnalyzerProvider {
     /** Optional clean shutdown (kill lingering children, temp dirs). */
     shutdown?: () => Promise<void>;
 }
-
 export interface ProviderRunOptions {
     timeoutMs?: number;
     signal?: AbortSignal;
 }
-
 /** Similarity on top of AnalyzerProvider (H-03). No bundled corpus. */
 export interface SimilarityProvider extends AnalyzerProvider {
     kind: 'similarity';
     compareFunctions?(a: string, b: string, opts?: ProviderRunOptions): Promise<Result<SimilarityHit>>;
 }
-
 export interface SimilarityHit {
     score: number;
     confidence: number;
     method: string;
     notes?: string[];
 }
-
 export type ProviderState = 'implemented' | 'available' | 'registered' | 'extension-point' | 'unavailable';
-
 export interface ProviderListEntry {
     name: string;
     state: ProviderState;
     capabilities: string[];
     detail?: string;
 }
-
 const providers: AnalyzerProvider[] = [];
 const builtIn: ProviderListEntry[] = [
     {
@@ -64,21 +57,17 @@ const builtIn: ProviderListEntry[] = [
         capabilities: ['APK/AAB zip inventory']
     }
 ];
-
 /** Labels that stay extension-points until their own patch wires them. */
 const FUTURE_EXTENSIONS = ['frida', 'gdb', 'perf', 'ebpf', 'etw', 'instruments'] as const;
-
 export function registerProvider(p: AnalyzerProvider) {
     if (providers.some(x => x.name === p.name) || builtIn.some(x => x.name === p.name)) {
         throw new Error(`Provider already registered: ${p.name}`);
     }
     providers.push(p);
 }
-
 export function getRegisteredProviders(): readonly AnalyzerProvider[] {
     return providers;
 }
-
 export function listProviders(): ProviderListEntry[] {
     const reg = providers.map(p => ({
         name: p.name,
@@ -92,7 +81,6 @@ export function listProviders(): ProviderListEntry[] {
     }));
     return [...builtIn, ...reg, ...future];
 }
-
 /** Probe registered providers (and optionally mark available vs unavailable). */
 export async function listProvidersProbed(): Promise<ProviderListEntry[]> {
     const base = listProviders();
@@ -109,14 +97,16 @@ export async function listProvidersProbed(): Promise<ProviderListEntry[]> {
                 p.available(),
                 new Promise<boolean>(resolve => setTimeout(() => resolve(false), 8000))
             ]);
-        } catch {
+        }
+        catch {
             available = false;
         }
         let detail: string | undefined;
         if (p.detail) {
             try {
                 detail = await p.detail();
-            } catch { /* ignore */ }
+            }
+            catch { /* ignore */ }
         }
         out.push({
             name: p.name,
@@ -127,41 +117,37 @@ export async function listProvidersProbed(): Promise<ProviderListEntry[]> {
     }
     return out;
 }
-
 export async function getProviderStatus() {
     return Promise.all(providers.map(async (p) => {
         let available = false;
         try {
             available = await p.available();
-        } catch {
+        }
+        catch {
             available = false;
         }
         let detail: string | undefined;
         if (p.detail) {
             try {
                 detail = await p.detail();
-            } catch { /* ignore */ }
+            }
+            catch { /* ignore */ }
         }
         return { name: p.name, available, capabilities: p.capabilities, detail };
     }));
 }
-
 export async function shutdownAllProviders(): Promise<void> {
     for (const p of providers) {
         if (p.shutdown) {
             try {
                 await p.shutdown();
-            } catch { /* best effort */ }
+            }
+            catch { /* best effort */ }
         }
     }
 }
-
 /** Run a named registered provider or return a structured partial Result. */
-export async function runProvider(
-    name: string,
-    target: string,
-    opts?: ProviderRunOptions
-): Promise<Result<unknown>> {
+export async function runProvider(name: string, target: string, opts?: ProviderRunOptions): Promise<Result<unknown>> {
     const p = providers.find(x => x.name === name);
     if (!p) {
         return result(target, 'provider_analyze', [], {

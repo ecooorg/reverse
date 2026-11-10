@@ -6,23 +6,22 @@ import path from 'node:path';
 import { result } from './core-types.js';
 import type { AnalyzerProvider, ProviderRunOptions, SimilarityProvider, SimilarityHit } from './providers-registry.js';
 import { findExecutable, GHIDRA_DIRS } from './providers-discover.js';
-
 const execFileAsync = promisify(execFile);
-
-let cached: { path: string; version?: string } | null | undefined;
-
-async function resolveGhidra(): Promise<{ path: string; version?: string } | null> {
-    if (cached !== undefined) return cached;
+let cached: {
+    path: string;
+    version?: string;
+} | null | undefined;
+async function resolveGhidra(): Promise<{
+    path: string;
+    version?: string;
+} | null> {
+    if (cached !== undefined)
+        return cached;
     // analyzeHeadless is the usual entry; also accept "ghidra" wrapper
-    const found = await findExecutable(
-        ['analyzeHeadless', 'ghidraRun', 'ghidra'],
-        GHIDRA_DIRS,
-        ['-help']
-    );
+    const found = await findExecutable(['analyzeHeadless', 'ghidraRun', 'ghidra'], GHIDRA_DIRS, ['-help']);
     cached = found;
     return found;
 }
-
 export function createGhidraProvider(): AnalyzerProvider {
     return {
         name: 'ghidra',
@@ -52,7 +51,7 @@ export function createGhidraProvider(): AnalyzerProvider {
                     coverage: { examined: false, complete: false, notes: [] }
                 });
             }
-            const timeoutMs = opts?.timeoutMs ?? 120_000;
+            const timeoutMs = opts?.timeoutMs ?? 120000;
             const work = await mkdtemp(path.join(tmpdir(), 'reverse-ghidra-'));
             const projectName = 'rev';
             const script = `
@@ -97,11 +96,11 @@ try {
                     'Output is normalized presence evidence, not a substitute for interactive Ghidra.'
                 ];
                 return result(target, 'ghidra_analyze', [{
-                    engine: 'ghidra',
-                    enginePath: g.path,
-                    importOk: !/ERROR|Exception/i.test(text) || /Importing complete|finished/i.test(text),
-                    logExcerpt: text.slice(0, 2000)
-                }], {
+                        engine: 'ghidra',
+                        enginePath: g.path,
+                        importOk: !/ERROR|Exception/i.test(text) || /Importing complete|finished/i.test(text),
+                        logExcerpt: text.slice(0, 2000)
+                    }], {
                     status: 'partial',
                     limitations,
                     coverage: {
@@ -110,7 +109,8 @@ try {
                         notes: ['Ghidra headless invoked; deep analysis scripts are optional and host-specific.']
                     }
                 });
-            } catch (e: any) {
+            }
+            catch (e: any) {
                 if (e?.name === 'AbortError' || opts?.signal?.aborted) {
                     return result(target, 'ghidra_analyze', [], {
                         status: 'partial',
@@ -124,7 +124,8 @@ try {
                     errors: [String(e?.message ?? e)],
                     coverage: { examined: true, complete: false, notes: [] }
                 });
-            } finally {
+            }
+            finally {
                 await rm(work, { recursive: true, force: true }).catch(() => undefined);
             }
         },
@@ -133,7 +134,6 @@ try {
         }
     };
 }
-
 /** Similarity via Ghidra only when installed; never bundles a corpus (H-06). */
 export function createGhidraSimilarityProvider(): SimilarityProvider {
     const base = createGhidraProvider();
@@ -156,14 +156,14 @@ export function createGhidraSimilarityProvider(): SimilarityProvider {
             }
             // Without a configured BSim DB we only report capability presence, not fake scores.
             return result(`${a}|${b}`, 'similarity_compare', [{
-                score: 0,
-                confidence: 0,
-                method: 'ghidra-bsim',
-                notes: [
-                    'Ghidra is available but BSim/Function ID database is not auto-configured by Reverse.',
-                    'Point GHIDRA / BSim configuration at your own corpus to obtain scores.'
-                ]
-            } satisfies SimilarityHit], {
+                    score: 0,
+                    confidence: 0,
+                    method: 'ghidra-bsim',
+                    notes: [
+                        'Ghidra is available but BSim/Function ID database is not auto-configured by Reverse.',
+                        'Point GHIDRA / BSim configuration at your own corpus to obtain scores.'
+                    ]
+                } satisfies SimilarityHit], {
                 status: 'partial',
                 limitations: ['No BSim database configured; score is not computed.'],
                 coverage: { examined: true, complete: false, notes: [] }

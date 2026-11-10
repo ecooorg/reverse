@@ -110,7 +110,9 @@ export const researchTools: any[] = [
         }
     },
     {
-        name: 'run_provider', description: 'Run a registered external provider (ghidra, rizin, jadx, apktool). Returns unsupported if the tool is not installed.', inputSchema: {
+        name: 'run_provider',
+        description: 'Run a registered external provider (ghidra, rizin, jadx, apktool). Returns unsupported if the tool is not installed.',
+        inputSchema: {
             type: 'object', properties: {
                 name: { type: 'string' },
                 target: { type: 'string' },
