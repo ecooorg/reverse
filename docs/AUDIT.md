@@ -6,6 +6,21 @@ IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H*
 
 ---
 
+## Audit 9 — 2026-11-10 — Patch J first vertical slice (0.5.0-beta.1)
+
+**Scope.** Controlled optimization loop foundations: change workspaces, apply/rollback/accept, decision rules, APK pipeline on copy.
+
+**Delivered.** Isolated workspaces under `REVERSE_HOME/workspaces`; original never written by Reverse. Decision function covers accept/roll_back/need_more_data/reject. APK apktool path with optional zipalign/apksigner. MCP tools and capability checks added.
+
+**Still open for full J close.** Git worktree mode; automated adb install / pm clear / emulator snapshot; E2E trials on three external reference applications.
+
+| ID | Sev | Area | Finding | Status |
+|---|---|---|---|---|
+| F-53 | Medium | Optimization | No isolated change application before J | Status: closed in 0.5.0-beta.1, patch J (workspace + confirm gate) |
+| F-54 | Medium | Optimization | No deterministic accept/rollback decision helper | Status: closed in 0.5.0-beta.1, patch J |
+
+---
+
 ## Audit 8 — 2026-11-10 — Patches E–I implemented (0.3.0-beta.1 → 0.4.1)
 
 **Scope.** Static analysis core (E), provider framework with Ghidra/Rizin/JADX/Apktool (F), Frida/GDB dynamic adapters (G), native profilers and hotspots (H), validation normalization, evidence HMAC integrity and change reports (I). Cumulative hardening released as **0.4.1** (`A-I-closed`).

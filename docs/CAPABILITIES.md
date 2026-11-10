@@ -50,3 +50,14 @@ Process sampling remains read-only. It captures an OS start-time identity token 
 | Evidence hash-chain verify | Research sessions | Detects edits to stored chain |
 | Optional HMAC signature | `REVERSE_EVIDENCE_KEY` set | Not public-key / Merkle |
 | Change report | `generate_change_report` | Aggregates caller evidence; does not invent metrics |
+
+
+## Optimization loop (patch J, 0.5.0-beta.1)
+
+| Capability | Works when | Limitation |
+|---|---|---|
+| Isolated change workspace | CONTROLLED_EXECUTION + confirm | Directory copy, not full git worktree yet |
+| Apply source/config/dep/runtime changes | Active workspace | Closed binary code patch not supported |
+| Rollback / accept | confirm | Accept never auto-writes original |
+| Decision rules | Caller supplies verdict + validation | Does not re-run benchmarks |
+| APK rebuild pipeline | apktool present + confirm | Signing needs REVERSE_APK_KEYSTORE; adb install not auto |

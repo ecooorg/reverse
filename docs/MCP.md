@@ -64,3 +64,15 @@ Tool argument schemas are intentionally compact. Validate all paths, PIDs, and c
 `capture_baseline` stores a named local baseline artifact. Benchmark suites use round-robin case order to reduce time-dependent bias; this does not isolate CPU or host load. Research sessions store an append-only hash-linked ledger. Hypotheses carry `kind: "hypothesis"`, provenance, confidence and status; promotion to `supported` requires a reference to Validation or Benchmark evidence in the same session. Refuted hypotheses are retained.
 
 Long-running `profile_process` and `monitor_process` calls accept MCP `notifications/cancelled` for their request ID. Cancellation returns a `partial` result and persists the samples collected so far. The library API also accepts an `AbortSignal`.
+
+
+## Optimization loop tools (patch J)
+
+| Tool | Role |
+|---|---|
+| `create_change_workspace` | Copy target to isolated workspace (`confirm:true` + CONTROLLED_EXECUTION) |
+| `apply_change` | Edit only under workspace workPath |
+| `rollback_change` | Restore workPath from original |
+| `accept_change` | Mark accepted; does not overwrite original |
+| `decide_optimization` | Deterministic decision from verdict + validation |
+| `run_apk_pipeline` | apktool/zipalign/apksigner on a workDir copy |

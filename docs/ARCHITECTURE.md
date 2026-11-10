@@ -312,6 +312,13 @@ Provider-backed dynamic surface (patches G–H): `trace_execution` (Frida attach
 
 Live MCP tool names are listed only in [MCP.md](MCP.md).
 
+## Controlled optimization loop (patch J, 0.5.0-beta.1)
+
+- Workspaces isolate changes under `REVERSE_HOME/workspaces/`; original paths are read-only for Reverse.
+- Decision rules map benchmark verdict + validation → accept | roll_back | need_more_data | reject.
+- APK rebuild pipeline uses opt-in host tools on a workDir copy only.
+- Agent still orchestrates what to change and when to measure.
+
 ## Extension contract
 
 Implement `AnalyzerProvider` from `src/providers-registry.ts`, declare concrete capabilities, check availability without side effects, and return structured observations with explicit coverage and limitations. Never report `available: true` unless the executable and required runtime are actually detected. Provider registration is in-process via `registerProvider` / `bootstrapExternalProviders`; adapters probe PATH and `GHIDRA_INSTALL_DIR` without fabricating results.

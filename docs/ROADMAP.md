@@ -202,15 +202,20 @@ Capability checks: validation normalization ✅; evidence optional signing ✅.
 
 **Milestone 0.4 is released: G, H and I are done (0.4.0).** Hardening and full doc/audit alignment: **0.4.1** (A–I-closed; Audit 8).
 
-### Patch J — Controlled optimization loop (1.0)
+### Patch J — Controlled optimization loop (1.0) — partial in 0.5.0-beta.1
 
 Closes the research cycle (investigation, diagnosis, hypotheses, experiment, verification, decision, report) described in [ARCHITECTURE.md](ARCHITECTURE.md). The orchestration stays with the AI agent; Reverse provides the deterministic steps and enforces the safety rules.
 
-- A change-application mode that needs separate explicit permission: work happens on a copy or a version-control branch, never on the original; the original state is preserved and a failed change can be rolled back.
-- Decision rules computed from evidence: accept when performance improved with statistical support and validation passed; roll back when results worsened; request more data when the evidence is insufficient; reject when behavior broke.
-- Support for the change types that are technically possible: source and algorithm changes, library replacement and dependency updates, compiler parameters, runtime and configuration tuning, removal of provably unused components; for closed programs only the options that do not need source.
-- Controlled APK modification pipeline: Smali/resource/native-library edit on a copy → `apktool b` → `zipalign` → test-key `apksigner` → install via ADB → regression tests on a dedicated AVD/test device. Reset app state (`pm clear`) or restore an emulator snapshot before each benchmark.
-- End-to-end trials: one scenario that finds a real performance problem and one that verifies an optimization with a measurable result, on each of the three reference applications.
+- [x] Change workspace: `create_change_workspace` copies target under `REVERSE_HOME/workspaces/<id>/work`; original never written. Requires `CONTROLLED_EXECUTION` + `confirm:true`.
+- [x] `apply_change` on workPath only: source_edit, config_edit, dependency_version, remove_file, runtime_flag. Path traversal rejected.
+- [x] `rollback_change` restores workPath from original copy; `accept_change` marks accepted without overwriting original.
+- [x] `decide_optimization`: accept / roll_back / need_more_data / reject from performance verdict + validation.
+- [x] APK pipeline on copy: apktool d/b → zipalign (optional) → apksigner when `REVERSE_APK_KEYSTORE` set; adb install is hint only.
+- [ ] Full VCS branch workflow (git worktree) as alternative to directory copy.
+- [ ] Auto `adb install` / `pm clear` / emulator snapshot restore before each benchmark.
+- [ ] End-to-end trials on three external reference applications (release gate for full J close).
+
+Released as **0.5.0-beta.1** (first J vertical slice). Full J close needs E2E reference trials.
 
 ### Patch K — Runtime analyzers and on-demand extensions (1.0)
 
