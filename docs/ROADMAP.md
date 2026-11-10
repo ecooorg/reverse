@@ -693,3 +693,12 @@ Trials cover at least two scenarios: detecting a real performance problem, and v
 ### Patch M implementation note — 1.1.0-beta.1 (initial Windows slice)
 
 This prerelease adds `analyze_legacy_windows` and `declare_legacy_authorization`, the session authorization record, deterministic executable-header recognition (MZ/NE/LE/LX/PE), bounded selected marker scanning, and preliminary compatibility candidates. It closes only the legal-policy documentation item and the initial authorization/header-detector sub-slice; it does **not** close G-01/G-02/G-07/G-09 or the Windows wave. Remaining M checklist items are intentionally unchecked.
+
+
+### CI diagnostics mini-patch — delivered in 1.1.0-beta.1 maintenance (verification pending)
+
+- [x] Publish a downloadable detailed-log ZIP artifact for each workflow (`Capabilities`, `Structure`, `Supply chain`), even when a job fails.
+- [x] Publish a separate plain-text/Markdown `AI-DEBUG-SUMMARY.md` artifact with run identity, step inventory, failure exit codes and relevant error excerpts.
+- [x] Add a reusable local summary generator and `npm run ci:summary`.
+- [x] Document artifact names, contents, retention and the limits of AI-generated diagnosis in README and `docs/GITHUB.md`.
+- [ ] Verify artifact upload and summary content in actual GitHub Actions runs for all three workflows; local checks cannot prove GitHub artifact availability.
