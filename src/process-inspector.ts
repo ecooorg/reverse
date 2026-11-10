@@ -4,6 +4,7 @@ import { execFile } from 'node:child_process';
 import { result } from './core-types.js';
 import { execTimeoutMs } from './core-util.js';
 import { MAC_PS_ARGS_FIELDS, MAC_PS_FIELDS, WINDOWS_CIM_SCRIPT, parseMacPs, parseWindowsCim } from './process-parse.js';
+import { windowsProcessScript } from './process-parse.js';
 const exec = promisify(execFile);
 export interface ProcessInfo {
     pid: number;
@@ -182,6 +183,34 @@ export async function inspectProcess(pid: number) {
         }) : result<ProcessInfo>(String(pid), 'process_inspection', [], {
             status: 'partial', limitations: ['Process does not exist or is not visible.']
         });
+    }
+    if (process.platform === 'win32') {
+        // Fast path: ask WMI for this one PID (and its direct children) instead of enumerating every process. A failure falls
+        // back to the full table below.
+        try {
+            const { stdout } = await exec('powershell.exe', [
+                '-NoProfile', '-NonInteractive', '-Command', windowsProcessScript(pid)
+            ], {
+                timeout: execTimeoutMs(15000), maxBuffer: 4 * 1024 * 1024, windowsHide: true
+            });
+            const rows = parseWindowsCim(stdout), one = rows.find(x => x.pid === pid);
+            if (one) {
+                const found: ProcessInfo = { ...one, children: rows.filter(x => x.ppid === pid && x.pid !== pid).map(x => x.pid) };
+                return result<ProcessInfo>(String(pid), 'process_inspection', [found], {
+                    coverage: {
+                        examined: true,
+                        complete: false,
+                        notes: ['Single-PID CIM fast path; identity token is the process creation time. PID can still race between '
+                                + 'an OS read and a subsequent operation.']
+                    }
+                });
+            }
+            if (!stdout.trim())
+                return result<ProcessInfo>(String(pid), 'process_inspection', [], {
+                    status: 'partial', limitations: ['Process does not exist or is not visible.']
+                });
+        }
+        catch { /* fall back to the full enumeration */ }
     }
     const { rows, limitations } = await enumerate();
     const p = rows.find(x => x.pid === pid);

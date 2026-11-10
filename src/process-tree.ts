@@ -1,14 +1,14 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { readFile } from 'node:fs/promises';
-import { parseWindowsCim, WINDOWS_CIM_SCRIPT } from './process-parse.js';
+import { parseWindowsCim, WINDOWS_TREE_SCRIPT } from './process-parse.js';
 const exec = promisify(execFile);
 async function windowsSnapshot(): Promise<{
     children: Map<number, number[]>;
     identities: Map<number, string>;
 }> {
     const { stdout } = await exec('powershell.exe', [
-        '-NoProfile', '-NonInteractive', '-Command', WINDOWS_CIM_SCRIPT
+        '-NoProfile', '-NonInteractive', '-Command', WINDOWS_TREE_SCRIPT
     ], {
         timeout: 15000, signal: AbortSignal.timeout(15000), maxBuffer: 32 * 1024 * 1024, windowsHide: true
     });
@@ -96,22 +96,6 @@ async function identity(pid: number): Promise<string | undefined> {
             return undefined;
         }
     }
-    if (process.platform === 'win32') {
-        try {
-            const { stdout } = await exec('powershell.exe', [
-                '-NoProfile',
-                '-NonInteractive',
-                '-Command',
-                `(Get-CimInstance Win32_Process -Filter "ProcessId=${pid}").CreationDate.ToUniversalTime().ToString('o')`
-            ], {
-                timeout: 3000, signal: AbortSignal.timeout(3000), windowsHide: true
-            });
-            return stdout.trim() ? `windows:${stdout.trim()}` : undefined;
-        }
-        catch {
-            return undefined;
-        }
-    }
     try {
         const { stdout } = await exec('ps', ['-o', 'lstart=', '-p', String(pid)], { timeout: 3000, signal: AbortSignal.timeout(3000) });
         return stdout.trim() ? `mac:${pid}:${stdout.trim()}` : undefined;
@@ -136,22 +120,25 @@ export async function killProcessTree(pid: number, expectedIdentity?: string, de
         victims.push(pid);
         if (expectedIdentity && snapshot.identities.get(pid) !== expectedIdentity)
             return 0;
-        let terminated = 0;
-        for (const victim of victims) {
-            const before = snapshot.identities.get(victim);
-            if (!before || await identity(victim) !== before)
-                continue;
-            try {
-                await exec('taskkill', [
-                    '/PID', String(victim), '/F'
-                ], {
-                    timeout: 5000, signal: AbortSignal.timeout(5000), windowsHide: true
-                });
-                terminated++;
-            }
-            catch { /* already exited or access denied */ }
+        // One more table right before the kill (instead of one PowerShell call per victim): a PID that was reused in
+        // between has another start time and is skipped.
+        let fresh: Awaited<ReturnType<typeof windowsSnapshot>>;
+        try {
+            fresh = await windowsSnapshot();
         }
-        return terminated;
+        catch {
+            return 0;
+        }
+        const targets = victims.filter(v => {
+            const before = snapshot.identities.get(v);
+            return !!before && fresh.identities.get(v) === before;
+        });
+        const killed = await Promise.all(targets.map(victim => exec('taskkill', [
+            '/PID', String(victim), '/F'
+        ], {
+            timeout: 5000, signal: AbortSignal.timeout(5000), windowsHide: true
+        }).then(() => 1, () => 0))); // already exited or access denied
+        return killed.reduce<number>((a, b) => a + b, 0);
     }
     let victims: number[] = [];
     try {

@@ -19,6 +19,7 @@ export interface RunSpec {
 }
 const OUTPUT_CAP = 1024 * 1024; // BYTES kept per stream; the excess is dropped and flagged
 const KILL_GRACE_MS = 2000; // how long to wait for stdio to close after the process tree was killed
+const KILL_REPORT_MAX_MS = 20000; // upper bound for waiting on a slow tree kill (Windows) so the terminated count is final
 async function captureChildIdentity(pid: number): Promise<string | undefined> {
     if (process.platform === 'linux') {
         try {
@@ -62,7 +63,8 @@ function one(spec: RunSpec): Promise<any> {
         const start = performance.now();
         const out = new CappedBuffer(), err = new CappedBuffer();
         let timedOut = false, settled = false, terminated = 0;
-        let timer: NodeJS.Timeout | undefined, grace: NodeJS.Timeout | undefined, killing: Promise<void> | undefined;
+        let timer: NodeJS.Timeout | undefined, grace: NodeJS.Timeout | undefined, cap: NodeJS.Timeout | undefined;
+        let killing: Promise<void> | undefined;
         const child = spawn(spec.command, spec.args ?? [], {
             cwd: spec.cwd, stdio: [
                 'ignore', 'pipe', 'pipe'
@@ -80,6 +82,7 @@ function one(spec: RunSpec): Promise<any> {
             settled = true;
             clearTimeout(timer);
             clearTimeout(grace);
+            clearTimeout(cap);
             const usage = sampler.stop();
             resolve({
                 durationMs: performance.now() - start,
@@ -111,9 +114,13 @@ function one(spec: RunSpec): Promise<any> {
             grace = setTimeout(() => {
                 child.stdout!.destroy();
                 child.stderr!.destroy();
-                finish({
-                    exitCode: null, signal: 'SIGKILL'
-                });
+                const done = () => finish({ exitCode: null, signal: 'SIGKILL' });
+                // The pipes are released now, but the run is reported only once the tree kill has finished, so that
+                // `processesTerminated` is final. On Windows the kill (PowerShell + taskkill) can outlast the grace period.
+                if (!killing)
+                    return done();
+                cap = setTimeout(done, KILL_REPORT_MAX_MS);
+                void killing.then(done);
             }, KILL_GRACE_MS);
         }, Math.max(100, Math.min(120000, spec.timeoutMs ?? 30000)));
         child.on('error', e => finish({ exitCode: null, signal: null, error: e.message }));

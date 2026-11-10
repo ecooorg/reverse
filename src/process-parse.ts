@@ -76,10 +76,32 @@ export function parseMacPs(psOutput: string, argsOutput = ''): ParsedProcess[] {
  * because Windows PowerShell 5.1 serializes DateTime values as "/Date(ms)/", which `new Date()`
  * cannot read. Output is forced to UTF-8 so non-ASCII process names survive.
  */
+const WINDOWS_SELECT = 'Select-Object '
+    + 'ProcessId,ParentProcessId,Name,CommandLine,ExecutablePath,ThreadCount,WorkingSetSize,VirtualSize,'
+    + "@{n='Started';e={if($_.CreationDate){$_.CreationDate.ToUniversalTime().ToString('o')}}}";
+/** Full process table (command lines, memory, threads). Expensive: use it for inventories, not for single-PID work. */
 export const WINDOWS_CIM_SCRIPT = [
     '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;',
-    'Get-CimInstance Win32_Process | Select-Object '
-        + 'ProcessId,ParentProcessId,Name,CommandLine,ExecutablePath,ThreadCount,WorkingSetSize,VirtualSize,',
+    `Get-CimInstance Win32_Process | ${WINDOWS_SELECT}`,
+    '| ConvertTo-Json -Compress',
+].join(' ');
+/**
+ * One process and its direct children, filtered by WMI instead of by PowerShell. The output has the shape of
+ * WINDOWS_CIM_SCRIPT, so parseWindowsCim reads it. A single-PID query is the fast path for sampling (AUDIT F-08, R-19).
+ */
+export function windowsProcessScript(pid: number): string {
+    if (!Number.isInteger(pid) || pid <= 0)
+        throw new Error('PID must be a positive integer.');
+    return [
+        '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;',
+        `Get-CimInstance Win32_Process -Filter 'ProcessId=${pid} OR ParentProcessId=${pid}' | ${WINDOWS_SELECT}`,
+        '| ConvertTo-Json -Compress',
+    ].join(' ');
+}
+/** Lean parent/child/start-time table for tree walks and kills: no command lines, so WMI has much less to compute. */
+export const WINDOWS_TREE_SCRIPT = [
+    '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;',
+    'Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId,CreationDate | Select-Object ProcessId,ParentProcessId,',
     "@{n='Started';e={if($_.CreationDate){$_.CreationDate.ToUniversalTime().ToString('o')}}}",
     '| ConvertTo-Json -Compress',
 ].join(' ');
