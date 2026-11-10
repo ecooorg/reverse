@@ -6,8 +6,12 @@ const MAX_FILES = 5000;
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
 const SKIP = new Set(['node_modules', '.git', 'dist', 'build', '.next', 'coverage']);
 const SOURCE = /\.(ts|tsx|js|jsx|mjs|cjs|py|rs|go|java|cs|cpp|c|h|hpp)$/i;
-/** Strip //, /* *\/, # (python), and string/template literals enough to avoid counting commented imports. */
-function codeWithoutCommentsAndStrings(src: string, ext: string): string {
+/**
+ * Walk source text, skip // /* # comments, but KEEP string contents so import
+ * paths remain visible. Returns the text with comments blanked to spaces
+ * (newlines preserved) for line-oriented regex extraction.
+ */
+function blankCommentsOnly(src: string, ext: string): string {
     const out: string[] = [];
     let i = 0;
     const n = src.length;
@@ -15,33 +19,46 @@ function codeWithoutCommentsAndStrings(src: string, ext: string): string {
     while (i < n) {
         const c = src[i];
         const c2 = src[i + 1];
-        // line comment
         if (!isPy && c === '/' && c2 === '/') {
             i += 2;
-            while (i < n && src[i] !== '\n')
+            while (i < n && src[i] !== '\n') {
+                out.push(' ');
                 i++;
+            }
             continue;
         }
         if (isPy && c === '#') {
             i++;
-            while (i < n && src[i] !== '\n')
+            while (i < n && src[i] !== '\n') {
+                out.push(' ');
                 i++;
+            }
             continue;
         }
-        // block comment
         if (!isPy && c === '/' && c2 === '*') {
+            out.push(' ');
+            out.push(' ');
             i += 2;
-            while (i < n && !(src[i] === '*' && src[i + 1] === '/'))
+            while (i < n && !(src[i] === '*' && src[i + 1] === '/')) {
+                out.push(src[i] === '\n' ? '\n' : ' ');
                 i++;
-            i += 2;
+            }
+            if (i < n) {
+                out.push(' ');
+                out.push(' ');
+                i += 2;
+            }
             continue;
         }
-        // strings
+        // keep strings intact (including import paths)
         if (c === '"' || c === "'" || c === '`') {
             const q = c;
+            out.push(c);
             i++;
             while (i < n) {
-                if (src[i] === '\\') {
+                out.push(src[i]);
+                if (src[i] === '\\' && i + 1 < n) {
+                    out.push(src[i + 1]);
                     i += 2;
                     continue;
                 }
@@ -49,11 +66,14 @@ function codeWithoutCommentsAndStrings(src: string, ext: string): string {
                     i++;
                     break;
                 }
-                // template ${ }
                 if (q === '`' && src[i] === '$' && src[i + 1] === '{') {
-                    i += 2;
+                    // already pushed '$'; push '{` and copy until balanced
+                    i++;
+                    out.push(src[i]); // {
+                    i++;
                     let depth = 1;
                     while (i < n && depth > 0) {
+                        out.push(src[i]);
                         if (src[i] === '{')
                             depth++;
                         else if (src[i] === '}')
@@ -64,7 +84,6 @@ function codeWithoutCommentsAndStrings(src: string, ext: string): string {
                 }
                 i++;
             }
-            out.push(' ');
             continue;
         }
         out.push(c);
@@ -89,11 +108,7 @@ function extractImports(code: string, ext: string): string[] {
     }
     else if (ext === '.go') {
         for (const m of code.matchAll(/import\s+(?:\w+\s+)?["']([^."'][^"']*)["']/g)) {
-            names.push(m[1].split('/')[0] === m[1] ? m[1] : m[1]);
-        }
-        for (const m of code.matchAll(/["']([a-z][\w.\/-]+)["']/g)) {
-            if (m[1].includes('.'))
-                names.push(m[1]);
+            names.push(m[1]);
         }
     }
     else if (ext === '.rs') {
@@ -102,8 +117,8 @@ function extractImports(code: string, ext: string): string[] {
         }
     }
     else if (ext === '.java') {
-        for (const m of code.matchAll(/(?:^|\n)\s*import\s+(static\s+)?([a-zA-Z_][\w.]*)\s*;/g)) {
-            names.push(m[2].split('.')[0]);
+        for (const m of code.matchAll(/(?:^|\n)\s*import\s+(?:static\s+)?([a-zA-Z_][\w.]*)\s*;/g)) {
+            names.push(m[1].split('.')[0]);
         }
     }
     return names;
@@ -125,8 +140,9 @@ export async function analyzeSource(root: string) {
         if (files.length >= MAX_FILES)
             break;
         const parts = rel.split(/[\\/]/);
-        if (parts.some(x => SKIP.has(x)) || parts.some(x => x.startsWith('.') && x !== '.github'))
+        if (parts.some(x => SKIP.has(x)) || parts.some(x => x.startsWith('.') && x !== '.github')) {
             continue;
+        }
         const name = parts.at(-1) ?? '';
         if (!SOURCE.test(name))
             continue;
@@ -161,7 +177,7 @@ export async function analyzeSource(root: string) {
                 await fh.close();
             }
             lines += t.split(/\r?\n/).length;
-            const cleaned = codeWithoutCommentsAndStrings(t, x);
+            const cleaned = blankCommentsOnly(t, x);
             for (const pkg of extractImports(cleaned, x)) {
                 imports[pkg] = (imports[pkg] ?? 0) + 1;
             }
@@ -185,7 +201,7 @@ export async function analyzeSource(root: string) {
         evidence: [ev],
         status: files.length >= MAX_FILES ? 'partial' : 'completed',
         limitations: [
-            'Source inventory with comment- and string-aware import extraction (not a full language AST).',
+            'Source inventory with comment-aware import extraction (string paths preserved).',
             'No call graph, dead-code proof, or vulnerability scan.',
             'Import extraction covers JS/TS, Python, Go, Rust and Java patterns; other languages are inventory-only.'
         ],
@@ -195,8 +211,10 @@ export async function analyzeSource(root: string) {
             notes: [
                 `Scanned up to ${files.length} source files.`,
                 `Excluded directories: ${[...SKIP].join(', ')}.`,
-                ...(skipped ? [`${skipped} file(s) larger than ${MAX_FILE_BYTES} bytes were counted but not read.`] : []),
-                'Commented-out and string-literal imports are not counted.'
+                ...(skipped
+                    ? [`${skipped} file(s) larger than ${MAX_FILE_BYTES} bytes were counted but not read.`]
+                    : []),
+                'Commented-out imports are not counted; string literal import paths are kept.'
             ]
         }
     });

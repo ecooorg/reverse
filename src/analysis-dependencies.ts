@@ -219,7 +219,8 @@ export async function analyzeDependencies(root: string) {
         }
         else if (pkg) {
             limitations.push('No package-lock.json or yarn.lock; only declared ranges from package.json.');
-            complete = false;
+            // Still completed: declared ranges are a valid result.
+            complete = true;
         }
     }
     const seen = new Set<string>();
