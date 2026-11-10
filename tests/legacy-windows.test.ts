@@ -23,6 +23,49 @@ test('legacy Windows detector recognizes DOS MZ and 16-bit NE', async () => {
         await rm(dir, { recursive: true, force: true });
     }
 });
+test('legacy Windows detector reads PE subsystem when the optional header contains it', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'reverse-legacy-pe-'));
+    try {
+        const file = path.join(dir, 'pe.exe');
+        const b = Buffer.alloc(256);
+        const pe = 128;
+        b.write('MZ', 0, 'ascii');
+        b.writeUInt32LE(pe, 0x3c);
+        b.write('PE\u0000\u0000', pe, 'ascii');
+        b.writeUInt16LE(0x14c, pe + 4);
+        b.writeUInt16LE(224, pe + 20);
+        b.writeUInt16LE(0x10b, pe + 24);
+        b.writeUInt16LE(3, pe + 24 + 68);
+        await writeFile(file, b);
+        const r = await analyzeLegacyWindows(file);
+        assert.equal(r.findings[0].format, 'Windows PE');
+        assert.equal(r.findings[0].architecture, 'x86');
+        assert.equal(r.findings[0].subsystem, 'Windows console');
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
+test('legacy Windows detector leaves PE subsystem unknown when the optional header is truncated', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'reverse-legacy-pe-short-'));
+    try {
+        const file = path.join(dir, 'short-pe.exe');
+        const b = Buffer.alloc(180);
+        const pe = 128;
+        b.write('MZ', 0, 'ascii');
+        b.writeUInt32LE(pe, 0x3c);
+        b.write('PE\u0000\u0000', pe, 'ascii');
+        b.writeUInt16LE(0x14c, pe + 4);
+        b.writeUInt16LE(0x10b, pe + 24);
+        await writeFile(file, b);
+        const r = await analyzeLegacyWindows(file);
+        assert.equal(r.findings[0].format, 'Windows PE');
+        assert.equal(r.findings[0].subsystem, null);
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
 test('legacy analysis requires a declared authorization record', async () => {
     const previous = process.env.REVERSE_HOME;
     const dir = await mkdtemp(path.join(os.tmpdir(), 'reverse-auth-'));
@@ -30,7 +73,7 @@ test('legacy analysis requires a declared authorization record', async () => {
     try {
         const engine = new EvidenceEngine();
         const session = await engine.createResearchSession('legacy-target');
-        await assert.rejects(() => engine.requireLegacyAuthorization(session.session_id), /requires a declared/);
+        await assert.rejects(() => engine.requireLegacyAuthorization(session.session_id), /requires an open-source license or written rights-holder consent/);
         const authorized = await engine.declareAuthorization(session.session_id, {
             basis: 'open_source', licenseOrConsentReference: 'LICENSE.txt', declaredBy: 'operator'
         });
