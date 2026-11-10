@@ -1,6 +1,6 @@
 {
   "name": "reverse-compact",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": false,
   "description": "A compact local analysis, profiling, benchmarking and evidence core with CLI and MCP interfaces.",
   "type": "module",
