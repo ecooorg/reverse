@@ -17,6 +17,13 @@ import { validateBehavior, runValidationFixtures } from './benchmark-validation.
 import { listProviders, runProvider } from './providers-registry.js';
 import { getHotspots, getProcessIo } from './profiling-hotspots.js';
 import { generateChangeReport } from './reports-change.js';
+import { createChangeWorkspace, rollbackChangeWorkspace, acceptChangeWorkspace } from './optimization-workspace.js';
+import { applyChange } from './optimization-apply.js';
+import { decideOptimization } from './optimization-decision.js';
+import { runApkPipeline } from './optimization-apk.js';
+import { createGitWorktreeWorkspace, removeGitWorktree } from './optimization-git.js';
+import { adbInstall, adbPmClear, adbEmuSnapshotLoad } from './optimization-adb.js';
+import { runOptimizationTrial, runAllReferenceTrials } from './optimization-trial.js';
 import { verifySessionSignature, signSession } from './evidence-integrity.js';
 import { traceWithFrida } from './providers-frida.js';
 import { getResourceControlStatus } from './process-safety.js';
@@ -92,6 +99,33 @@ async function call(name: string, a: any, signal?: AbortSignal) {
         case 'compare_results': return compareBenchmarks(a.before, a.after);
         case 'validate_changes': return validateBehavior(a, a.expected, a.repetitions, { normalize: a.normalize });
         case 'run_validation_fixtures': return runValidationFixtures(a.directory);
+        case 'create_change_workspace': return createChangeWorkspace(a.path, { confirm: !!a.confirm });
+        case 'apply_change': return applyChange({
+            workspace_id: a.workspace_id,
+            changeType: a.changeType,
+            relativePath: a.relativePath,
+            contents: a.contents,
+            dependency: a.dependency,
+            runtimeFlag: a.runtimeFlag,
+            permission: { confirm: !!a.confirm }
+        });
+        case 'rollback_change': return rollbackChangeWorkspace(a.workspace_id, { confirm: !!a.confirm });
+        case 'accept_change': return acceptChangeWorkspace(a.workspace_id, { confirm: !!a.confirm });
+        case 'decide_optimization': return decideOptimization(a);
+        case 'run_apk_pipeline': return runApkPipeline({
+            apkPath: a.apkPath,
+            workDir: a.workDir,
+            permission: { confirm: !!a.confirm },
+            skipDecode: a.skipDecode,
+            timeoutMs: a.timeoutMs
+        });
+        case 'create_git_worktree': return createGitWorktreeWorkspace(a.path, { confirm: !!a.confirm }, { branchName: a.branchName });
+        case 'remove_git_worktree': return removeGitWorktree(a.workspace_id, { confirm: !!a.confirm });
+        case 'adb_install': return adbInstall(a.apkPath, { confirm: !!a.confirm }, { serial: a.serial, replace: a.replace });
+        case 'adb_pm_clear': return adbPmClear(a.packageName, { confirm: !!a.confirm }, { serial: a.serial });
+        case 'adb_emu_snapshot_load': return adbEmuSnapshotLoad(a.snapshotName, { confirm: !!a.confirm }, { serial: a.serial });
+        case 'run_optimization_trial': return runOptimizationTrial(a.shape, { confirm: !!a.confirm });
+        case 'run_all_reference_trials': return runAllReferenceTrials({ confirm: !!a.confirm });
         case 'get_evidence': {
             const p = await new EvidenceEngine().get(a.id);
             if (!p)

@@ -1,6 +1,7 @@
 import { processTools } from './mcp-tools-process.js';
 import { researchTools } from './mcp-tools-research.js';
-export const tools: any[] = [...processTools, ...researchTools];
+import { optimizationTools } from './mcp-tools-optimization.js';
+export const tools: any[] = [...processTools, ...researchTools, ...optimizationTools];
 /**
  * Measurement tools that accept an optional `session_id`: the result is then attached to that research session as typed
  * evidence (source, measurement, confidence and limitations come from the result itself, not from the caller).
