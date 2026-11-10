@@ -302,10 +302,13 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-61 | No reverse setup / skill install | closed in **1.0.0 / L** |
 | F-62 | No H-09 prompt evaluation harness | closed in **1.0.1** (lite) |
 | F-63 | No deterministic Windows legacy executable header/marker analyzer | initial slice in **1.1.0-beta.1 / M**; full M1 detector matrix remains open |
-| F-64 | No recorded declared authorization basis for legacy analysis | initial gate in **1.1.0-beta.1 / M**; report propagation and future operation gates remain open |
+| F-64 | No recorded declared authorization basis for legacy analysis | initial gate in **1.1.0-beta.1 / M**; report provenance closed in **1.1.0-beta.2 / M1**; future operation gates remain open |
 | F-65 | Initial M slice not reflected consistently in package metadata and project documentation | closed in **1.1.0-beta.1 / M** |
 | F-66 | CI AI summary could crash or omit actionable diagnostics | closed in **1.1.0-beta.1 maintenance** |
 | F-67 | CI AI summary could misclassify capability-suite test failures as formatting failures | fix in **1.1.0-beta.1 maintenance**; verified by regression tests |
+| F-68 | Windows legacy analyzer lacked PE imports and structural framework signatures | closed in **1.1.0-beta.2 / M1** (bounded static detectors; corpus calibration remains open) |
+| F-69 | Legacy compatibility candidates ignored PE import evidence | closed in **1.1.0-beta.2 / M1** (selected imports; OS API availability tables remain open) |
+| F-70 | Legacy authorization was not embedded in analysis results | closed in **1.1.0-beta.2 / M1** |
 | F-16 | Split capability harness | closed in **1.0.1** (entry + `capabilities-suite.ts`) |
 | F-17 | Threat model: agent as untrusted caller, prompt injection through target data | closed in 0.2.0-beta.5 |
 
@@ -432,14 +435,15 @@ Host and target are different things: the host is where Reverse runs, the target
 Depends on E, F and G. Closes G-01, G-02, G-07, G-09.
 
 - [x] First: authorized-use and legal scope policy in [SECURITY.md](SECURITY.md) and the agent rules (copy protection, dongles, licenses, user-supplied OS images are never bundled).
-- [ ] Authorization record (H-05, H-10): `analyze_legacy_windows` requires a declared basis (open-source license, or written consent of the developers and rights holders), stored in the session; automatic inclusion in every report and gates for future legacy operations remain open. The record is a declaration, not legal verification.
+- [x] Initial authorization record (H-05, H-10): `analyze_legacy_windows` requires a declared basis (open-source license, or written consent of the developers and rights holders), stored in the session and embedded in the analysis result. The record is a declaration, not legal verification. Gates for future legacy operations remain open.
 - [ ] Corpus policy (H-06): a similarity corpus holds only hashes and signatures of open-source or consented material, each with source and license; no third-party binaries are bundled.
 - [ ] Target profile: required OS and era, CPU, bitness, ABI, runtime, installer and toolchain, with evidence for each field; an optional analogy tag with confidence and its deterministic basis.
 - [ ] Deterministic detectors first (H-04): Delphi RTTI/DFM, MFC message maps, Visual Basic 6 headers, Borland and other toolchain markers, dBASE/.dbf and similar documented formats are reported as static facts. Only what they cannot explain becomes a hypothesis.
 - [ ] Similarity adapters (H-03) feed hypotheses with confidence and provenance to the ledger.
 - [ ] Reference corpus with ground truth (H-08): open-source programs built with period compilers; measures precision and recall of detectors and similarity matches and the calibration of confidence values. Hypothesis features do not ship until this exists for the wave.
 - [ ] Compatibility diagnosis report: imported APIs and libraries against per-OS-version availability tables (data files, versioned, sourced); privilege and virtualization assumptions; CPU-speed-dependent timing; graphics, audio, driver and hardware dependencies; DPI and resolution; locale, path and registry/preference assumptions; address-space and date limits. Every cause is a finding with source, confidence and limitations; causes that need running the program are marked "needs N".
-- [ ] Format and toolchain detectors for the wave being delivered. Initial M1 slice recognizes DOS MZ, Windows NE/LE/LX/PE and selected bounded VB6/Borland/Delphi/MFC/VC/DirectX/Glide strings; structural VB6/Delphi/MFC detectors and the rest of the Windows wave remain open.
+- [x] M1 detector expansion: bounded PE import extraction; VB6/MFC runtime import signatures; Delphi TPF0 form-stream and VCL RTTI-style class signatures; VB6/MFC metadata signatures; selected imports feed compatibility candidates. These are static indicators, not corpus-calibrated classifiers.
+- [ ] Remaining Windows-wave detectors: packers, broader installer/toolchain/format coverage, sourced OS/API availability tables, full Target Profile and reference-corpus precision/recall/calibration.
 - [ ] Target-platform and era matrix in [CAPABILITIES.md](CAPABILITIES.md); a check compares it with the registered detectors.
 - Wave deliverables: M1 Windows ≤ 2010, M2 old Linux, M3 old Mac, M4 old Android, M5 newer generations.
 
@@ -710,3 +714,14 @@ This prerelease adds `analyze_legacy_windows` and `declare_legacy_authorization`
 - [x] Close the first Patch M contract drift found by CI: add F-63…F-65 to the approved backlog and include both Patch M MCP tools in the exact 60-tool contract fixture.
 - [x] Add regression tests and run them before generating the artifact in all workflows.
 - [ ] Verify artifact upload and summary content in actual GitHub Actions runs for all three workflows; local checks cannot prove GitHub artifact availability.
+
+### Patch M1 implementation note — 1.1.0-beta.2 (Windows detector expansion)
+
+- [x] Bounded PE import-table parsing reports imported libraries and named functions without executing the target.
+- [x] Static VB6/MFC runtime-import signatures and Delphi form-stream, VCL RTTI-style, VB6 metadata and MFC class/message-map signatures are reported with explicit confidence and evidence.
+- [x] Selected VB6/MFC/DirectX/Glide imports feed compatibility candidates; no OS-version availability is inferred.
+- [x] Legacy analysis results embed the research session's declared authorization basis, reference, declarant and timestamp.
+- [x] Unit and capability checks cover import extraction, framework signatures and authorization provenance.
+
+This is an M1 product increment, not completion of the Windows wave. Packer detection, sourced API availability tables, ground-truth corpus calibration and the full Target Profile remain open.
+

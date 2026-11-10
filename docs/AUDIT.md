@@ -1,5 +1,19 @@
 # Audit log
 
+## Audit 17 — 2026-11-10 — Patch M1 Windows detector expansion (1.1.0-beta.2)
+
+**Scope.** Expand the initial Windows legacy slice with bounded PE import extraction, deterministic framework signatures and authorization provenance in analysis results.
+
+**Delivered.** The analyzer now extracts PE imported library/function names within the 8 MiB analysis window, detects selected VB6/MFC runtime imports and Delphi form/RTTI-style plus VB6/MFC metadata signatures, derives additional compatibility candidates from imports, and embeds the session authorization declaration in the result. All detections remain static indicators; there is no execution, reference-corpus calibration or OS API availability database.
+
+| ID | Sev | Area | Finding | Status |
+|---|---|---|---|---|
+| F-68 | Medium | Legacy analysis | Windows legacy analyzer lacked PE imports and structural framework signatures | Status: closed in 1.1.0-beta.2 (bounded static detectors; ground-truth calibration remains open) |
+| F-69 | Medium | Compatibility diagnosis | Runtime/graphics dependency candidates ignored PE import-table evidence | Status: closed in 1.1.0-beta.2 (selected imports; OS API availability tables remain open) |
+| F-70 | High | Authorization | Declared legacy authorization was not copied into the analysis result | Status: closed in 1.1.0-beta.2 (basis, reference, declarant and declaration timestamp embedded) |
+
+---
+
 ## Audit 16 — 2026-11-10 — Capability/MCP contract drift and CI diagnosis (1.1.0-beta.1 maintenance)
 
 **Scope.** Fix the current Linux Capabilities run: approved audit IDs F-63…F-65 were missing from the roadmap backlog, the hard-coded MCP contract fixture omitted the two Patch M tools, and the AI summary classified a capability-suite failure as a formatting gate because it matched a weaker keyword first.
@@ -41,7 +55,7 @@ IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H*
 | ID | Sev | Area | Finding | Status |
 |---|---|---|---|---|
 | F-63 | Medium | Legacy analysis | No deterministic Windows legacy executable header/marker analyzer | Status: initial slice implemented in 1.1.0-beta.1; full M1 detector matrix remains open |
-| F-64 | High | Authorization | Legacy research session had no recorded declared authorization basis | Status: initial session record and `analyze_legacy_windows` gate implemented in 1.1.0-beta.1; report propagation and future operation gates remain open |
+| F-64 | High | Authorization | Legacy research session had no recorded declared authorization basis | Status: initial session record and `analyze_legacy_windows` gate implemented in 1.1.0-beta.1; report provenance closed in 1.1.0-beta.2; future operation gates remain open |
 | F-65 | Low | Documentation/release | Initial M slice was not reflected consistently in package metadata and project documentation | Status: closed in 1.1.0-beta.1 (metadata and documentation synchronized) |
 
 ---

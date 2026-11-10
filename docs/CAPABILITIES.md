@@ -14,18 +14,19 @@
 | Safety | `READ_ONLY` by default; `OBSERVE` samples only verified-owned processes; explicit `CONTROLLED_EXECUTION` scoped cgroup-v2 resource-limit API on delegated Linux hierarchies; ownership and identity checks before moving a process | No OS sandbox or filesystem/network isolation; Windows/macOS hard process quotas are not implemented; cgroup availability depends on delegation and permissions |
 | MCP | stdio JSON-RPC initialize, ping, tools/list, tools/call; protocol revisions through 2025-11-25; tool titles, annotations and output schemas; request cancellation; benchmark suites and research-session tools | No modern stateless 2026-07-28 protocol era, HTTP transport, roots, resources, prompts, or OAuth |
 
-## Legacy Windows wave 1 — initial Patch M slice
+## Legacy Windows wave 1 — initial Patch M baseline (1.1.0-beta.1)
 
 | Capability | Status | Limitation |
 |---|---|---|
 | DOS MZ / Windows NE / LE / LX / PE header recognition | ✅ | Static header recognition only; does not prove executability or identify every extender/loader |
-| Selected Windows toolchain and graphics markers (VB6, Borland/Delphi strings, MFC, VC runtime, DirectX, Glide) | 🚧 | Bounded string scan; not structural RTTI/DFM/message-map analysis |
-| Compatibility findings for 16-bit and legacy graphics/runtime indicators | 🚧 | Findings are static candidates with explicit confidence and limitations; execution confirmation belongs to patch N |
+| Windows toolchain and framework detection (VB6/MFC imports; Delphi form/RTTI-style and MFC/VB metadata signatures) | ✅ | Static signatures are indicators, not proof of runtime use; no reference-corpus precision/recall calibration |
+| PE imported libraries and named functions | ✅ | Bounded PE import-table parsing; delay imports, bound imports and malformed/out-of-window tables may be absent |
+| Compatibility candidates from legacy headers, PE runtime and graphics imports | 🚧 | Static candidates include evidence/confidence/limitations; OS-version API availability tables and execution confirmation belong to later M/N slices |
 | Legacy authorization declaration on research sessions | ✅ | Operator declaration is recorded; legal status and the referenced license/consent are not verified |
 
 The `analyze_legacy_windows` MCP tool refuses unless the supplied research session has a `declare_legacy_authorization` record. It reads at most 8 MiB for marker detection and hashes the complete file. This is the initial Windows ≤2010 M slice, not completion of wave 1.
 
-## Legacy Windows wave 1 — initial Patch M slice (1.1.0-beta.1)
+## Legacy Windows wave 1 — Patch M1 increment (1.1.0-beta.2)
 
 | Capability | Status | Limitation |
 |---|---|---|
@@ -33,17 +34,17 @@ The `analyze_legacy_windows` MCP tool refuses unless the supplied research sessi
 | Machine, PE bitness and subsystem extraction | ✅ | Limited to fields present in the bounded header window; unusual/short headers may be partial |
 | Selected Borland/Delphi, VB6, MFC, Visual C++, DirectX and Glide markers | 🚧 | Bounded string scan only; not structural RTTI/DFM/message-map or import-table analysis |
 | Preliminary compatibility candidates | 🚧 | Static hypotheses/candidates with confidence and limitations; execution confirmation belongs to N |
-| Session authorization declaration and gate for `analyze_legacy_windows` | ✅ | Operator declaration only; legal status is not verified and declaration is not yet embedded automatically in every report |
+| Session authorization declaration, analysis gate and report provenance | ✅ | Operator declaration is embedded in the result; legal status and referenced license/consent are not verified |
 
-`analyze_legacy_windows` reads at most 8 MiB for marker detection, hashes the complete input and requires a research session carrying `declare_legacy_authorization`. The detector does not execute the target or access a similarity corpus.
+`analyze_legacy_windows` reads at most 8 MiB for signatures and PE import tables, hashes the complete input and requires a research session carrying `declare_legacy_authorization`. Its result embeds the declared basis, reference, declarant and timestamp. The detector does not execute the target or access a similarity corpus.
 
 ## Remaining legacy track (planned, patches M–P)
 
-Structural VB6/Delphi/MFC detectors, packer detection, full Target Profile, sourced per-OS API availability tables, reference corpus with ground truth, similarity adapters, old Linux/Mac/Android and newer platform waves remain planned. Execution environments belong to N; behavior capture/replay to O; equivalence and migration advice to P. See [ROADMAP.md](ROADMAP.md).
+Packer detection, full Target Profile, sourced per-OS API availability tables, reference corpus with ground truth, similarity adapters, old Linux/Mac/Android and newer platform waves remain planned. Delphi/VB6/MFC signatures and bounded PE import extraction are implemented as static indicators, not calibrated classifications. Execution environments belong to N; behavior capture/replay to O; equivalence and migration advice to P. See [ROADMAP.md](ROADMAP.md).
 
 ## Hypotheses, similarity and authorization
 
-The hypothesis ledger is implemented in research sessions: hypotheses are tagged `kind: hypothesis`, carry provenance/confidence/status, remain separate from measured and static evidence, and can be promoted only by same-session Validation or Benchmark evidence. Similarity providers and reference corpus remain planned. The initial M authorization record is stored in the research session and gates `analyze_legacy_windows`; it is an operator declaration, not legal verification, and is not yet automatically embedded in every report. See [SECURITY.md](SECURITY.md).
+The hypothesis ledger is implemented in research sessions: hypotheses are tagged `kind: hypothesis`, carry provenance/confidence/status, remain separate from measured and static evidence, and can be promoted only by same-session Validation or Benchmark evidence. Similarity providers and reference corpus remain planned. The initial M authorization record is stored in the research session, gates `analyze_legacy_windows`, and is embedded in its result; it is an operator declaration, not legal verification. See [SECURITY.md](SECURITY.md).
 
 ## Provider status
 
