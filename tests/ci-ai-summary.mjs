@@ -14,7 +14,7 @@ for (const name of logs) {
   const exitCode = exits.includes(exitName) ? (await readFile(join(root, exitName), 'utf8')).trim() : '0 (no failure marker)';
   const failed = !exitCode.startsWith('0');
   const errorLines = content.split(/\r?\n/).filter((line) => /error|failed|failure|exception|fatal|ERR!|TS\d{4}/i.test(line)).slice(-20);
-  if (failed) failures.push({ name, exitCode, errorLines });
+  if (failed) failures.push({ name, exitCode, errorLines, content });
   sections.push({ name, exitCode, content, errorLines });
 }
 const env = (key) => process.env[key] || 'unknown';
@@ -44,7 +44,7 @@ if (failures.length) {
   for (const item of failures) {
     out.push(`### ${item.name} (exit ${item.exitCode})`);
     if (item.errorLines.length) out.push('Relevant output:', '```text', ...item.errorLines, '```');
-    else { const tail = item.content.split(/\r?\n/).filter(Boolean).slice(-40); out.push('Last output lines (no common error signature matched):', '```text', ...(tail.length ? tail : ['(log is empty)']), '```'); }
+    else { const tail = (item.content ?? '').split(/\r?\n/).filter(Boolean).slice(-40); out.push('Last output lines (no common error signature matched):', '```text', ...(tail.length ? tail : ['(log is empty)']), '```'); }
     out.push('');
   }
 } else {
