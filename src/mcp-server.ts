@@ -16,6 +16,8 @@ import { runBenchmark, compareBenchmarks } from './benchmark-engine.js';
 import { validateBehavior } from './benchmark-validation.js';
 import { listProviders, runProvider } from './providers-registry.js';
 import { getHotspots, getProcessIo } from './profiling-hotspots.js';
+import { generateChangeReport } from './reports-change.js';
+import { verifySessionSignature, signSession } from './evidence-integrity.js';
 import { traceWithFrida } from './providers-frida.js';
 import { getResourceControlStatus } from './process-safety.js';
 import { checkCommandGate, operatingMode } from './benchmark-gate.js';
@@ -88,7 +90,7 @@ async function call(name: string, a: any, signal?: AbortSignal) {
         case 'capture_baseline': return captureBaseline({ ...a, name: a.label ?? 'baseline' });
         case 'run_benchmark': return runBenchmark(a);
         case 'compare_results': return compareBenchmarks(a.before, a.after);
-        case 'validate_changes': return validateBehavior(a, a.expected, a.repetitions);
+        case 'validate_changes': return validateBehavior(a, a.expected, a.repetitions, { normalize: a.normalize });
         case 'get_evidence': {
             const p = await new EvidenceEngine().get(a.id);
             if (!p)
@@ -100,6 +102,16 @@ async function call(name: string, a: any, signal?: AbortSignal) {
         case 'trace_execution': return traceWithFrida(a.target, { pid: a.pid, durationMs: a.durationMs, signal });
         case 'get_hotspots': return getHotspots(a.pid, { durationMs: a.durationMs, signal });
         case 'get_process_io': return getProcessIo(a.pid);
+        case 'generate_change_report': return generateChangeReport(a);
+        case 'verify_evidence_integrity': {
+            let session = a.session;
+            if (!session && a.session_id) {
+                session = await new EvidenceEngine().getResearchSession(a.session_id);
+            }
+            if (!session)
+                throw new Error('session or session_id required');
+            return verifySessionSignature(signSession(session));
+        }
         case 'create_benchmark_suite': return createBenchmarkSuite(a);
         case 'run_benchmark_suite': return runBenchmarkSuite(a.id);
         case 'compare_benchmarks': return compareBenchmarkSuites(a.before, a.after);

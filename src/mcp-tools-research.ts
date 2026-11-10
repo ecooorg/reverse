@@ -79,6 +79,13 @@ export const researchTools: any[] = [
                     type: 'number'
                 }, expected: {
                     type: 'object'
+                }, normalize: {
+                    type: 'object',
+                    properties: {
+                        whitespace: { type: 'boolean' },
+                        timestamps: { type: 'boolean' },
+                        sortLines: { type: 'boolean' }
+                    }
                 }, repetitions: {
                     type: 'number'
                 }
@@ -311,6 +318,35 @@ export const researchTools: any[] = [
             }, required: [
                 'session_id', 'relation', 'ids'
             ]
+        }
+    },
+    {
+        name: 'generate_change_report',
+        description: 'Before/after change report with validation, metrics, residual risks and next steps.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                target: { type: 'string' },
+                before: {},
+                after: {},
+                validation: { type: 'object' },
+                metrics: { type: 'object' },
+                findings: { type: 'array', items: { type: 'string' } },
+                residualRisks: { type: 'array', items: { type: 'string' } },
+                nextSteps: { type: 'array', items: { type: 'string' } }
+            },
+            required: ['target']
+        }
+    },
+    {
+        name: 'verify_evidence_integrity',
+        description: 'Verify research session hash chain and optional HMAC signature (REVERSE_EVIDENCE_KEY).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                session: { type: 'object' },
+                session_id: { type: 'string' }
+            }
         }
     }
 ];

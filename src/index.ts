@@ -18,3 +18,6 @@ export { createJadxProvider, createApktoolProvider } from './providers-android-t
 export { getHotspots, getProcessIo } from './profiling-hotspots.js';
 export { traceWithFrida } from './providers-frida.js';
 export { inspectWithGdb } from './providers-gdb.js';
+export { runValidationFixtures } from './benchmark-validation.js';
+export { verifyHashChain, signSession, verifySessionSignature } from './evidence-integrity.js';
+export { generateChangeReport } from './reports-change.js';
