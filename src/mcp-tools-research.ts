@@ -373,7 +373,8 @@ researchTools.push({
 });
 researchTools.push({
     name: 'analyze_legacy_windows',
-    description: 'Analyze legacy DOS/Windows headers and toolchain markers; requires declared session authorization.',
+    description: 'Statically inspect DOS/Windows headers, PE imports and framework signatures. '
+        + 'Includes session authorization; never executes the target.',
     inputSchema: {
         type: 'object',
         properties: { file: { type: 'string' }, session_id: { type: 'string' } },

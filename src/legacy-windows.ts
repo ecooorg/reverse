@@ -2,6 +2,12 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { result } from './core-types.js';
+export interface LegacyAuthorization {
+    basis: 'open_source' | 'written_consent';
+    licenseOrConsentReference: string;
+    declaredBy: string;
+    declaredAt: string;
+}
 export interface LegacyWindowsFinding {
     format: 'DOS MZ' | 'Windows NE' | 'Windows LE' | 'Windows LX' | 'Windows PE' | 'unknown';
     architecture: string;
@@ -9,6 +15,13 @@ export interface LegacyWindowsFinding {
     targetEra: string | null;
     subsystem: string | null;
     toolchainMarkers: string[];
+    structuralDetectors: Array<{
+        name: string;
+        evidence: string[];
+        confidence: number;
+    }>;
+    importedLibraries: string[];
+    importedFunctions: string[];
     compatibilityFindings: Array<{
         cause: string;
         evidence: string;
@@ -16,6 +29,7 @@ export interface LegacyWindowsFinding {
         limitations: string[];
         needsExecutionEnvironment: boolean;
     }>;
+    authorization: LegacyAuthorization | null;
     sha256: string;
 }
 const markerRules: Array<[
@@ -29,14 +43,132 @@ const markerRules: Array<[
     [/DirectDraw|Direct3D|DDRAW\.DLL|D3D9\.DLL/i, 'DirectX graphics dependency marker'],
     [/GLIDE2X?\.DLL|3DFX/i, '3dfx Glide dependency marker']
 ];
-export async function analyzeLegacyWindows(file: string) {
+const MAX_READ = 8 * 1024 * 1024;
+const MAX_IMPORTS = 4096;
+function boundedCString(b: Buffer, offset: number, max = 256): string {
+    if (offset < 0 || offset >= b.length)
+        return '';
+    let end = offset;
+    while (end < Math.min(b.length, offset + max) && b[end] !== 0)
+        end++;
+    return b.toString('latin1', offset, end);
+}
+function parsePeImports(b: Buffer, peOffset: number): {
+    libraries: string[];
+    functions: string[];
+} {
+    const libraries: string[] = [], functions: string[] = [];
+    try {
+        const sectionCount = b.readUInt16LE(peOffset + 6), optionalSize = b.readUInt16LE(peOffset + 20);
+        const optional = peOffset + 24, magic = b.readUInt16LE(optional);
+        const directoryOffset = optional + (magic === 0x20b ? 112 : magic === 0x10b ? 96 : 0);
+        if (!directoryOffset || directoryOffset + 16 > b.length
+            || directoryOffset + 16 > optional + optionalSize)
+            return { libraries, functions };
+        const importRva = b.readUInt32LE(directoryOffset + 8);
+        const sectionsAt = optional + optionalSize;
+        const sections: Array<{
+            va: number;
+            size: number;
+            raw: number;
+            rawSize: number;
+        }> = [];
+        for (let i = 0; i < Math.min(sectionCount, 96); i++) {
+            const at = sectionsAt + i * 40;
+            if (at + 40 > b.length)
+                break;
+            sections.push({
+                va: b.readUInt32LE(at + 12),
+                size: b.readUInt32LE(at + 8),
+                raw: b.readUInt32LE(at + 20),
+                rawSize: b.readUInt32LE(at + 16)
+            });
+        }
+        const rvaToOffset = (rva: number): number => {
+            for (const section of sections) {
+                const span = Math.max(section.size, section.rawSize);
+                if (rva >= section.va && rva - section.va < span) {
+                    const delta = rva - section.va;
+                    return delta < section.rawSize && section.raw + delta < b.length ? section.raw + delta : -1;
+                }
+            }
+            return rva < b.length ? rva : -1;
+        };
+        let descriptor = rvaToOffset(importRva);
+        if (descriptor < 0)
+            return { libraries, functions };
+        if (!importRva)
+            return { libraries, functions };
+        for (let i = 0; i < 256 && descriptor + 20 <= b.length && functions.length < MAX_IMPORTS; i++, descriptor += 20) {
+            const originalThunk = b.readUInt32LE(descriptor);
+            const nameRva = b.readUInt32LE(descriptor + 12);
+            const firstThunk = b.readUInt32LE(descriptor + 16);
+            if (!originalThunk && !nameRva && !firstThunk)
+                break;
+            const library = boundedCString(b, rvaToOffset(nameRva)).toLowerCase();
+            if (library)
+                libraries.push(library);
+            let thunk = rvaToOffset(originalThunk || firstThunk);
+            if (thunk < 0)
+                continue;
+            const width = magic === 0x20b ? 8 : 4;
+            for (let j = 0; j < MAX_IMPORTS && thunk + width <= b.length; j++, thunk += width) {
+                const value = width === 8 ? Number(b.readBigUInt64LE(thunk)) : b.readUInt32LE(thunk);
+                if (!value)
+                    break;
+                const ordinalFlag = width === 8 ? 0x8000000000000000 : 0x80000000;
+                if (value >= ordinalFlag)
+                    continue;
+                const hintName = rvaToOffset(value);
+                if (hintName >= 0) {
+                    const fn = boundedCString(b, hintName + 2);
+                    if (fn)
+                        functions.push(fn);
+                }
+            }
+        }
+    }
+    catch { /* Malformed tables remain bounded and are surfaced as incomplete coverage. */ }
+    return {
+        libraries: [...new Set(libraries)].slice(0, 256),
+        functions: [...new Set(functions)].slice(0, MAX_IMPORTS)
+    };
+}
+function detectStructure(text: string, libraries: string[]) {
+    const lowerLibs = libraries.map(x => x.toLowerCase());
+    const detectors: LegacyWindowsFinding['structuralDetectors'] = [];
+    const add = (name: string, evidence: string[], confidence: number) => detectors.push({ name, evidence, confidence });
+    const vbImports = lowerLibs.filter(x => /msvbvm(50|60)\.dll|vb40032\.dll/.test(x));
+    const mfcImports = lowerLibs.filter(x => /mfc(30|40|42|70|71|80|90)(u)?\.dll/.test(x));
+    if (vbImports.length)
+        add('Visual Basic runtime import', vbImports, 0.99);
+    if (mfcImports.length)
+        add('MFC runtime import', mfcImports, 0.99);
+    if (/TPF0/.test(text))
+        add('Delphi/FPC form stream (DFM/FMX marker)', ['TPF0 binary form signature'], 0.92);
+    const delphi = ['TForm', 'TApplication', 'TComponent', 'TControl', 'TWinControl'].filter(x => text.includes(x));
+    if (delphi.length >= 3)
+        add('Delphi/VCL RTTI-style class names', delphi, 0.82);
+    const vb = ['MSVBVM60.DLL', '__vba', 'ThunRTMain', 'VB5!'].filter(x => text.toLowerCase().includes(x.toLowerCase()));
+    if (vb.length >= 2 && !vbImports.length)
+        add('Visual Basic runtime metadata', vb, 0.8);
+    const mfc = ['AfxWndProc', 'AfxGetApp', 'CWnd', 'CCmdTarget', 'ON_COMMAND'].filter(x => text.includes(x));
+    if (mfc.length >= 2 && !mfcImports.length)
+        add('MFC message-map/class markers', mfc, 0.78);
+    return detectors;
+}
+export async function analyzeLegacyWindows(file: string, authorization: LegacyAuthorization | null = null) {
     const abs = path.resolve(file);
     const info = await stat(abs);
     const handle = await readFile(abs);
-    const b = handle.subarray(0, Math.min(handle.length, 8 * 1024 * 1024));
+    const b = handle.subarray(0, Math.min(handle.length, MAX_READ));
     const sha256 = createHash('sha256').update(handle).digest('hex');
+    let peOffset: number | null = null;
     let format: LegacyWindowsFinding['format'] = 'unknown';
-    let architecture = 'unknown', bitness: number | null = null, targetEra: string | null = null, subsystem: string | null = null;
+    let architecture = 'unknown';
+    let bitness: number | null = null;
+    let targetEra: string | null = null;
+    let subsystem: string | null = null;
     if (b.length >= 64 && b.toString('ascii', 0, 2) === 'MZ') {
         const off = b.readUInt32LE(0x3c);
         if (off + 4 <= b.length) {
@@ -56,6 +188,7 @@ export async function analyzeLegacyWindows(file: string) {
             }
             else if (sig4 === 'PE\u0000\u0000' && off + 24 <= b.length) {
                 format = 'Windows PE';
+                peOffset = off;
                 const machine = b.readUInt16LE(off + 4);
                 const architectures: Record<number, string> = {
                     0x14c: 'x86',
@@ -85,6 +218,10 @@ export async function analyzeLegacyWindows(file: string) {
             format = 'DOS MZ';
     }
     const text = b.toString('latin1');
+    const imports = peOffset === null
+        ? { libraries: [] as string[], functions: [] as string[] }
+        : parsePeImports(b, peOffset);
+    const structuralDetectors = detectStructure(text, imports.libraries);
     const toolchainMarkers = markerRules.filter(([re]) => re.test(text)).map(([, label]) => label);
     const compatibilityFindings: LegacyWindowsFinding['compatibilityFindings'] = [];
     if (format === 'DOS MZ' || format === 'Windows NE')
@@ -103,28 +240,53 @@ export async function analyzeLegacyWindows(file: string) {
             limitations: ['The specific loader/runtime requirement is not inferred from the header alone.'],
             needsExecutionEnvironment: true
         });
-    if (toolchainMarkers.some(x => x.includes('Visual Basic 6')))
+    const vbEvidence = [
+        ...toolchainMarkers.filter(x => x.includes('Visual Basic 6')),
+        ...imports.libraries.filter(x => /msvbvm|vb40032/.test(x))
+    ];
+    if (vbEvidence.length)
         compatibilityFindings.push({
-            cause: 'The application may depend on the Visual Basic 6 runtime.',
-            evidence: toolchainMarkers.find(x => x.includes('Visual Basic 6'))!,
-            confidence: 0.85,
-            limitations: ['A string marker is not proof that the runtime is required at launch.'],
+            cause: 'The application may depend on the Visual Basic runtime.',
+            evidence: vbEvidence.join('; '),
+            confidence: imports.libraries.some(x => /msvbvm|vb40032/.test(x)) ? 0.99 : 0.85,
+            limitations: ['Static evidence does not prove runtime availability or use on every path.'],
             needsExecutionEnvironment: true
         });
-    if (toolchainMarkers.some(x => x.includes('DirectX') || x.includes('Glide')))
+    const graphicsEvidence = [
+        ...toolchainMarkers.filter(x => x.includes('DirectX') || x.includes('Glide')),
+        ...imports.libraries.filter(x => /^(ddraw|d3d|d3drm|glide)/.test(x))
+    ];
+    if (graphicsEvidence.length)
         compatibilityFindings.push({
             cause: 'The application may depend on legacy graphics APIs or drivers.',
-            evidence: toolchainMarkers.filter(x => x.includes('DirectX') || x.includes('Glide')).join('; '),
-            confidence: 0.8,
-            limitations: ['Static strings do not prove an active code path or required driver version.'],
+            evidence: graphicsEvidence.join('; '),
+            confidence: imports.libraries.some(x => /^(ddraw|d3d|d3drm|glide)/.test(x)) ? 0.98 : 0.8,
+            limitations: ['Static evidence does not prove an active code path or required driver version.'],
             needsExecutionEnvironment: true
         });
-    return result<LegacyWindowsFinding>(abs, 'legacy_windows_analysis', [{
-            format, architecture, bitness, targetEra, subsystem, toolchainMarkers, compatibilityFindings, sha256
-        }], {
+    const mfcLibraries = imports.libraries.filter(x => /mfc/.test(x));
+    if (mfcLibraries.length)
+        compatibilityFindings.push({
+            cause: 'The application imports a versioned Microsoft Foundation Classes runtime.',
+            evidence: mfcLibraries.join(', '),
+            confidence: 0.99,
+            limitations: ['Import presence does not establish whether the runtime is installed on the target system.'],
+            needsExecutionEnvironment: true
+        });
+    const finding: LegacyWindowsFinding = {
+        format, architecture, bitness, targetEra, subsystem, toolchainMarkers,
+        structuralDetectors, importedLibraries: imports.libraries,
+        importedFunctions: imports.functions, compatibilityFindings, authorization, sha256
+    };
+    return result<LegacyWindowsFinding>(abs, 'legacy_windows_analysis', [finding], {
         status: format === 'unknown' ? 'partial' : 'completed',
         limitations: [
-            'Windows wave 1 detector only: DOS/NE/LE/LX/PE headers and bounded toolchain strings; not a complete compatibility diagnosis.',
+            'Windows wave 1 detector: DOS/NE/LE/LX/PE headers, bounded toolchain signatures and PE imports.',
+            'This is not a complete compatibility diagnosis.',
+            ...(format === 'Windows PE' && imports.libraries.length === 0
+                ? ['PE import table was absent, malformed, or outside the bounded read window.']
+                : []),
+            'RTTI/form-stream and class-name signatures are static indicators, not proof that a framework is required at runtime.',
             `Read ${b.length} of ${info.size} bytes.`,
             'No execution, corpus lookup, similarity score, or license verification is performed.'
         ],

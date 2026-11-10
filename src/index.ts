@@ -36,4 +36,4 @@ export { listPrompts, getPrompt } from './mcp-prompts.js';
 export { listResources, readResource } from './mcp-resources.js';
 export { setupAgent } from './cli-setup.js';
 export { evaluateAgentPrompts } from './agent-eval.js';
-export { analyzeLegacyWindows } from './legacy-windows.js';
+export { analyzeLegacyWindows, type LegacyAuthorization, type LegacyWindowsFinding } from './legacy-windows.js';
