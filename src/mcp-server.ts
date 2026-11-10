@@ -8,6 +8,7 @@ import { wrapUntrusted } from './core-untrusted.js';
 import { analyzeBinary } from './analysis-binary.js';
 import { analyzeSource } from './analysis-source.js';
 import { analyzeDependencies } from './analysis-dependencies.js';
+import { analyzeAndroid } from './analysis-android.js';
 import { listProcesses, inspectProcess, getProcessMetrics, getProcessTree } from './process-inspector.js';
 import { analyzeMemory, analyzeCpu, analyzeIo } from './process-inspector.js';
 import { profileProcess, monitorProcess, detectResourceAnomalies } from './profiling-profiler.js';
@@ -66,6 +67,7 @@ async function call(name: string, a: any, signal?: AbortSignal) {
         case 'analyze_binary': return analyzeBinary(a.file);
         case 'analyze_source': return analyzeSource(a.directory);
         case 'analyze_dependencies': return analyzeDependencies(a.directory);
+        case 'analyze_android': return analyzeAndroid(a.file);
         case 'get_inventory':
         case 'list_processes': return listProcesses(a.limit, a.offset);
         case 'monitor_process': return monitorProcess(a.pid, { ...a, signal, requireOwnership: observeOwnership() });

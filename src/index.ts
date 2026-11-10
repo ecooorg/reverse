@@ -2,6 +2,7 @@ export * from './core-types.js';
 export * from './analysis-binary.js';
 export * from './analysis-source.js';
 export * from './analysis-dependencies.js';
+export * from './analysis-android.js';
 export * from './process-inspector.js';
 export * from './profiling-profiler.js';
 export * from './benchmark-engine.js';

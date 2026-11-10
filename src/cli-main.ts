@@ -2,6 +2,7 @@
 import { analyzeBinary } from './analysis-binary.js';
 import { analyzeSource } from './analysis-source.js';
 import { analyzeDependencies } from './analysis-dependencies.js';
+import { analyzeAndroid } from './analysis-android.js';
 import { listProcesses, inspectProcess } from './process-inspector.js';
 import { profileProcess } from './profiling-profiler.js';
 import { runBenchmark, compareBenchmarks } from './benchmark-engine.js';
@@ -58,7 +59,8 @@ Usage: reverse <command> [options]
 Commands:
   binary <file>                 Analyze ELF/PE/Mach-O/Java-class headers
   source <directory>            Inventory source files
-  dependencies <directory>      Read package.json dependencies
+  dependencies <directory>
+  android <apk-or-aab>      Read package.json dependencies
   processes [--limit N]         List visible processes
   process <pid>                 Inspect one process
   profile <pid> [--duration MS] [--interval MS]   Sample CPU/RSS
@@ -90,6 +92,9 @@ async function main() {
             break;
         case 'dependencies':
             out = await analyzeDependencies(positional('dependencies <directory>'));
+            break;
+        case 'android':
+            out = await analyzeAndroid(positional('android <apk-or-aab>'));
             break;
         case 'processes':
             out = await listProcesses(num('--limit', 100));

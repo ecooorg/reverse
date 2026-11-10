@@ -12,7 +12,7 @@ export const processTools: any[] = [
         }
     },
     {
-        name: 'analyze_binary', description: 'Inspect ELF, PE or Mach-O headers. This is not disassembly or decompilation.', inputSchema: {
+        name: 'analyze_binary', description: 'Inspect ELF, PE or Mach-O structure: headers, sections, symbols, imports/exports and function list. Not disassembly or decompilation.', inputSchema: {
             type: 'object', properties: {
                 file: {
                     type: 'string'
@@ -21,7 +21,7 @@ export const processTools: any[] = [
         }
     },
     {
-        name: 'analyze_source', description: 'Inventory source files and textual external imports in a directory.', inputSchema: {
+        name: 'analyze_source', description: 'Inventory source files and external imports (comment- and string-aware) in a directory.', inputSchema: {
             type: 'object', properties: {
                 directory: {
                     type: 'string'
@@ -30,12 +30,21 @@ export const processTools: any[] = [
         }
     },
     {
-        name: 'analyze_dependencies', description: 'Read direct dependencies from a package.json manifest.', inputSchema: {
+        name: 'analyze_dependencies', description: 'Resolve dependencies from package.json plus lockfiles (npm, yarn, Cargo, Go, pip/poetry) when present.', inputSchema: {
             type: 'object', properties: {
                 directory: {
                     type: 'string'
                 }
             }, required: ['directory']
+        }
+    },
+    {
+        name: 'analyze_android', description: 'Static inventory of an APK/AAB: dex, native libs, ABIs, manifest presence, R8/ProGuard indicators.', inputSchema: {
+            type: 'object', properties: {
+                file: {
+                    type: 'string'
+                }
+            }, required: ['file']
         }
     },
     {
