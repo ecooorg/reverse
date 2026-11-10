@@ -1008,10 +1008,16 @@ check('Validation', 'repeated runs must all match (non-deterministic output fail
     }, { stdout: '0.5' }, 3);
     assert.equal(r.findings[0].passed, false);
 });
-check('Validation', 'exact-match only (no semantic equivalence, test discovery or build integration)', async (c) => {
+check('Validation', 'normalization can collapse whitespace; semantic equivalence still not claimed', async (c) => {
+    const r: any = await validateBehavior({ command: NODE, args: nodeEval('process.stdout.write("a  b")') }, { stdout: 'a b' }, 1, {
+        normalize: { whitespace: true }
+    });
+    assert.equal(r.findings[0].passed, true, 'whitespace normalization should allow match');
+    c.limit('semantic equivalence and full test-framework adapters remain out of scope');
+});
+check('Validation', 'without normalize, whitespace-only differences still fail', async () => {
     const r: any = await validateBehavior({ command: NODE, args: nodeEval('process.stdout.write("a  b")') }, { stdout: 'a b' });
     assert.equal(r.findings[0].passed, false);
-    c.limit('whitespace-only differences fail; there is no normalization, fixture discovery or test-runner adapter');
 });
 // ---------------------------------------------------------------- hotfix 0.2.0-beta.2 checks
 check('Benchmark', 'median is the mean of the two middle values for even counts (AUDIT F-02)', async () => {
@@ -1148,12 +1154,28 @@ check('Evidence', 'research sessions hash-chain events, detect tampering and kee
     await writeFile(file, JSON.stringify(stored));
     assert.equal((await engine.getResearchSession(session.session_id))?.integrity?.valid, false);
 });
-check('Evidence', 'the session ledger is hash-chained but not signed (patch I)', async (c) => {
+check('Evidence', 'the session ledger is hash-chained and optionally signed (patch I)', async (c) => {
+    const { signSession, verifySessionSignature, verifyHashChain } = await import('../dist/evidence-integrity.js');
     const engine = new EvidenceEngine();
-    const session: any = await engine.createResearchSession('unsigned-fixture');
-    const keys = Object.keys(session).join(' ') + ' ' + Object.keys(session.entries[0] ?? {}).join(' ');
-    assert.ok(!/signature|merkle/i.test(keys), 'no signature or Merkle field exists yet');
-    c.limit('session ledger is hash-chained but not signed; Merkle roots and detached signatures belong to patch I');
+    const session: any = await engine.createResearchSession('signed-fixture');
+    const chain = verifyHashChain(session);
+    assert.equal(chain.valid, true);
+    const prev = process.env.REVERSE_EVIDENCE_KEY;
+    process.env.REVERSE_EVIDENCE_KEY = 'capability-test-key';
+    try {
+        const signed = signSession(session);
+        assert.ok((signed.integrity as any)?.signature, 'HMAC signature present when key set');
+        const ver: any = verifySessionSignature(signed);
+        assert.equal(ver.findings[0].signatureValid, true);
+        assert.equal(ver.findings[0].chainValid, true);
+    }
+    finally {
+        if (prev === undefined)
+            delete process.env.REVERSE_EVIDENCE_KEY;
+        else
+            process.env.REVERSE_EVIDENCE_KEY = prev;
+    }
+    c.limit('Merkle roots and public-key detached signatures remain optional extensions');
 });
 check('Evidence', 'a hypothesis is promoted only by evidence whose content supports it (promotion bypass closed)', async () => {
     const engine = new EvidenceEngine();
@@ -1543,7 +1565,8 @@ check('CLI', '--json is accepted, documented as having no effect, and output is 
 });
 // ---------------------------------------------------------------- 12. MCP server
 const GATE_ENV = { REVERSE_MODE: 'CONTROLLED_EXECUTION', REVERSE_COMMAND_ALLOWLIST: NODE };
-const DOCUMENTED_TOOLS = ['inspect_target',
+const DOCUMENTED_TOOLS = [
+    'inspect_target',
     'analyze_binary',
     'analyze_source',
     'analyze_dependencies',
@@ -1551,9 +1574,6 @@ const DOCUMENTED_TOOLS = ['inspect_target',
     'get_inventory',
     'inspect_process',
     'profile_process',
-    'trace_execution',
-    'get_hotspots',
-    'get_process_io',
     'list_processes',
     'monitor_process',
     'get_process_metrics',
@@ -1563,6 +1583,9 @@ const DOCUMENTED_TOOLS = ['inspect_target',
     'analyze_io',
     'detect_resource_anomalies',
     'get_resource_control_status',
+    'trace_execution',
+    'get_hotspots',
+    'get_process_io',
     'capture_baseline',
     'run_benchmark',
     'compare_results',
@@ -1581,7 +1604,10 @@ const DOCUMENTED_TOOLS = ['inspect_target',
     'promote_research_hypothesis',
     'add_research_event',
     'add_research_evidence',
-    'link_research_artifacts'];
+    'link_research_artifacts',
+    'generate_change_report',
+    'verify_evidence_integrity'
+];
 check('MCP', 'handshake: initialize, ping and tools/list', async () => {
     const s = startMcp();
     try {
