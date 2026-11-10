@@ -73,10 +73,8 @@ test('legacy analysis requires a declared authorization record', async () => {
     try {
         const engine = new EvidenceEngine();
         const session = await engine.createResearchSession('legacy-target');
-        await assert.rejects(
-            () => engine.requireLegacyAuthorization(session.session_id),
-            /requires an open-source license or written rights-holder consent/
-        );
+        const authorizationCheck = engine.requireLegacyAuthorization(session.session_id);
+        await assert.rejects(authorizationCheck, /requires an open-source license or written rights-holder consent/);
         const authorized = await engine.declareAuthorization(session.session_id, {
             basis: 'open_source', licenseOrConsentReference: 'LICENSE.txt', declaredBy: 'operator'
         });
