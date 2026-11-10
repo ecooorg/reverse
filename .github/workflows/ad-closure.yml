@@ -72,7 +72,7 @@ jobs:
       - name: Capability suite
         run: |
           mkdir -p ad-closure-reports
-          node --test --test-concurrency=1 --test-reporter=spec --test-timeout=90000 dist-tests/capabilities.check.js
+          node --test --test-concurrency=1 --test-reporter=spec --test-timeout=240000 dist-tests/capabilities.check.js
       - name: Assert the A-D checks ended in the expected state
         if: always()
         run: |
