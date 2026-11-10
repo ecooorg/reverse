@@ -6,6 +6,19 @@ IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H*
 
 ---
 
+## Audit 13 — 2026-11-10 — Hygiene 1.0.1 (R-03, F-16, R-05 partial, H-09 lite)
+
+**Scope.** Pin Actions to full SHAs; split capability harness; lightweight quality:static; prompt evaluation harness.
+
+| ID | Sev | Area | Finding | Status |
+|---|---|---|---|---|
+| R-03 | Medium | CI | Unpinned action tags in workflows | Status: closed in 1.0.1 (SHA pins) |
+| F-16 | Medium | Tests | Monolithic capabilities.check.ts | Status: closed in 1.0.1 (suite split) |
+| R-05 | Low | Quality | knip/jscpd/linter | Status: partial in 1.0.1 (`quality:static`; knip/jscpd still optional) |
+| F-62 | Low | Agent | No H-09 prompt scoring | Status: closed in 1.0.1 (lite eval harness) |
+
+---
+
 ## Audit 12 — 2026-11-10 — Release 1.0.0 and Patch L core
 
 **Scope.** Fix 1.0.0 label after green A–K capability base; ship agent integration core (prompts, resources, setup, skill, server.json).
