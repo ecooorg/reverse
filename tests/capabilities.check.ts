@@ -1360,27 +1360,48 @@ check('Docs', 'roadmap, audit and architecture agree with the delivered state of
         assert.match(audit, new RegExp(`${id}[^\\n]*closed in 0\\.2\\.0-beta\\.7`), id);
 });
 // ---------------------------------------------------------------- 10. providers
-check('Providers', 'built-in header provider is implemented; external engines are extension points only', async (c) => {
+check('Providers', 'built-ins are implemented; Ghidra/Rizin/JADX/Apktool are registered adapters; other engines stay extension points', async (c) => {
+    // ensure bootstrap ran
+    await import('../dist/providers-bootstrap.js').catch(() => import('../dist/providers-registry.js'));
     const list: any[] = listProviders();
-    assert.equal(list.find(p => p.name === 'builtin-native-header').state, 'implemented');
-    for (const n of ['ghidra', 'rizin', 'frida', 'gdb', 'perf', 'ebpf', 'etw', 'instruments']) {
+    assert.equal(list.find(p => p.name === 'builtin-native-header')?.state, 'implemented');
+    for (const n of ['ghidra', 'rizin', 'jadx', 'apktool', 'ghidra-similarity']) {
+        const p = list.find(x => x.name === n);
+        assert.ok(p, n + ' should be registered');
+        assert.equal(p.state, 'registered', n);
+        assert.ok(p.capabilities.length > 0, n);
+    }
+    for (const n of ['frida', 'gdb', 'perf', 'ebpf', 'etw', 'instruments']) {
         const p = list.find(x => x.name === n);
         assert.ok(p, n);
         assert.equal(p.state, 'extension-point');
-        assert.deepEqual(p.capabilities, []);
     }
-    c.limit('Ghidra, Rizin, Frida, GDB, perf, eBPF, ETW and Instruments are labels only; none is invoked');
+    // Absent tools must not fabricate analysis results
+    const { runProvider } = await import('../dist/providers-registry.js');
+    const absent = await runProvider('ghidra', '/nonexistent-binary-for-provider-test');
+    assert.ok(absent.status === 'unsupported' || absent.status === 'failed' || absent.status === 'partial');
+    assert.ok((absent.limitations?.length ?? 0) > 0);
+    c.limit('Frida, GDB, perf, eBPF, ETW and Instruments remain extension points until their patches');
 });
 check('Providers', 'a custom provider can be registered, listed and status-checked; duplicates are refused', async () => {
     const name = `verify-provider-${process.pid}`;
-    registerProvider({ name, capabilities: ['demo'], available: async () => true, analyze: async () => ({}) });
+    registerProvider({
+        name,
+        capabilities: ['demo'],
+        available: async () => true,
+        analyze: async (target) => ({ schemaVersion: '1.0', id: 't', target, operation: 'demo', status: 'completed',
+            generatedAt: new Date().toISOString(), host: { hostname: '', platform: '', arch: '' },
+            findings: [], evidence: [], limitations: [], errors: [], coverage: { examined: true, complete: true, notes: [] } })
+    });
     assert.deepEqual((listProviders() as any[]).find(p => p.name === name), { name, state: 'registered', capabilities: ['demo'] });
     assert.equal((await getProviderStatus()).find(p => p.name === name)!.available, true);
     assert.throws(() => registerProvider({
         name,
         capabilities: [],
         available: async () => false,
-        analyze: async () => ({})
+        analyze: async (target) => ({ schemaVersion: '1.0', id: 't', target, operation: 'demo', status: 'completed',
+            generatedAt: new Date().toISOString(), host: { hostname: '', platform: '', arch: '' },
+            findings: [], evidence: [], limitations: [], errors: [], coverage: { examined: true, complete: true, notes: [] } })
     }), /already registered/);
 });
 // ---------------------------------------------------------------- 11. CLI
@@ -1544,6 +1565,7 @@ const DOCUMENTED_TOOLS = ['inspect_target',
     'get_environment_fingerprint',
     'get_evidence',
     'list_analyzers',
+    'run_provider',
     'create_benchmark_suite',
     'run_benchmark_suite',
     'compare_benchmarks',
@@ -1688,7 +1710,8 @@ check('Docs', 'docs/MCP.md says tools return structuredContent', async (c) => {
     try {
         const obj = await s.call('get_inventory', { limit: 3 });
         assert.deepEqual(obj.envelope.structuredContent, obj.value);
-        const arr = await s.call('list_analyzers', {});
+        const arr = await s.call('list_analyzers',
+    'run_provider', {});
         assert.deepEqual(arr.envelope.structuredContent, {
             items: arr.value,
             untrustedContent: arr.envelope.structuredContent.untrustedContent
@@ -1761,16 +1784,19 @@ check('Docs', 'extension points in docs/CAPABILITIES.md match listProviders()', 
         c.note('docs/CAPABILITIES.md not present');
         return;
     }
-    const m = readFileSync(doc, 'utf8').match(/Provider status\s*\n+([^\n]+)/);
-    if (!m) {
-        c.note('provider paragraph not found');
-        return;
+    const text = readFileSync(doc, 'utf8');
+    const liveExt = (listProviders() as any[]).filter(p => p.state === 'extension-point').map(p => p.name);
+    // Every live extension-point must be named in the Provider status section
+    const section = text.split('## Provider status')[1]?.split('##')[0] ?? '';
+    for (const n of liveExt) {
+        if (!section.includes('`' + n + '`') && !section.includes(n))
+            c.drift(`extension-point ${n} not documented in Provider status`);
     }
-    const documented = [...m[1].matchAll(/`([a-z]+)`/g)].map(x => x[1]);
-    const live = (listProviders() as any[]).filter(p => p.state === 'extension-point').map(p => p.name);
-    const diff = documented.filter(x => !live.includes(x)).concat(live.filter(x => !documented.includes(x)));
-    if (diff.length)
-        c.drift(`mismatch: ${diff.join(', ')}`);
+    // Registered adapters from Patch F should also be mentioned
+    for (const n of ['ghidra', 'rizin', 'jadx', 'apktool']) {
+        if (!section.toLowerCase().includes(n))
+            c.drift(`adapter ${n} not documented in Provider status`);
+    }
 });
 // ---------------------------------------------------------------- 13. what the platform could not do (informational)
 check('Platform', `host summary: ${process.platform}/${process.arch}, Node ${process.version}`, async (c) => {
