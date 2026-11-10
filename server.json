@@ -1,0 +1,8 @@
+{
+  "name": "reverse",
+  "description": "Local analysis, profiling, benchmarking and evidence core (MCP stdio).",
+  "command": "reverse",
+  "args": ["mcp"],
+  "version": "1.0.0",
+  "transport": "stdio"
+}

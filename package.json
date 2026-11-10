@@ -1,6 +1,6 @@
 {
   "name": "reverse-compact",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0",
   "private": false,
   "description": "A compact local analysis, profiling, benchmarking and evidence core with CLI and MCP interfaces.",
   "type": "module",
@@ -15,7 +15,9 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "server.json",
+    "docs/skill-investigation.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
