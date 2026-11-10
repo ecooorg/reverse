@@ -18,7 +18,7 @@ async function resolveGdb() {
 export function createGdbProvider(): AnalyzerProvider {
     return {
         name: 'gdb',
-        capabilities: ['backtrace', 'breakpoints', 'batch-inspect', 'dynamic-trace'],
+        capabilities: ['backtrace', 'batch-inspect', 'attach-batch'],
         async available() {
             return (await resolveGdb()) !== null;
         },
@@ -52,16 +52,54 @@ export async function inspectWithGdb(target: string, opts?: ProviderRunOptions &
         return result(target, 'gdb_inspect', [], {
             status: 'unsupported',
             limitations: [
-                'Debugger attach requires REVERSE_MODE=CONTROLLED_EXECUTION.',
-                `Debugger present at ${g.path} but attach was refused by the safety gate.`
+                'Debugger attach/batch inspect requires REVERSE_MODE=CONTROLLED_EXECUTION.',
+                `Debugger present at ${g.path} but was refused by the safety gate.`
             ],
             coverage: { examined: false, complete: false, notes: [] }
         });
     }
+    const isLldb = /lldb/i.test(g.path);
+    const pid = opts?.pid ?? (/^\d+$/.test(target) ? Number(target) : undefined);
     try {
-        const args = g.path.includes('lldb')
-            ? ['-b', '-o', `file ${target}`, '-o', 'image list', '-o', 'quit']
-            : ['-batch', '-ex', `file ${target}`, '-ex', 'info files', '-ex', 'info functions', '-ex', 'quit'];
+        let args: string[];
+        if (pid != null && !isLldb) {
+            args = [
+                '-batch',
+                '-ex', `attach ${pid}`,
+                '-ex', 'info threads',
+                '-ex', 'backtrace',
+                '-ex', 'info sharedlibrary',
+                '-ex', 'detach',
+                '-ex', 'quit'
+            ];
+        }
+        else if (pid != null && isLldb) {
+            args = [
+                '-b',
+                '-o', `process attach --pid ${pid}`,
+                '-o', 'bt',
+                '-o', 'image list',
+                '-o', 'process detach',
+                '-o', 'quit'
+            ];
+        }
+        else if (isLldb) {
+            args = [
+                '-b',
+                '-o', `file ${target}`,
+                '-o', 'image list',
+                '-o', 'quit'
+            ];
+        }
+        else {
+            args = [
+                '-batch',
+                '-ex', `file ${target}`,
+                '-ex', 'info files',
+                '-ex', 'info functions',
+                '-ex', 'quit'
+            ];
+        }
         const { stdout, stderr } = await execFileAsync(g.path, args, {
             timeout: opts?.timeoutMs ?? 30000,
             windowsHide: true,
@@ -69,14 +107,17 @@ export async function inspectWithGdb(target: string, opts?: ProviderRunOptions &
             signal: opts?.signal as any
         });
         return result(target, 'gdb_inspect', [{
-                engine: g.path.includes('lldb') ? 'lldb' : 'gdb',
+                engine: isLldb ? 'lldb' : 'gdb',
                 enginePath: g.path,
+                attached: pid != null,
                 logExcerpt: `${stdout}\n${stderr}`.slice(0, 50000)
             }], {
             status: 'partial',
             limitations: [
-                'Batch file inspection only; live attach/step needs an interactive session.',
-                'Original process is not modified when only a file is opened.'
+                pid != null
+                    ? 'Batch attach + backtrace; not a full interactive debug session.'
+                    : 'Batch file inspection; live attach needs a numeric pid.',
+                'Original process is detached after the batch commands.'
             ],
             coverage: {
                 examined: true,

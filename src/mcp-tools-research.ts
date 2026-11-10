@@ -348,5 +348,16 @@ export const researchTools: any[] = [
                 session_id: { type: 'string' }
             }
         }
+    },
+    {
+        name: 'run_validation_fixtures',
+        description: 'Run JSON validation fixtures from a directory (command/expected/normalize).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                directory: { type: 'string' }
+            },
+            required: ['directory']
+        }
     }
 ];

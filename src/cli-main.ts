@@ -60,8 +60,8 @@ Usage: reverse <command> [options]
 Commands:
   binary <file>                 Analyze ELF/PE/Mach-O/Java-class headers
   source <directory>            Inventory source files
-  dependencies <directory>
-  android <apk-or-aab>      Read package.json dependencies
+  dependencies <directory>      Resolve lockfile / package dependencies
+  android <apk-or-aab>          APK/AAB static inventory (dex, so, ABI)
   processes [--limit N]         List visible processes
   process <pid>                 Inspect one process
   profile <pid> [--duration MS] [--interval MS]   Sample CPU/RSS
@@ -69,7 +69,9 @@ Commands:
                                 Run repeated benchmark (time, CPU, peak RAM)
   compare <before.json> <after.json>
   validate --command CMD [--arg A]... --expected FILE.json [--cwd DIR] [--timeout MS] [--repeat N]
-  analyzers                     List adapters and extension points
+  hotspots <pid> [--duration MS] Function hotspots (perf/sample when available)
+  fixtures <dir>                Run JSON validation fixtures from a directory
+  analyzers                     List adapters and providers
   doctor                        Check local runtime and store readiness
   mcp                           Start the MCP stdio server
 
@@ -124,6 +126,18 @@ async function main() {
             out = await validateBehavior({
                 command: value('--command') ?? '', args: commandArgs(), cwd: value('--cwd'), timeoutMs: num('--timeout', 30000)
             }, expected, num('--repeat', 1));
+            break;
+        }
+        case 'hotspots': {
+            const { getHotspots } = await import('./profiling-hotspots.js');
+            out = await getHotspots(Number(positional('hotspots <pid>')), {
+                durationMs: num('duration', 1000)
+            });
+            break;
+        }
+        case 'fixtures': {
+            const { runValidationFixtures } = await import('./benchmark-validation.js');
+            out = await runValidationFixtures(positional('fixtures <dir>'));
             break;
         }
         case 'analyzers':

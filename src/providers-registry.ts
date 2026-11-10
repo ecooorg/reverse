@@ -57,7 +57,7 @@ const builtIn: ProviderListEntry[] = [
         capabilities: ['APK/AAB zip inventory']
     }
 ];
-/** Labels that stay extension-points until their own patch wires them. */
+/** Reserved for future extension-point labels (none after G/H). */
 const FUTURE_EXTENSIONS = [] as const; // G/H: frida/gdb/perf/ebpf/etw/instruments are registered adapters
 export function registerProvider(p: AnalyzerProvider) {
     if (providers.some(x => x.name === p.name) || builtIn.some(x => x.name === p.name)) {

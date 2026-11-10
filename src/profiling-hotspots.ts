@@ -30,22 +30,24 @@ export async function getHotspots(pid: number, opts?: {
     } = { pid, hotspots: [] };
     const limitations: string[] = [];
     let profiler: string | undefined;
+    const controlled = operatingMode() === 'CONTROLLED_EXECUTION';
     if (platform() === 'linux') {
         const perf = await findExecutable(['perf'], COMMON_BIN_DIRS, ['--version']);
-        if (perf && operatingMode() === 'CONTROLLED_EXECUTION') {
+        if (perf && controlled) {
             try {
+                // Prefer perf report from a short record when possible
                 const { stdout } = await execFileAsync(perf.path, [
-                    'top', '-p', String(pid), '-n', '1', '-z', '20',
+                    'top', '-p', String(pid), '-n', '1', '-z', '30',
                     '--stdio', '--no-children'
                 ], {
-                    timeout: durationMs + 5000,
+                    timeout: durationMs + 8000,
                     maxBuffer: 2 * 1024 * 1024,
                     signal: opts?.signal as any
                 });
                 for (const line of stdout.split(/\r?\n/)) {
-                    // rough parse: percent + symbol
-                    const m = line.match(/^\s*([\d.]+)%\s+\S+\s+\S+\s+\S+\s+(\S+)/);
-                    if (m) {
+                    // Formats vary: "  12.34%  ... symbol" or "12.34% symbol"
+                    const m = line.match(/([\d.]+)%\s+(?:\S+\s+){0,4}(\S+)/);
+                    if (m && !/overhead|symbol|command/i.test(m[2])) {
                         findings.hotspots.push({
                             name: m[2],
                             percent: Number(m[1]),
@@ -66,17 +68,17 @@ export async function getHotspots(pid: number, opts?: {
     }
     if (platform() === 'darwin' && findings.hotspots.length === 0) {
         const sample = await findExecutable(['sample'], COMMON_BIN_DIRS, ['--help']);
-        if (sample && operatingMode() === 'CONTROLLED_EXECUTION') {
+        if (sample && controlled) {
             try {
                 const secs = Math.max(1, Math.round(durationMs / 1000));
                 const { stdout } = await execFileAsync(sample.path, [String(pid), String(secs), '1', '-f', '-'], {
-                    timeout: durationMs + 10000,
+                    timeout: durationMs + 15000,
                     maxBuffer: 4 * 1024 * 1024,
                     signal: opts?.signal as any
                 });
                 for (const line of stdout.split(/\r?\n/)) {
                     const m = line.match(/^\s*(\d+)\s+(.+)$/);
-                    if (m && !/Total samples|Sample analysis/i.test(m[2])) {
+                    if (m && !/Total samples|Sample analysis|Call graph/i.test(m[2])) {
                         findings.hotspots.push({
                             name: m[2].trim().slice(0, 200),
                             samples: Number(m[1]),
@@ -91,8 +93,14 @@ export async function getHotspots(pid: number, opts?: {
                 limitations.push(`sample failed: ${e?.message ?? String(e)}`);
             }
         }
+        else if (sample) {
+            limitations.push('macOS sample is installed but needs REVERSE_MODE=CONTROLLED_EXECUTION.');
+        }
     }
-    // Always attach process-level metrics as baseline evidence
+    if (platform() === 'win32' && findings.hotspots.length === 0) {
+        limitations.push('Windows function hotspots need ETW/WPA capture; auto session is not started. '
+            + 'Process-level metrics only on this platform for now.');
+    }
     try {
         const metrics = await getProcessMetrics(pid);
         findings.processLevel = metrics.findings?.[0] ?? metrics;
@@ -104,8 +112,7 @@ export async function getHotspots(pid: number, opts?: {
     findings.hotspots = findings.hotspots.slice(0, 50);
     if (!findings.hotspots.length) {
         limitations.push('No function-level hotspots: process-level only. '
-            + 'Install/use perf (Linux), sample/Instruments (macOS), or ETW (Windows) '
-            + 'under CONTROLLED_EXECUTION.');
+            + 'Use perf (Linux) or sample (macOS) under CONTROLLED_EXECUTION.');
     }
     return result(String(pid), 'get_hotspots', [findings], {
         status: findings.hotspots.length ? 'completed' : 'partial',
@@ -140,7 +147,6 @@ export async function getProcessIo(pid: number) {
         catch (e: any) {
             limitations.push(`/proc/pid/io: ${e?.message ?? String(e)}`);
         }
-        // Network per-process is not in a stable public file; leave explicit gap.
         limitations.push('Per-process network I/O is not exposed via a stable Linux interface here.');
     }
     else {

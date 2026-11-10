@@ -13,7 +13,7 @@ import { listProcesses, inspectProcess, getProcessMetrics, getProcessTree } from
 import { analyzeMemory, analyzeCpu, analyzeIo } from './process-inspector.js';
 import { profileProcess, monitorProcess, detectResourceAnomalies } from './profiling-profiler.js';
 import { runBenchmark, compareBenchmarks } from './benchmark-engine.js';
-import { validateBehavior } from './benchmark-validation.js';
+import { validateBehavior, runValidationFixtures } from './benchmark-validation.js';
 import { listProviders, runProvider } from './providers-registry.js';
 import { getHotspots, getProcessIo } from './profiling-hotspots.js';
 import { generateChangeReport } from './reports-change.js';
@@ -91,6 +91,7 @@ async function call(name: string, a: any, signal?: AbortSignal) {
         case 'run_benchmark': return runBenchmark(a);
         case 'compare_results': return compareBenchmarks(a.before, a.after);
         case 'validate_changes': return validateBehavior(a, a.expected, a.repetitions, { normalize: a.normalize });
+        case 'run_validation_fixtures': return runValidationFixtures(a.directory);
         case 'get_evidence': {
             const p = await new EvidenceEngine().get(a.id);
             if (!p)

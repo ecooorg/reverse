@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { result } from './core-types.js';
@@ -17,20 +17,40 @@ async function resolveGhidra(): Promise<{
 } | null> {
     if (cached !== undefined)
         return cached;
-    // analyzeHeadless is the usual entry; also accept "ghidra" wrapper
     const found = await findExecutable(['analyzeHeadless', 'ghidraRun', 'ghidra'], GHIDRA_DIRS, ['-help']);
     cached = found;
     return found;
 }
+/** Minimal GhidraScript: dump function names after analysis. */
+const LIST_FNS_SCRIPT = `// @category Reverse
+import ghidra.app.script.GhidraScript;
+import ghidra.program.model.listing.Function;
+import ghidra.program.model.listing.FunctionIterator;
+public class ReverseListFns extends GhidraScript {
+    @Override
+    public void run() throws Exception {
+        if (currentProgram == null) {
+            println("REVERSE_GHIDRA no_program");
+            return;
+        }
+        FunctionIterator it = currentProgram.getFunctionManager().getFunctions(true);
+        int n = 0;
+        while (it.hasNext() && n < 500) {
+            Function f = it.next();
+            println("REVERSE_FN " + f.getName() + " @ " + f.getEntryPoint());
+            n++;
+        }
+        println("REVERSE_GHIDRA_OK functions=" + n);
+    }
+}
+`;
 export function createGhidraProvider(): AnalyzerProvider {
     return {
         name: 'ghidra',
         capabilities: [
-            'disassembly',
-            'decompilation',
-            'cross-references',
+            'headless-import',
             'function-list',
-            'headless-analysis'
+            'post-script'
         ],
         async available() {
             return (await resolveGhidra()) !== null;
@@ -45,84 +65,95 @@ export function createGhidraProvider(): AnalyzerProvider {
                 return result(target, 'ghidra_analyze', [], {
                     status: 'unsupported',
                     limitations: [
-                        'Ghidra is not installed or analyzeHeadless was not found on PATH / GHIDRA_INSTALL_DIR.',
-                        'Install Ghidra and set GHIDRA_INSTALL_DIR, or put analyzeHeadless on PATH.'
+                        'Ghidra is not installed or analyzeHeadless was not found.',
+                        'Set GHIDRA_INSTALL_DIR or put analyzeHeadless on PATH.',
+                        'Results are never fabricated when Ghidra is absent.'
                     ],
                     coverage: { examined: false, complete: false, notes: [] }
                 });
             }
-            const timeoutMs = opts?.timeoutMs ?? 120000;
+            const timeoutMs = opts?.timeoutMs ?? 180000;
             const work = await mkdtemp(path.join(tmpdir(), 'reverse-ghidra-'));
-            const projectName = 'rev';
-            const script = `
-// Minimal headless export: function names if the API is present
-try {
-    var fm = currentProgram.getFunctionManager();
-    var it = fm.getFunctions(true);
-    var n = 0;
-    while (it.hasNext() && n < 500) {
-        var f = it.next();
-        println("FN " + f.getName() + " @ " + f.getEntryPoint());
-        n++;
-    }
-    println("GHIDRA_OK functions=" + n);
-} catch (e) {
-    println("GHIDRA_SCRIPT_ERROR " + e);
-}
-`;
-            const scriptPath = path.join(work, 'ListFns.java');
-            // Ghidra scripts are typically Java in a scripts dir; using -postScript requires a proper script.
-            // Fallback: run analyzeHeadless import only and capture stderr/stdout for presence proof.
+            const scripts = path.join(work, 'scripts');
+            const scriptPath = path.join(scripts, 'ReverseListFns.java');
+            const logPath = path.join(work, 'analyze.log');
             try {
-                await writeFile(scriptPath, script, 'utf8');
+                await writeFile(scriptPath, LIST_FNS_SCRIPT, 'utf8');
+                // Prefer analyzeHeadless entry; fall back to path as given.
+                const bin = g.path;
                 const args = [
                     work,
-                    projectName,
+                    'revproj',
                     '-import',
                     target,
+                    '-scriptPath',
+                    scripts,
+                    '-postScript',
+                    'ReverseListFns.java',
+                    '-analysisTimeoutPerFile',
+                    '60',
                     '-deleteProject',
-                    '-noanalysis'
+                    '-log',
+                    logPath
                 ];
-                const { stdout, stderr } = await execFileAsync(g.path, args, {
-                    timeout: timeoutMs,
-                    windowsHide: true,
-                    maxBuffer: 4 * 1024 * 1024,
-                    env: process.env,
-                    signal: opts?.signal as any
-                });
-                const text = `${stdout}\n${stderr}`;
-                const limitations = [
-                    'Headless import completed; full decompilation/xrefs require a postScript and analysis mode (opt-in, longer).',
-                    'Output is normalized presence evidence, not a substitute for interactive Ghidra.'
-                ];
+                let stdout = '';
+                let stderr = '';
+                try {
+                    const r = await execFileAsync(bin, args, {
+                        timeout: timeoutMs,
+                        windowsHide: true,
+                        maxBuffer: 8 * 1024 * 1024,
+                        signal: opts?.signal as any,
+                        env: process.env
+                    });
+                    stdout = r.stdout?.toString() ?? '';
+                    stderr = r.stderr?.toString() ?? '';
+                }
+                catch (e: any) {
+                    stdout = e?.stdout?.toString() ?? '';
+                    stderr = (e?.stderr?.toString() ?? '') + (e?.message ?? '');
+                    // continue — parse whatever was emitted
+                }
+                let logText = '';
+                try {
+                    logText = await readFile(logPath, 'utf8');
+                }
+                catch { /* no log */ }
+                const text = `${stdout}\n${stderr}\n${logText}`;
+                const functions: {
+                    name: string;
+                    addr?: string;
+                }[] = [];
+                for (const line of text.split(/\r?\n/)) {
+                    const m = line.match(/REVERSE_FN\s+(\S+)\s+@\s+(\S+)/);
+                    if (m)
+                        functions.push({ name: m[1], addr: m[2] });
+                }
+                const ok = /REVERSE_GHIDRA_OK/.test(text);
+                const imported = /Importing|import completed|FINISHED/i.test(text)
+                    || functions.length > 0;
                 return result(target, 'ghidra_analyze', [{
                         engine: 'ghidra',
-                        enginePath: g.path,
-                        importOk: !/ERROR|Exception/i.test(text) || /Importing complete|finished/i.test(text),
-                        logExcerpt: text.slice(0, 2000)
+                        enginePath: bin,
+                        functions: functions.slice(0, 500),
+                        functionCount: functions.length,
+                        postScriptOk: ok,
+                        logExcerpt: text.slice(0, 4000)
                     }], {
-                    status: 'partial',
-                    limitations,
+                    status: ok || functions.length ? 'completed' : imported ? 'partial' : 'failed',
+                    limitations: [
+                        'Headless postScript dumps up to 500 function names when analysis succeeds.',
+                        'Full decompilation and interactive xrefs remain outside this adapter.',
+                        'Large binaries may hit analysisTimeoutPerFile (60s).'
+                    ],
                     coverage: {
                         examined: true,
-                        complete: false,
-                        notes: ['Ghidra headless invoked; deep analysis scripts are optional and host-specific.']
+                        complete: ok || functions.length > 0,
+                        notes: [
+                            `functions=${functions.length}`,
+                            ok ? 'postScript OK' : 'postScript markers absent'
+                        ]
                     }
-                });
-            }
-            catch (e: any) {
-                if (e?.name === 'AbortError' || opts?.signal?.aborted) {
-                    return result(target, 'ghidra_analyze', [], {
-                        status: 'partial',
-                        limitations: ['Ghidra run aborted by signal.'],
-                        coverage: { examined: true, complete: false, notes: [] }
-                    });
-                }
-                return result(target, 'ghidra_analyze', [], {
-                    status: 'failed',
-                    limitations: [`Ghidra headless failed: ${e?.message ?? String(e)}`],
-                    errors: [String(e?.message ?? e)],
-                    coverage: { examined: true, complete: false, notes: [] }
                 });
             }
             finally {
@@ -134,34 +165,32 @@ try {
         }
     };
 }
-/** Similarity via Ghidra only when installed; never bundles a corpus (H-06). */
 export function createGhidraSimilarityProvider(): SimilarityProvider {
     const base = createGhidraProvider();
     return {
         ...base,
         name: 'ghidra-similarity',
         kind: 'similarity',
-        capabilities: ['function-similarity', 'ghidra-function-id', 'bsim-when-configured'],
+        capabilities: ['function-similarity', 'bsim-when-configured'],
         async compareFunctions(a: string, b: string, _opts?: ProviderRunOptions) {
             const ok = await base.available();
             if (!ok) {
                 return result(`${a}|${b}`, 'similarity_compare', [], {
                     status: 'unsupported',
                     limitations: [
-                        'Ghidra similarity requires a local Ghidra install with Function ID / BSim configured.',
-                        'No reference corpus is bundled with Reverse (H-06).'
+                        'Ghidra similarity needs a local Ghidra install.',
+                        'No reference corpus is bundled (H-06).'
                     ],
                     coverage: { examined: false, complete: false, notes: [] }
                 });
             }
-            // Without a configured BSim DB we only report capability presence, not fake scores.
             return result(`${a}|${b}`, 'similarity_compare', [{
                     score: 0,
                     confidence: 0,
                     method: 'ghidra-bsim',
                     notes: [
-                        'Ghidra is available but BSim/Function ID database is not auto-configured by Reverse.',
-                        'Point GHIDRA / BSim configuration at your own corpus to obtain scores.'
+                        'BSim/Function ID database is not auto-configured by Reverse.',
+                        'Configure your own corpus to obtain real scores.'
                     ]
                 } satisfies SimilarityHit], {
                 status: 'partial',

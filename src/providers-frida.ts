@@ -12,16 +12,32 @@ let cached: {
 async function resolveFrida() {
     if (cached !== undefined)
         return cached;
-    cached = await findExecutable(['frida', 'frida-ps', 'frida-trace'], COMMON_BIN_DIRS, ['--version']);
+    cached = await findExecutable(['frida', 'frida-ps'], COMMON_BIN_DIRS, ['--version']);
     return cached;
 }
+/** Compact Frida -e script: modules + thread count + one backtrace sample. */
+const ATTACH_SCRIPT = [
+    'var info = { pid: Process.id, platform: Process.platform,',
+    '  arch: Process.arch, threads: Process.enumerateThreads().length,',
+    '  modules: Process.enumerateModules().slice(0, 30).map(function(m) {',
+    '    return { name: m.name, base: m.base.toString() };',
+    '  }), stacks: [] };',
+    'Process.enumerateThreads().slice(0, 5).forEach(function(t) {',
+    '  try {',
+    '    var bt = Thread.backtrace(t.context, Backtracer.ACCURATE)',
+    '      .slice(0, 8).map(DebugSymbol.fromAddress).map(String);',
+    '    info.stacks.push({ tid: t.id, frames: bt });',
+    '  } catch (e) { info.stacks.push({ tid: t.id, error: String(e) }); }',
+    '});',
+    'console.log("REVERSE_FRIDA " + JSON.stringify(info));'
+].join('');
 export function createFridaProvider(): AnalyzerProvider {
     return {
         name: 'frida',
         capabilities: [
             'dynamic-trace',
-            'native-hooks',
-            'java-art',
+            'module-list',
+            'thread-backtrace',
             'adb-transport'
         ],
         async available() {
@@ -39,7 +55,6 @@ export function createFridaProvider(): AnalyzerProvider {
         }
     };
 }
-/** Execution trace via Frida. Requires CONTROLLED_EXECUTION; never fakes data. */
 export async function traceWithFrida(target: string, opts?: ProviderRunOptions & {
     pid?: number;
     durationMs?: number;
@@ -66,37 +81,60 @@ export async function traceWithFrida(target: string, opts?: ProviderRunOptions &
             coverage: { examined: false, complete: false, notes: [`frida=${f.path}`] }
         });
     }
-    const timeoutMs = opts?.timeoutMs ?? opts?.durationMs ?? 15000;
+    const timeoutMs = opts?.timeoutMs ?? opts?.durationMs ?? 20000;
+    const env = {
+        ...process.env,
+        ...(opts?.adb ? { ADB: opts.adb } : {})
+    };
     try {
-        // Enumerate processes only — attach/hooks need an explicit session design.
-        const args = opts?.pid != null
-            ? ['-p', String(opts.pid), '-q', '-e', 'console.log(JSON.stringify({ok:true,pid:Process.id}))']
-            : ['-U', '-q', '-e', 'console.log("frida-ok")'];
+        let args: string[];
+        if (opts?.pid != null) {
+            args = ['-p', String(opts.pid), '-q', '-e', ATTACH_SCRIPT];
+        }
+        else if (/^\d+$/.test(target)) {
+            args = ['-p', target, '-q', '-e', ATTACH_SCRIPT];
+        }
+        else {
+            // Spawn target under Frida (file path)
+            args = ['-f', target, '--pause', '-q', '-e', ATTACH_SCRIPT, '-e', 'Process.resume()'];
+        }
         const { stdout, stderr } = await execFileAsync(f.path, args, {
             timeout: timeoutMs,
             windowsHide: true,
-            maxBuffer: 2 * 1024 * 1024,
+            maxBuffer: 4 * 1024 * 1024,
             signal: opts?.signal as any,
-            env: {
-                ...process.env,
-                ...(opts?.adb ? { ADB: opts.adb } : {})
-            }
+            env
         });
+        const text = `${stdout}\n${stderr}`;
+        let parsed: unknown = null;
+        const m = text.match(/REVERSE_FRIDA\s+(\{[\s\S]*\})/);
+        if (m) {
+            try {
+                parsed = JSON.parse(m[1]);
+            }
+            catch { /* keep raw */ }
+        }
         return result(target, 'trace_execution', [{
                 engine: 'frida',
                 enginePath: f.path,
                 mode: 'controlled',
-                logExcerpt: `${stdout}\n${stderr}`.slice(0, 4000)
+                sample: parsed,
+                logExcerpt: text.slice(0, 4000)
             }], {
-            status: 'partial',
+            status: parsed ? 'completed' : 'partial',
             limitations: [
-                'Session-style Java/native hooks and full call frequency need a longer opt-in script.',
-                'Target process state is not modified beyond Frida attach lifetime.'
+                'One-shot module/thread/backtrace sample; not a continuous call-frequency profile.',
+                'Java/ART hooks (Java.perform) need a longer host-specific script.',
+                'Target is only attached for the duration of this command.'
             ],
             coverage: {
                 examined: true,
-                complete: false,
-                notes: ['Frida invoked under CONTROLLED_EXECUTION.']
+                complete: !!parsed,
+                notes: [
+                    parsed
+                        ? 'Frida attach sample captured under CONTROLLED_EXECUTION.'
+                        : 'Frida ran but REVERSE_FRIDA JSON marker was not parsed.'
+                ]
             }
         });
     }
