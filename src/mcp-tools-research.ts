@@ -361,19 +361,22 @@ export const researchTools: any[] = [
         }
     }
 ];
-
 researchTools.push({
     name: 'declare_legacy_authorization',
-    description: 'Declare the legal basis for legacy analysis of a research session. This is an operator declaration, not legal verification.',
+    description: 'Declare the operator-reported legal basis for legacy analysis; this is not legal verification.',
     inputSchema: { type: 'object', properties: {
-        session_id: { type: 'string' },
-        basis: { type: 'string', enum: ['open_source', 'written_consent'] },
-        license_or_consent_reference: { type: 'string' },
-        declared_by: { type: 'string' }
-    }, required: ['session_id', 'basis', 'license_or_consent_reference', 'declared_by'] }
+            session_id: { type: 'string' },
+            basis: { type: 'string', enum: ['open_source', 'written_consent'] },
+            license_or_consent_reference: { type: 'string' },
+            declared_by: { type: 'string' }
+        }, required: ['session_id', 'basis', 'license_or_consent_reference', 'declared_by'] }
 });
 researchTools.push({
     name: 'analyze_legacy_windows',
-    description: 'Analyze DOS/Windows legacy executable headers and bounded toolchain markers. Requires a session with declared authorization.',
-    inputSchema: { type: 'object', properties: { file: { type: 'string' }, session_id: { type: 'string' } }, required: ['file', 'session_id'] }
+    description: 'Analyze legacy DOS/Windows headers and toolchain markers; requires declared session authorization.',
+    inputSchema: {
+        type: 'object',
+        properties: { file: { type: 'string' }, session_id: { type: 'string' } },
+        required: ['file', 'session_id']
+    }
 });

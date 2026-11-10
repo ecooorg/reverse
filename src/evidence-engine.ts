@@ -153,7 +153,7 @@ export class EvidenceEngine {
     async requireLegacyAuthorization(sessionId: string): Promise<ResearchSession> {
         const s = await this.requireSession(sessionId);
         if (!s.authorization)
-            throw new Error('Legacy analysis requires a declared open-source license or written consent of the developers and rights holders.');
+            throw new Error('Legacy analysis requires an open-source license or written rights-holder consent.');
         return s;
     }
     async addSessionEvent(sessionId: string, event: string, payload: unknown = {}): Promise<ResearchSession> {
