@@ -221,7 +221,7 @@ check('Package', 'built output exists and the library exports the documented API
     for (const f of ['index', 'cli-main', 'mcp-server'])
         assert.ok(existsSync(path.join(DIST, `${f}.js`)), `dist/${f}.js missing`);
     const lib: any = await import(pathToFileURL(path.join(DIST, 'index.js')).href);
-    const expected = ['EvidenceEngine', 'analyzeBinary', 'analyzeDependencies', 'analyzeSource', 'compareBenchmarks', 'getProviderStatus',
+    const expected = ['EvidenceEngine', 'analyzeAndroid', 'analyzeBinary', 'analyzeDependencies', 'analyzeSource', 'compareBenchmarks', 'getProviderStatus',
         'inspectProcess',
         'listProcesses',
         'listProviders',
@@ -327,11 +327,15 @@ check('Binary', 'result carries a SHA-256 evidence record matching the file', as
     assert.equal(ev.sha256, createHash('sha256').update(await readFile(file)).digest('hex'));
     assert.ok(existsSync(ev.details.artifactPath));
 });
-check('Binary', 'no sections, imports, symbols or disassembly are produced', async (c) => {
+check('Binary', 'sections, imports or symbols are produced where the format allows', async (c) => {
     const f: any = (await analyzeBinary(NODE)).findings[0];
-    assert.equal(f.sections, undefined);
-    assert.equal(f.imports, undefined);
-    c.limit('header-level only: no sections, imports, symbols, disassembly or decompilation');
+    const has = (f.sections?.length ?? 0) > 0 || (f.imports?.length ?? 0) > 0 ||
+        (f.exports?.length ?? 0) > 0 || (f.symbols?.length ?? 0) > 0 || (f.loadCommands?.length ?? 0) > 0;
+    assert.ok(has, 'expected at least sections, imports, exports, symbols or load commands on the host binary');
+    c.detail(`sections=${f.sections?.length ?? 0} imports=${f.imports?.length ?? 0} ` +
+        `exports=${f.exports?.length ?? 0} symbols=${f.symbols?.length ?? 0}`);
+    // Disassembly / call graph remain out of scope for patch E (provider engines in F).
+    c.limit('no disassembly, decompilation or control-flow graph (provider engines in patch F)');
 });
 // ---------------------------------------------------------------- 3. source inventory
 const SRC = path.join(WORK, 'proj');
@@ -370,11 +374,12 @@ check('Source', 'inventories files, counts extensions/lines, extracts bare impor
     assert.equal(r.status, 'completed');
     assert.equal(r.evidence[0].kind, 'directory');
 });
-check('Source', 'import counting is textual and counts imports inside comments', async (c) => {
+check('Source', 'commented-out imports are not counted', async () => {
     const f: any = ((await analyzeSource(SRC)) as any).findings[0];
     const imp = Object.fromEntries(f.externalImportReferences);
-    assert.equal(imp['fake-pkg'], 1);
-    c.limit('imports are matched by regex; a commented-out import is counted (no AST)');
+    assert.equal(imp['fake-pkg'], undefined, 'commented import must not be counted');
+    assert.equal(imp['lodash'], 1);
+    assert.equal(imp['left-pad'], 1);
 });
 check('Source', 'scan is capped at 5000 files and reports partial coverage', async () => {
     const big = path.join(WORK, 'big');
@@ -418,10 +423,33 @@ check('Dependencies', 'missing or malformed package.json yields partial with a l
         assert.ok(r.limitations.length > 0);
     }
 });
-check('Dependencies', 'versions are declared ranges only (no resolution, transitive graph, CVE or license data)', async (c) => {
+check('Dependencies', 'lockfile resolution supplies resolved versions when package-lock.json is present', async () => {
+    const d = path.join(WORK, 'deps-lock');
+    await mkdir(d, { recursive: true });
+    await writeFile(path.join(d, 'package.json'), j({
+        dependencies: { a: '^1.0.0' }
+    }));
+    await writeFile(path.join(d, 'package-lock.json'), j({
+        lockfileVersion: 3,
+        packages: {
+            '': { dependencies: { a: '^1.0.0' } },
+            'node_modules/a': { version: '1.2.3', dependencies: { b: '2.0.0' } },
+            'node_modules/b': { version: '2.0.0' }
+        }
+    }));
+    const r: any = await analyzeDependencies(d);
+    const byName = Object.fromEntries(r.findings.map((x: any) => [x.name, x]));
+    assert.equal(byName['a']?.resolvedVersion, '1.2.3');
+    assert.equal(byName['a']?.direct, true);
+    assert.ok(byName['b'], 'transitive from lockfile');
+    assert.equal(byName['b']?.resolvedVersion, '2.0.0');
+    assert.equal(byName['b']?.direct, false);
+    assert.equal(r.status, 'completed');
+});
+check('Dependencies', 'without a lockfile resolved versions stay null and status may be partial', async (c) => {
     const r: any = await analyzeDependencies(path.join(WORK, 'deps'));
     assert.ok(r.findings.every((x: any) => x.resolvedVersion === null));
-    c.limit('resolvedVersion is always null; no lockfile parsing, transitive graph, vulnerability or license audit');
+    c.limit('no CVE/vulnerability database; size impact and replacement recommendations not computed');
 });
 // ---------------------------------------------------------------- 5. processes
 check('Processes', 'lists visible processes with pid and name, honoring the limit', async () => {
