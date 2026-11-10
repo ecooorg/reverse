@@ -7,7 +7,8 @@ name: A-D closure (temporary)
 #                  the full capability suite, and an assertion that the A-D checks ended in the expected state.
 #   cgroup-real  - Linux only: prepares a delegated cgroup v2 hierarchy as root and runs the real-cgroup safety check,
 #                  which must end verified (not limitation) there.
-#   verdict      - one line that says whether the closure is proven: it is red when any cell failed.
+#   verdict      - writes one closure record (a table of every cell, artifact `ad-closure-record`) and is red when any cell failed.
+#                  The record is what docs/ROADMAP.md quotes under "A-D closure evidence".
 #
 # Minute budget: macOS bills 10x and Windows 2x. Choose `ubuntu-latest` for a quick run.
 
@@ -178,8 +179,57 @@ jobs:
     needs: [matrix, cgroup-real]
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 5
     steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/download-artifact@v8
+        if: always()
+        continue-on-error: true
+        with:
+          pattern: ad-closure-*
+          path: ad-closure-in
+      - name: Write one closure record (copy it into docs/ROADMAP.md, "A-D closure evidence")
+        if: always()
+        run: |
+          mkdir -p ad-closure-record
+          node --input-type=module -e '
+            import { readdirSync, readFileSync, writeFileSync, appendFileSync, existsSync, statSync } from "node:fs";
+            import path from "node:path";
+            const files = [];
+            const walk = d => { for (const n of readdirSync(d)) { const f = path.join(d, n); statSync(f).isDirectory() ? walk(f) : f.endsWith(".json") && files.push(f); } };
+            if (existsSync("ad-closure-in")) walk("ad-closure-in");
+            const reports = files.map(f => ({ f, r: JSON.parse(readFileSync(f, "utf8")) })).filter(x => x.r.records);
+            const checks = [
+              ["Evidence", "hash-chain events, detect tampering"], ["Evidence", "promoted only by evidence whose content supports it"],
+              ["Evidence", "real analyzer results become typed evidence"], ["Profiling", "anomaly rules fire on both sides"],
+              ["Profiling", "Snapshot, Monitor, Diagnostic and Compare differ"], ["Safety", "OBSERVE is a distinct contract"],
+              ["Benchmark", "a timeout terminates the whole process tree"], ["Source", "no source or test line exceeds 140"],
+              ["Docs", "roadmap, audit and architecture agree"], ["Safety", "real cgroup"]
+            ];
+            const icon = { verified: "✅", limitation: "🚧", drift: "⚠️", failed: "❌" };
+            const cell = (r, [a, n]) => { const x = r.records.find(y => y.area === a && y.name.includes(n)); return x ? icon[x.status] : "—"; };
+            const lines = ["## A-D closure record", "", `Run ${process.env.GITHUB_RUN_ID} on commit ${process.env.GITHUB_SHA}`, "",
+              `| Environment | ✅ | 🚧 | ⚠️ | ❌ | ${checks.map(c => c[1].slice(0, 28)).join(" | ")} |`,
+              `|---|---|---|---|---|${checks.map(() => "---").join("|")}|`];
+            for (const { r } of reports.sort((x, y) => (x.r.platform + x.r.node).localeCompare(y.r.platform + y.r.node))) {
+              const t = r.totals;
+              lines.push(`| ${r.records.length === 1 ? "real cgroup job, " : ""}${r.platform} / ${r.node} (reverse ${r.reverse}) | ${t.verified} | ${t.limitation} | ${t.drift} | ${t.failed} | ${checks.map(c => cell(r, c)).join(" | ")} |`);
+            }
+            if (!reports.length) lines.push("| no report artifacts were found | | | | | |");
+            lines.push("", `matrix: ${process.env.MATRIX_RESULT}, cgroup-real: ${process.env.CGROUP_RESULT}`);
+            writeFileSync("ad-closure-record/ad-closure-record.md", lines.join("\n") + "\n");
+            if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
+            console.log(lines.join("\n"));
+          '
+        env:
+          MATRIX_RESULT: ${{ needs.matrix.result }}
+          CGROUP_RESULT: ${{ needs.cgroup-real.result }}
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: ad-closure-record
+          path: ad-closure-record/
+          if-no-files-found: warn
       - name: Closure proven only when every cell passed
         run: |
           echo "matrix: ${{ needs.matrix.result }}, cgroup-real: ${{ needs.cgroup-real.result }}"
