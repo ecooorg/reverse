@@ -52,6 +52,8 @@ Tool definitions include `title`, `annotations` and an `outputSchema`; command-e
 | `add_research_event` | `session_id`, `event` | Append investigation, diagnosis, optimization, comparison or validation events |
 | `add_research_evidence` | `session_id`, `type`, `source`, `measurement`, `confidence`, `limitations` | Attach typed evidence to the research session |
 | `link_research_artifacts` | `session_id`, `relation`, `ids` | Link observations, profiles, baselines, optimizations, benchmarks, comparisons, validations and final reports |
+| `declare_legacy_authorization` | `session_id`, `basis`, `license_or_consent_reference`, `declared_by` | Record operator-declared open-source or written-consent basis for legacy analysis |
+| `analyze_legacy_windows` | `file`, `session_id` | DOS/Windows legacy header and bounded marker analysis; requires declared authorization |
 
 **Command execution gate (0.2.0-beta.3, breaking default).** `capture_baseline`, `run_benchmark` and `validate_changes` run commands and are refused unless the operator starts the server with `REVERSE_MODE=CONTROLLED_EXECUTION` and `REVERSE_COMMAND_ALLOWLIST` (comma-separated command names or absolute paths; `*` allows any command and must be chosen on purpose). `REVERSE_CWD_ROOT`, when set, confines `cwd`. Children inherit only an allowlisted environment (`PATH`, temp and locale variables plus names listed in `REVERSE_CHILD_ENV`). Every tool carries `annotations` (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`); the three command tools are marked not read-only. The CLI is operated by the user and is not gated.
 
@@ -113,3 +115,12 @@ Default bind `127.0.0.1:7331`. Not full MCP Streamable HTTP.
 | `prompts/get` | Materialize prompt messages with arguments |
 | `resources/list` | List `reverse://evidence|sessions|…/<id>` |
 | `resources/read` | Read local JSON artifact by URI |
+
+
+### Legacy Windows tools (Patch M, initial slice)
+
+1. Call `create_research_session` with the target identifier.
+2. Call `declare_legacy_authorization` with `basis` (`open_source` or `written_consent`), a human-readable `license_or_consent_reference`, and `declared_by`. This records the operator's declaration; Reverse does not validate the legal basis.
+3. Call `analyze_legacy_windows` with the file path and that `session_id`. Calls without the declaration are refused.
+
+The analyzer recognizes DOS MZ, Windows NE/LE/LX and PE headers, and scans at most 8 MiB for selected legacy toolchain/graphics strings. It does not execute the file, perform structural VB6/Delphi/MFC analysis, or provide a complete compatibility diagnosis.

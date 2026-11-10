@@ -35,7 +35,7 @@ Further rules:
 - **Generated code:** code produced by generative reconstruction carries a provenance record and must be compatible with the license or consent of the analyzed target.
 - **Prompt injection:** strings, resources and metadata taken from a target are untrusted input to any model, including hypothesis and similarity results (R-02).
 
-Until patch M implements the authorization record, this section is the binding summary and nothing in it is enforced by code.
+Patch M enforces a declared basis for `analyze_legacy_windows`: the operator must record either an open-source license reference or a written-consent reference and declarant in the research session. This is a declaration only; Reverse does not validate the document, license compatibility, identity, or legal status. Other legacy operations remain unavailable until their respective patches.
 
 ## Known security gaps
 

@@ -6,6 +6,22 @@ IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H*
 
 ---
 
+## Audit 14 — 2026-11-10 — Patch M initial Windows slice (1.1.0-beta.1)
+
+**Scope.** Review the first Windows ≤2010 implementation slice against AGENTS.md and the M1 roadmap. This is a prerelease slice, not closure of the Windows wave or patch M.
+
+**Delivered.** Static MZ/NE/LE/LX/PE header recognition; bounded marker scan for selected legacy toolchains and graphics APIs; preliminary compatibility candidates with confidence and limitations; session-scoped operator authorization declaration and MCP gate for `analyze_legacy_windows`. Package metadata, product version, MCP contract, README, capability matrix, architecture, security, roadmap and this audit record are updated together.
+
+**Not delivered / remains open.** Structural VB6/Delphi/MFC detection, packer identification, full target profile, sourced OS/API compatibility tables, ground-truth corpus and precision/recall calibration, similarity adapters for M, automatic authorization embedding in every report, and end-to-end M–P Windows trial. No claim is made that the complete M1 wave is done.
+
+| ID | Sev | Area | Finding | Status |
+|---|---|---|---|---|
+| F-63 | Medium | Legacy analysis | No deterministic Windows legacy executable header/marker analyzer | Status: initial slice implemented in 1.1.0-beta.1; full M1 detector matrix remains open |
+| F-64 | High | Authorization | Legacy research session had no recorded declared authorization basis | Status: initial session record and `analyze_legacy_windows` gate implemented in 1.1.0-beta.1; report propagation and future operation gates remain open |
+| F-65 | Low | Documentation/release | Initial M slice was not reflected consistently in package metadata and project documentation | Status: closed in 1.1.0-beta.1 (metadata and documentation synchronized) |
+
+---
+
 ## Audit 13 — 2026-11-10 — Hygiene 1.0.1 (R-03, F-16, R-05 partial, H-09 lite)
 
 **Scope.** Pin Actions to full SHAs; split capability harness; lightweight quality:static; prompt evaluation harness.

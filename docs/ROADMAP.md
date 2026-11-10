@@ -35,7 +35,7 @@ Version 1.0 is reached when patches A–K are done and the capability matrix con
 | J | Controlled optimization loop | 1.0 | G, H, I |
 | K | Runtime analyzers and on-demand extensions | 1.0 | F, J |
 | L | Agent integration and distribution | 1.x (after 1.0) | D, J |
-| M | Compatibility diagnosis and legacy formats | 1.1–1.5 (waves) | E, F, G, J |
+| M | Compatibility diagnosis and legacy formats | 1.1–1.5 (waves; initial Windows slice in 1.1.0-beta.1) | E, F, G, J |
 | N | Execution environments | 1.1–1.5 (waves) | G, M |
 | O | Behavior capture and replay | 1.1–1.5 (waves) | I, N |
 | P | Function equivalence lab and migration advisor | 1.1–1.5 (waves) | O, J |
@@ -391,7 +391,7 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | H-02 | Fact category 3 redefined; MCP marks `kind: "hypothesis"`; hypotheses never stored as evidence or mixed into measured or static findings | **D** |
 | H-03 | `SimilarityProvider` contract; Ghidra Function ID and BSim adapters; no embedded corpus | **F** (contract), **M** (further adapters) |
 | H-04 | Deterministic legacy detectors first; analogy tag only with confidence and deterministic basis | **M** |
-| H-05 | Authorized-use policy: open-source software or full consent of developers and rights holders only | **M** (first item; text already in [SECURITY.md](SECURITY.md)) |
+| H-05 | Authorized-use policy: open-source software or full consent of developers and rights holders only | partial in 1.0.1, patch M (enforced for `analyze_legacy_windows`; other legacy operations must gate too) |
 | H-06 | Corpus policy: hashes and signatures only, source and license per entry, no third-party binaries, local lookups | **F**, **M** |
 | H-07 | Oracle rule: no synthesis or reconstruction above L0 without an oracle; provenance for generated code | **N** (oracle report), **P** |
 | H-08 | Reference corpus with ground truth and matcher precision/recall/calibration metrics | **M** (per wave), **L** (agent evaluation) |
@@ -426,15 +426,15 @@ Host and target are different things: the host is where Reverse runs, the target
 
 Depends on E, F and G. Closes G-01, G-02, G-07, G-09.
 
-- [ ] First: authorized-use and legal scope policy in [SECURITY.md](SECURITY.md) and the agent rules (copy protection, dongles, licenses, user-supplied OS images are never bundled).
-- [ ] Authorization record (H-05, H-10): each legacy research session requires a declared basis (open-source license, or written consent of the developers and rights holders), stored in the session and in every report; without it the legacy operations refuse. The record is a declaration, not a legal verification.
+- [x] First: authorized-use and legal scope policy in [SECURITY.md](SECURITY.md) and the agent rules (copy protection, dongles, licenses, user-supplied OS images are never bundled).
+- [ ] Authorization record (H-05, H-10): `analyze_legacy_windows` requires a declared basis (open-source license, or written consent of the developers and rights holders), stored in the session; automatic inclusion in every report and gates for future legacy operations remain open. The record is a declaration, not legal verification.
 - [ ] Corpus policy (H-06): a similarity corpus holds only hashes and signatures of open-source or consented material, each with source and license; no third-party binaries are bundled.
 - [ ] Target profile: required OS and era, CPU, bitness, ABI, runtime, installer and toolchain, with evidence for each field; an optional analogy tag with confidence and its deterministic basis.
 - [ ] Deterministic detectors first (H-04): Delphi RTTI/DFM, MFC message maps, Visual Basic 6 headers, Borland and other toolchain markers, dBASE/.dbf and similar documented formats are reported as static facts. Only what they cannot explain becomes a hypothesis.
 - [ ] Similarity adapters (H-03) feed hypotheses with confidence and provenance to the ledger.
 - [ ] Reference corpus with ground truth (H-08): open-source programs built with period compilers; measures precision and recall of detectors and similarity matches and the calibration of confidence values. Hypothesis features do not ship until this exists for the wave.
 - [ ] Compatibility diagnosis report: imported APIs and libraries against per-OS-version availability tables (data files, versioned, sourced); privilege and virtualization assumptions; CPU-speed-dependent timing; graphics, audio, driver and hardware dependencies; DPI and resolution; locale, path and registry/preference assumptions; address-space and date limits. Every cause is a finding with source, confidence and limitations; causes that need running the program are marked "needs N".
-- [ ] Format and toolchain detectors for the wave being delivered (table above), built on providers (for example Detect It Easy, rz-bin, Ghidra loaders) rather than new parsers where possible.
+- [ ] Format and toolchain detectors for the wave being delivered. Initial M1 slice recognizes DOS MZ, Windows NE/LE/LX/PE and selected bounded VB6/Borland/Delphi/MFC/VC/DirectX/Glide strings; structural VB6/Delphi/MFC detectors and the rest of the Windows wave remain open.
 - [ ] Target-platform and era matrix in [CAPABILITIES.md](CAPABILITIES.md); a check compares it with the registered detectors.
 - Wave deliverables: M1 Windows ≤ 2010, M2 old Linux, M3 old Mac, M4 old Android, M5 newer generations.
 
@@ -688,3 +688,8 @@ The core is considered ready for first production use when it:
 12. allows new analyzers to be connected.
 
 Trials cover at least two scenarios: detecting a real performance problem, and verifying an optimization with a measurable result. Three things are never traded for size: Evidence (otherwise the agent decides on unreliable assumptions), Profiler plus Benchmark (otherwise optimization effectiveness cannot be established objectively), and Validation (otherwise a faster but broken program can result).
+
+
+### Patch M implementation note — 1.1.0-beta.1 (initial Windows slice)
+
+This prerelease adds `analyze_legacy_windows` and `declare_legacy_authorization`, the session authorization record, deterministic executable-header recognition (MZ/NE/LE/LX/PE), bounded selected marker scanning, and preliminary compatibility candidates. It closes only the legal-policy documentation item and the initial authorization/header-detector sub-slice; it does **not** close G-01/G-02/G-07/G-09 or the Windows wave. Remaining M checklist items are intentionally unchecked.
