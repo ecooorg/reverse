@@ -1,3 +1,7 @@
+## Status
+
+Patch **M** closed at **1.2.0** (2026-11-11). Residual limitations listed per row (L0 without oracle; sandbox hard-isolation gaps).
+
 # Capability matrix
 
 This file states what really works and what does not. Planned work is only in the last section and in [ROADMAP.md](ROADMAP.md). The first table covers the core areas; the sections below cover the capabilities added by later patches, newest area last.

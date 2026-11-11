@@ -494,3 +494,13 @@ Superseded: statuses of F-07, F-08, F-11, F-12, F-16, F-17 and the recommendatio
 
 This closes the documentation gap that macOS/Windows results for post–A–D work were “not claimed”, and verifies the single-artifact CI layout (F-66). Roadmap status dashboard and pending-verification list updated in the same change.
 
+## Maintenance note — Patch M release 1.2.0 (2026-11-11)
+
+Patch M is closed. Evidence: green full-matrix runs on commit `b66312e` —
+Capabilities [43037232211](https://github.com/ecooorg/reverse/actions/runs/43037232211),
+Structure [43037271948](https://github.com/ecooorg/reverse/actions/runs/43037271948),
+Supply chain [43037302969](https://github.com/ecooorg/reverse/actions/runs/43037302969).
+
+Annotations that appeared on those green runs as "error-like lines" were false positives from TAP self-tests whose names contain the word "failure"; `ci-ai-summary` no longer emits Annotations for suspicious-only (no failed step / junit / capability issue).
+
+Explicit product limitations at M exit: no bundled licensed Windows oracle (preservation L0); Windows/macOS hard sandbox isolation not wired; partial PE bound-import coverage as noted in CAPABILITIES.md.

@@ -18,18 +18,18 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.1.8** (Patch M through work-order step 8: reference trials; 2026-11-11).
+State as of **1.2.0** (Patch M closed — Windows compatibility through 2010; 2026-11-11).
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.1.8** (prerelease of the 1.2 milestone) |
-| What is finished? | The 1.0 foundation, **patches A–L**: process intelligence, benchmark engine, evidence and research sessions, static analysis, providers (Ghidra, Rizin, JADX, Apktool, Frida, GDB, profilers), validation and integrity, controlled optimization loop, JS/.NET/WASM analyzers, agent integration. 60 MCP tools. Own code in `src/`: about 9,300 lines (budget 20,000–30,000). |
-| What is being built? | **Patch M** — complete Windows compatibility, DOS through Windows 7-era software (up to 2010); target release **1.2**. Status: **in progress**. Delivered so far: initial detector slices (1.1.0-beta.1, 1.1.8). |
-| What has not started? | **Patches N, O, P, Q** (old Linux; Classic Mac/early macOS; legacy Android; newer generations and unified compatibility intelligence). Do not start them before M passes its acceptance criteria. Their detailed plans (scope, work order, checklists, debts, exit criteria) are in [Detailed plans for patches N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q). |
+| What is the product version? | **1.2.0** (Patch M release) |
+| What is finished? | The 1.0 foundation (**patches A–L**) and **Patch M** (Windows compatibility through 2010, release **1.2.0**). |
+| What is being built? | **Patch N** — old Linux compatibility (next). Patch M (Windows through 2010) is **done** at **1.2.0**. |
+| What has not started? | **Patches O, P, Q** (Classic Mac/early macOS; legacy Android; newer generations and unified compatibility intelligence). Next is **N** (old Linux). Plans: [Detailed plans for patches N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q). |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Follow the [work order inside M](#work-order-inside-m-approved-by-the-maintainer-2026-11-11). **Steps 0–8 done** (reference trials on crafted fixtures; L0 limitations recorded). Full M release **1.2.0** still requires remaining checklist ticks and a recorded `os: all` green run after this increment. |
+| What is the next concrete step? | Start **Patch N** (old Linux) per its detailed plan. Do not begin O/P/Q before N meets its acceptance criteria. |
 | What is open but not blocking? | See the [carry-over debt register](#carry-over-debt-register): No open item blocks M. R-20 sandbox delivered (Linux-first); Windows/macOS hard isolation remains a recorded limitation. Remaining M work is steps 6–8. |
-| What is unverified? | Full-matrix CI is recorded for commit `66fee60` (2026-11-11): [Capabilities](https://github.com/ecooorg/reverse/actions/runs/43024000265) Success — Linux/macOS/Windows × Node 22/24 and package on Ubuntu/Windows; [Structure](https://github.com/ecooorg/reverse/actions/runs/43024033261) Success — Ubuntu/macOS/Windows; [Supply chain](https://github.com/ecooorg/reverse/actions/runs/43024423915) Success. Each workflow produced one final artifact (`Capabilities` / `Structure` / `Supply chain`). Previous baseline remains A–D closure run 42775483864 (0.2.0-beta.8). |
+| What is unverified? | Residual M limitations (explicit): no bundled licensed Windows oracle (preservation L0); Windows/macOS hard sandbox isolation not wired; deep bound-import coverage still partial where noted in CAPABILITIES. Full-matrix green recorded for commit `b66312e` (Capabilities 43037232211, Structure 43037271948, Supply chain 43037302969). |
 
 ## Delivery plan: foundation A–L and product patches M–Q
 
@@ -66,7 +66,7 @@ One table for every patch. Patches A–L are the completed 1.0 foundation; M–Q
 | J | Controlled optimization loop | 1.0 | G, H, I | done |
 | K | Runtime analyzers and on-demand extensions | 1.0 | F, J | done |
 | L | Agent integration and distribution | 1.x (core in 1.0.0, hygiene in 1.0.1) | D, J | done (full H-09 harness and optional single-file binary remain open) |
-| M | Windows compatibility, DOS through Windows 7-era (up to 2010) | 1.2 | A–L foundation; initial analyzer in 1.1.0-beta.1/.2 | **in progress** |
+| M | Windows compatibility, DOS through Windows 7-era (up to 2010) | 1.2 | A–L foundation; steps 0–8; reference trials | **done** (1.2.0) |
 | N | Old Linux software | 1.3 | M shared contracts and evidence model | not started |
 | O | Classic Mac and early macOS software | 1.4 | N shared contracts and environment/replay foundations | not started |
 | P | Legacy Android software | 1.5 | O shared contracts; Android foundations already present in E/J | not started |
@@ -116,7 +116,7 @@ Every patch must deliver all of the following for its target family, with honest
 
 ### Patch M working checklist
 
-Patch M is **in progress** (target release 1.2). The items below are *internal tasks*, grouped by the seven acceptance dimensions above; they are not patches and must not be given patch labels or versions. A box is ticked only where code and a passing check exist at 1.1.8. Backlog IDs refer to the [approved audit backlog](#approved-audit-backlog-audit-1-approved-2026-11-09).
+Patch M is **done** (release **1.2.0**). The items below are *internal tasks*, grouped by the seven acceptance dimensions above; they are not patches and must not be given patch labels or versions. A box is ticked only where code and a passing check exist at 1.1.8. Backlog IDs refer to the [approved audit backlog](#approved-audit-backlog-audit-1-approved-2026-11-09).
 
 **1. Target Profile and static inventory**
 - [x] DOS MZ, Windows NE, LE, LX and PE header recognition (1.1.0-beta.1).
@@ -1036,6 +1036,18 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 
 ## Release history
 
+### 1.2.0 — Patch M closed (Windows compatibility through 2010) — 2026-11-11
+
+- **Scope delivered.** Target Profile + authorization gate; PE/NE/LE/LX/MZ detectors; sourced compatibility tables and diagnosis; calibration harness; Linux-first sandbox + Wine/DOSBox/QEMU adapters (detect-only when absent); behavior capture/replay; preservation L0–L3 (oracle rule); migration advisor; two reference trials on crafted lawful fixtures.
+- **Explicit limitations.** No licensed Windows image/oracle bundled → preservation claims stay L0 unless the operator supplies an oracle; Windows/macOS hard isolation not implemented; some PE bound/out-of-window imports remain partial (CAPABILITIES).
+- **Verification.** `os: all` green on commit `b66312e`:
+  - Capabilities [43037232211](https://github.com/ecooorg/reverse/actions/runs/43037232211)
+  - Structure [43037271948](https://github.com/ecooorg/reverse/actions/runs/43037271948)
+  - Supply chain [43037302969](https://github.com/ecooorg/reverse/actions/runs/43037302969)
+- **Version index.** 1.2.0 closes Patch M; next product patch is **N** (old Linux) → 1.3.
+
+
+
 Sequencing principle: do not start with Ghidra and do not try to implement every external analyzer at once. First strengthen Reverse's ability to investigate running programs, detect real performance problems and collect evidence, because the main job of Reverse is to help an AI agent find the causes of excessive resource use and objectively verify optimization results. Linux is the first fully supported profiling environment, with interfaces for Windows and macOS designed in from the start.
 
 ### Version index
@@ -1058,7 +1070,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.0.1 | Hygiene: SHA-pinned Actions, harness split, `quality:static`, lite H-09 | Patch L |
 | 1.1.0-beta.1 | Patch M initial Windows slice; CI diagnostics maintenance | [Patch M history](#patch-m-history-delivered-increments) |
 | 1.1.8 | Patch M Windows detector expansion | Patch M history |
-| 1.2.0 | Patch M complete (planned) | — |
+| 1.2.0 | Patch M closed (Windows through 2010) | 2026-11-11; runs 43037232211 / 43037271948 / 43037302969 |
 | 1.3 / 1.4 / 1.5 / 2.0 | Patches N / O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP
