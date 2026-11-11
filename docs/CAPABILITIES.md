@@ -139,4 +139,6 @@ The remaining work is one ordered sequence, not parallel capability tracks: M co
 | GNU symbol-version string hints (GLIBC/GLIBCXX/CXXABI) | ✅ | Bounded string scan; not full verneed graph |
 | Package metadata: RPM/DEB/makeself/gzip markers | ✅ | Static head only; never runs scriptlets |
 | Opt-in readelf/objdump detect-only providers | ✅ | Unavailable when missing; never simulated |
-| Full verneed walk, lief/goblin, execution environments | 🚧 | Later N steps |
+| qemu-user / chroot-rootfs / oss-shim execution environments | ✅ | Absent rootfs/binary → unavailable, never simulated |
+| Desktop/audio sourced tables (X11, GTK1, Qt3, OSS) | ✅ | Documentary diagnosis rows |
+| Full verneed walk, lief/goblin, Linux reference trials | 🚧 | Later N steps |
