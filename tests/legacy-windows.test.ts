@@ -5,6 +5,21 @@ import os from 'node:os';
 import path from 'node:path';
 import { analyzeLegacyWindows } from '../dist/legacy-windows.js';
 import { EvidenceEngine } from '../dist/evidence-engine.js';
+import { LegacyAuthorizationError, requireLegacyGate } from '../dist/legacy-gate.js';
+import {
+    validateSourcedDataTable,
+    exampleSourcedTable,
+    invalidSourcedTableFixture
+} from '../dist/legacy-tables.js';
+
+/** Valid authorization for unit tests (gate requires it after step 1). */
+const testAuth = {
+    basis: 'open_source' as const,
+    licenseOrConsentReference: 'TEST-LICENSE',
+    declaredBy: 'unit-test',
+    declaredAt: new Date().toISOString()
+};
+
 test('legacy Windows detector recognizes DOS MZ and 16-bit NE', async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), 'reverse-legacy-'));
     try {
@@ -14,10 +29,13 @@ test('legacy Windows detector recognizes DOS MZ and 16-bit NE', async () => {
         b.writeUInt32LE(128, 0x3c);
         b.write('NE', 128, 'ascii');
         await writeFile(file, b);
-        const r = await analyzeLegacyWindows(file);
+        const r = await analyzeLegacyWindows(file, testAuth);
         assert.equal(r.findings[0].format, 'Windows NE');
         assert.equal(r.findings[0].bitness, 16);
         assert.equal(r.findings[0].compatibilityFindings[0].needsExecutionEnvironment, true);
+        assert.equal(r.findings[0].targetProfile.schemaVersion, '1.0');
+        assert.equal(r.findings[0].targetProfile.osAndEra.value.family, 'Windows');
+        assert.ok(r.findings[0].targetProfile.cpu.evidence.length > 0);
     }
     finally {
         await rm(dir, { recursive: true, force: true });
@@ -37,10 +55,11 @@ test('legacy Windows detector reads PE subsystem when the optional header contai
         b.writeUInt16LE(0x10b, pe + 24);
         b.writeUInt16LE(3, pe + 24 + 68);
         await writeFile(file, b);
-        const r = await analyzeLegacyWindows(file);
+        const r = await analyzeLegacyWindows(file, testAuth);
         assert.equal(r.findings[0].format, 'Windows PE');
         assert.equal(r.findings[0].architecture, 'x86');
         assert.equal(r.findings[0].subsystem, 'Windows console');
+        assert.equal(r.findings[0].targetProfile.abi.value, 'Windows console');
     }
     finally {
         await rm(dir, { recursive: true, force: true });
@@ -58,7 +77,7 @@ test('legacy Windows detector leaves PE subsystem unknown when the optional head
         b.writeUInt16LE(0x14c, pe + 4);
         b.writeUInt16LE(0x10b, pe + 24);
         await writeFile(file, b);
-        const r = await analyzeLegacyWindows(file);
+        const r = await analyzeLegacyWindows(file, testAuth);
         assert.equal(r.findings[0].format, 'Windows PE');
         assert.equal(r.findings[0].subsystem, null);
     }
@@ -117,12 +136,13 @@ test('legacy Windows detector extracts bounded PE imports and derives runtime co
         b.writeUInt16LE(0, raw + 0x60);
         b.write('ThunRTMain\u0000', raw + 0x62, 'ascii');
         await writeFile(file, b);
-        const r = await analyzeLegacyWindows(file);
+        const r = await analyzeLegacyWindows(file, testAuth);
         const finding = r.findings[0];
         assert.deepEqual(finding.importedLibraries, ['msvbvm60.dll']);
         assert.deepEqual(finding.importedFunctions, ['ThunRTMain']);
         assert.ok(finding.structuralDetectors.some(x => x.name === 'Visual Basic runtime import'));
         assert.ok(finding.compatibilityFindings.some(x => x.cause.includes('Visual Basic runtime')));
+        assert.ok(finding.targetProfile.dependencies.value.includes('msvbvm60.dll'));
     }
     finally {
         await rm(dir, { recursive: true, force: true });
@@ -136,9 +156,10 @@ test('legacy Windows detector identifies Delphi form and RTTI-style signatures a
         b.write('MZ', 0, 'ascii');
         b.write('TPF0 TForm TApplication TComponent TControl', 64, 'ascii');
         await writeFile(file, b);
-        const finding = (await analyzeLegacyWindows(file)).findings[0];
+        const finding = (await analyzeLegacyWindows(file, testAuth)).findings[0];
         assert.ok(finding.structuralDetectors.some(x => x.name.includes('form stream')));
         assert.ok(finding.structuralDetectors.some(x => x.name.includes('RTTI-style')));
+        assert.ok(finding.targetProfile.toolchainRuntimeFramework.value.some(x => /Delphi|form|RTTI/i.test(x)));
     }
     finally {
         await rm(dir, { recursive: true, force: true });
@@ -159,8 +180,36 @@ test('legacy analysis result carries the declared authorization provenance', asy
         };
         const finding = (await analyzeLegacyWindows(file, authorization)).findings[0];
         assert.deepEqual(finding.authorization, authorization);
+        assert.equal(finding.targetProfile.schemaVersion, '1.0');
     }
     finally {
         await rm(dir, { recursive: true, force: true });
     }
+});
+
+test('shared gate refuses analyze_legacy_windows without authorization', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'reverse-legacy-gate-'));
+    try {
+        const file = path.join(dir, 'no-auth.exe');
+        await writeFile(file, Buffer.from('MZ'));
+        await assert.rejects(
+            () => analyzeLegacyWindows(file, null),
+            (err: Error) => err instanceof LegacyAuthorizationError || /authorization|consent/i.test(err.message)
+        );
+        await assert.rejects(
+            () => requireLegacyGate({ operation: 'test_op' }),
+            (err: Error) => err instanceof LegacyAuthorizationError || /authorization|consent/i.test(err.message)
+        );
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
+
+test('sourced data table validator accepts a valid table and rejects the failing fixture', () => {
+    const good = validateSourcedDataTable(exampleSourcedTable());
+    assert.equal(good.ok, true, good.errors.join('; '));
+    const bad = validateSourcedDataTable(invalidSourcedTableFixture());
+    assert.equal(bad.ok, false);
+    assert.ok(bad.errors.length >= 4, `expected multiple errors, got: ${bad.errors.join('; ')}`);
 });

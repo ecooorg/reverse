@@ -246,34 +246,56 @@ check('Package', 'bin entry has a shebang and package.json targets exist', () =>
     assert.ok(existsSync(path.join(ROOT, exp.default)), 'exports default');
     assert.ok(existsSync(path.join(ROOT, exp.types)), 'exports types');
 });
-// ---------------------------------------------------------------- 2. legacy Windows analysis (Patch M initial slice)
+// ---------------------------------------------------------------- 2. legacy Windows analysis (Patch M initial slice + step 1 contracts)
+const step1Auth = {
+    basis: 'open_source' as const, licenseOrConsentReference: 'LICENSE',
+    declaredBy: 'capability-test', declaredAt: '2026-11-10T00:00:00.000Z'
+};
 check('Legacy Windows', 'MZ + NE executable is recognized as a 16-bit Windows NE image', async () => {
     const b = Buffer.alloc(256);
     b.write('MZ', 0, 'ascii');
     b.writeUInt32LE(128, 0x3c);
     b.write('NE', 128, 'ascii');
-    const r: any = await analyzeLegacyWindows(await craft('legacy-ne.exe', b));
+    const r: any = await analyzeLegacyWindows(await craft('legacy-ne.exe', b), step1Auth);
     assert.equal(r.findings[0].format, 'Windows NE');
     assert.equal(r.findings[0].bitness, 16);
     assert.equal(r.findings[0].compatibilityFindings[0].needsExecutionEnvironment, true);
+    assert.equal(r.findings[0].targetProfile.schemaVersion, '1.0');
+    assert.equal(r.findings[0].targetProfile.osAndEra.value.family, 'Windows');
 });
 check('Legacy Windows', 'Delphi form/RTTI signatures are reported as bounded static structural evidence', async () => {
     const b = Buffer.alloc(256);
     b.write('MZ', 0, 'ascii');
     b.write('TPF0 TForm TApplication TComponent TControl', 64, 'ascii');
-    const r: any = await analyzeLegacyWindows(await craft('legacy-delphi.exe', b));
+    const r: any = await analyzeLegacyWindows(await craft('legacy-delphi.exe', b), step1Auth);
     assert.ok(r.findings[0].structuralDetectors.some((x: any) => x.name.includes('form stream')));
     assert.ok(r.findings[0].structuralDetectors.some((x: any) => x.name.includes('RTTI-style')));
 });
 check('Legacy Windows', 'legacy analysis report preserves the declared authorization provenance', async () => {
     const b = Buffer.alloc(64);
     b.write('MZ', 0, 'ascii');
-    const authorization = {
-        basis: 'open_source' as const, licenseOrConsentReference: 'LICENSE',
-        declaredBy: 'capability-test', declaredAt: '2026-11-10T00:00:00.000Z'
-    };
-    const r: any = await analyzeLegacyWindows(await craft('legacy-authorized.exe', b), authorization);
-    assert.deepEqual(r.findings[0].authorization, authorization);
+    const r: any = await analyzeLegacyWindows(await craft('legacy-authorized.exe', b), step1Auth);
+    assert.deepEqual(r.findings[0].authorization, step1Auth);
+});
+check('Legacy Windows', 'shared gate refuses legacy analysis without authorization declaration', async () => {
+    const b = Buffer.alloc(64);
+    b.write('MZ', 0, 'ascii');
+    let refused = false;
+    try {
+        await analyzeLegacyWindows(await craft('legacy-no-auth.exe', b), null);
+    } catch {
+        refused = true;
+    }
+    assert.equal(refused, true, 'analyze_legacy_windows must refuse without authorization');
+});
+check('Legacy Windows', 'sourced data table format validates good tables and rejects the failing fixture', async () => {
+    const { validateSourcedDataTable, exampleSourcedTable, invalidSourcedTableFixture } =
+        await import(pathToFileURL(path.join(DIST, 'legacy-tables.js')).href);
+    const good = validateSourcedDataTable(exampleSourcedTable());
+    assert.equal(good.ok, true, good.errors?.join('; '));
+    const bad = validateSourcedDataTable(invalidSourcedTableFixture());
+    assert.equal(bad.ok, false);
+    assert.ok(bad.errors.length >= 4);
 });
 // ---------------------------------------------------------------- 2. binary analysis
 check('Binary', 'ELF64 little-endian x86_64 header is parsed (arch, bitness, endian, entry point)', async () => {
