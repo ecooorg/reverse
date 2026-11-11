@@ -27,9 +27,9 @@ State as of **1.1.0-beta.2** (`package.json` and `src/core-version.ts` agree; do
 | What is being built? | **Patch M** — complete Windows compatibility, DOS through Windows 7-era software (up to 2010); target release **1.2**. Status: **in progress**. Delivered so far: initial detector slices (1.1.0-beta.1, 1.1.0-beta.2). |
 | What has not started? | **Patches N, O, P, Q** (old Linux; Classic Mac/early macOS; legacy Android; newer generations and unified compatibility intelligence). Do not start them before M passes its acceptance criteria. Their detailed plans (scope, work order, checklists, debts, exit criteria) are in [Detailed plans for patches N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q). |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Follow the [work order inside M](#work-order-inside-m-approved-by-the-maintainer-2026-11-11). **Step 0** is the CI fix for F-75 (pin two action references), then **step 1**: shared contracts (Target Profile schema, one authorization and provenance gate for every legacy operation, the format of sourced data tables). |
-| What is open but not blocking? | See the [carry-over debt register](#carry-over-debt-register): No open item blocks M. R-20 (sandbox for executed targets), R-11 (PE part), R-10 (`diec`, `yara-x`, `capa`) and F-75 are assigned to M and scheduled in its work order. |
-| What is unverified? | (a) The last **recorded** full-matrix run (`os: all`, Linux, macOS, Windows, Node 22 and 24) is the A–D closure run of 0.2.0-beta.8 (run 42775483864). No later full-matrix run is recorded in the documentation, so macOS and Windows results for patches E–M are **not claimed**; run Actions → Capabilities → `os: all` before declaring any patch done. (b) GitHub artifact upload of the CI diagnostics and the rerun for F-67 are **pending verification**. (c) One known open defect: F-75, two unpinned action references (the R-03 check shows 🚧). |
+| What is the next concrete step? | Follow the [work order inside M](#work-order-inside-m-approved-by-the-maintainer-2026-11-11). **Step 0 (F-75 pin) is done.** Next is **step 1**: shared contracts (Target Profile schema, one authorization and provenance gate for every legacy operation, the format of sourced data tables). |
+| What is open but not blocking? | See the [carry-over debt register](#carry-over-debt-register): No open item blocks M. R-20 (sandbox for executed targets), R-11 (PE part) and R-10 (`diec`, `yara-x`, `capa`) are assigned to M and scheduled in its work order. |
+| What is unverified? | (a) The last **recorded** full-matrix run (`os: all`, Linux, macOS, Windows, Node 22 and 24) is the A–D closure run of 0.2.0-beta.8 (run 42775483864). No later full-matrix run is recorded in the documentation, so macOS and Windows results for patches E–M are **not claimed**; run Actions → Capabilities → `os: all` before declaring any patch done. (b) GitHub artifact upload of the CI diagnostics and the rerun for F-67 are **pending verification**. |
 
 ## Delivery plan: foundation A–L and product patches M–Q
 
@@ -159,7 +159,7 @@ Patch M is **in progress** (target release 1.2). The items below are *internal t
 **6. Product integration and authorization**
 - [x] Legal-policy documentation (SECURITY.md, ARCHITECTURE.md); this closes only the documentation part of G-07.
 - [x] Operator authorization declaration (`declare_legacy_authorization`) stored in the research session; `analyze_legacy_windows` refuses without it; the declaration is embedded in the result (F-64 in part, F-70, H-10 in part).
-- [ ] Pin the two remaining tag references in `supply-chain.yml` (F-75, work order step 0).
+- [x] Pin the two remaining tag references in `supply-chain.yml` (F-75, work order step 0).
 - [ ] Extend the authorization and provenance gate to **every** new analysis, execution, capture, replay and migration operation (H-05, F-64 remainder, G-07 enforcement).
 - [ ] Stable CLI/MCP contracts for all new tools, `docs/MCP.md` matching `tools/list` exactly, capability checks, security review, examples, updated README/ARCHITECTURE/CAPABILITIES.
 
@@ -587,7 +587,7 @@ Approved tasks that are **not** closed, collected from the backlog, the patch re
 
 | ID | Task | Backlog assignment | State at 1.1.0-beta.2 | Handling |
 |---|---|---|---|---|
-| F-75 / R-03 | Pin the two remaining tag references in `.github/workflows/supply-chain.yml` to full commit SHAs | 1.0.1 (R-03 recorded closed) | Open defect: the capability check shows 🚧 (2 of 25 references are tags; 23 pinned) | *Approved:* work order step 0, the first change of M (pin to `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a`, v7.0.1, as in the other workflows), then re-run the check |
+| F-75 / R-03 | Pin the two remaining tag references in `.github/workflows/supply-chain.yml` to full commit SHAs | 1.0.1 (R-03 recorded closed) | **Closed** in this increment (step 0 of M): both remaining tags pinned to `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a` (v7.0.1); R-03 check is ✅ | *Closed:* work order step 0 |
 | R-20 | Sandbox for executed targets under `CONTROLLED_EXECUTION` (bwrap/unshare, sandbox-exec, Job Objects/AppContainer or a container provider; no network by default; scratch directory; rlimits) | G (done) | No implementation found. Only the cgroup v2 limiter exists; SECURITY.md lists the gap | *Approved:* inside M, work order step 5, before any execution environment is added, because M is the first patch that runs legacy targets |
 | R-14 | Merkle root, Ed25519 detached signature, `reverse export` / `reverse verify` | I (done) | Hash chain and optional HMAC-SHA256 are done; Merkle, public-key signatures and the two commands: no implementation found | *Approved:* Patch Q step 8 (box in the Q plan, section 6) |
 | R-11 | Hardening-flag report (PIE, NX, RELRO, canary, CFG, ASLR) | E (done) | No implementation found | *Approved:* PE flags in M step 3; ELF flags in N step 3; Mach-O flags in O step 3; all families in Q step 4 (boxes in those plans) |
@@ -971,7 +971,7 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-72 | ROADMAP structure and status drift: a stale A–P dependency table without Q, no working checklist for Patch M, unticked 0.3/0.4/Later checklists for delivered patches, "closed when the run is green" statuses after a green run, planning notes after the last section | closed in documentation-only consolidation patch (2026-11-11); no product capability claimed |
 | F-73 | Cross-document drift: README tool count (34 versus 60), CAPABILITIES header and MCP row, mixed Windows tables, GITHUB.md action pins, duplicated ARCHITECTURE sentence, unstructured MCP.md rows, AUDIT.md notice in the middle of the file | closed in documentation-only consolidation patch (2026-11-11); no product capability claimed |
 | F-74 | Approved tasks (R-10, R-11, R-12, R-14, R-15, R-20 and others) stayed assigned to completed patches with no recorded delivery | closed in documentation-only consolidation patch (2026-11-11) by the [carry-over debt register](#carry-over-debt-register); the tasks themselves remain open |
-| F-75 | Two action references in `supply-chain.yml` are tags, not SHAs; the R-03 check shows 🚧 although R-03 was recorded as closed in 1.0.1 | open: found while verifying the 2026-11-11 documentation patch; proposed fix in the debt register |
+| F-75 | Two action references in `supply-chain.yml` are tags, not SHAs; the R-03 check shows 🚧 although R-03 was recorded as closed in 1.0.1 | closed in 1.1.0-beta.2, Patch M step 0 |
 
 ### Recommendations
 
