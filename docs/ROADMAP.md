@@ -29,7 +29,7 @@ State as of **1.1.0-beta.2** (`package.json` and `src/core-version.ts` agree; do
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
 | What is the next concrete step? | Follow the [work order inside M](#work-order-inside-m-approved-by-the-maintainer-2026-11-11). **Steps 0–4 done** (step 3: remaining bound/out-of-window imports still limited). Next is **step 5**: sandbox (R-20) and execution environments. |
 | What is open but not blocking? | See the [carry-over debt register](#carry-over-debt-register): No open item blocks M. R-20 (sandbox for executed targets), R-11 (PE part) and R-10 (`diec`, `yara-x`, `capa`) are assigned to M and scheduled in its work order. |
-| What is unverified? | (a) The last **recorded** full-matrix run (`os: all`, Linux, macOS, Windows, Node 22 and 24) is the A–D closure run of 0.2.0-beta.8 (run 42775483864). No later full-matrix run is recorded in the documentation, so macOS and Windows results for patches E–M are **not claimed**; run Actions → Capabilities → `os: all` before declaring any patch done. (b) GitHub artifact upload of the CI diagnostics and the rerun for F-67 are **pending verification**. |
+| What is unverified? | Full-matrix CI is recorded for commit `66fee60` (2026-11-11): [Capabilities](https://github.com/ecooorg/reverse/actions/runs/43024000265) Success — Linux/macOS/Windows × Node 22/24 and package on Ubuntu/Windows; [Structure](https://github.com/ecooorg/reverse/actions/runs/43024033261) Success — Ubuntu/macOS/Windows; [Supply chain](https://github.com/ecooorg/reverse/actions/runs/43024423915) Success. Each workflow produced one final artifact (`Capabilities` / `Structure` / `Supply chain`). Previous baseline remains A–D closure run 42775483864 (0.2.0-beta.8). |
 
 ## Delivery plan: foundation A–L and product patches M–Q
 
@@ -577,7 +577,7 @@ This record was previously headed "CI diagnostics mini-patch". It is maintenance
 - [x] Harden the generator against empty/missing log content; distinguish missing exit markers from confirmed success; classify common failures; include command lines, file/line references, TAP failure names, surrounding context, capability JSON failures/drift, JUnit failures and stack frames when present; redact common secret patterns. Concrete test/assertion evidence takes precedence over incidental category keywords.
 - [x] Close the first Patch M contract drift found by CI: add F-63…F-65 to the approved backlog and include both Patch M MCP tools in the exact 60-tool contract fixture.
 - [x] Add regression tests and run them before generating the artifact in all workflows.
-- [ ] Verify artifact upload and summary content in actual GitHub Actions runs for all three workflows; local checks cannot prove GitHub artifact availability.
+- [x] Verify artifact upload and summary content in actual GitHub Actions runs for all three workflows (closed 2026-11-11: runs 43024000265, 43024033261, 43024423915 — one final artifact each with failure brief + detailed logs).
 
 ## Carry-over debt register
 
@@ -618,8 +618,12 @@ These capabilities are **not** implemented and must not be described as availabl
 
 ### Pending verification (delivered, run not recorded)
 
-- Full-matrix `os: all` Capabilities run for patches E–M (last recorded: A–D closure run 42775483864 on 0.2.0-beta.8).
-- GitHub artifact upload and summary content of the CI diagnostics workflows (F-66) and the rerun for F-67.
+- ~~Full-matrix `os: all` Capabilities run for patches E–M~~ **Closed 2026-11-11.** Maintainer-provided green runs on commit `66fee60`:
+  - Capabilities run [43024000265](https://github.com/ecooorg/reverse/actions/runs/43024000265) — Success; jobs: `capabilities` on ubuntu/macOS/windows × Node 22/24, `package` on ubuntu/windows, capability matrix, single final artifact.
+  - Structure run [43024033261](https://github.com/ecooorg/reverse/actions/runs/43024033261) — Success; ubuntu/macOS/windows + single final artifact.
+  - Supply chain run [43024423915](https://github.com/ecooorg/reverse/actions/runs/43024423915) — Success; single final artifact.
+  - Prior baseline: A–D closure run 42775483864 (0.2.0-beta.8).
+- GitHub artifact layout (one workflow artifact with `AI-DEBUG-SUMMARY.md` + `detailed-logs.zip`) verified on the same runs (F-66). F-67 remains only if a future diagnostics regression needs a dedicated rerun.
 
 ### Debt closure schedule
 
@@ -627,7 +631,7 @@ These capabilities are **not** implemented and must not be described as availabl
 
 | Debt | Due | Status of the assignment |
 |---|---|---|
-| F-66 artifact upload and F-67 rerun (pending verification on GitHub) | The first GitHub Actions run after this roadmap lands, before M step 1 | approved |
+| F-66 artifact upload and F-67 rerun | Verified green on 2026-11-11 runs 43024000265 / 43024033261 / 43024423915 (one artifact per workflow) | **closed** |
 | `os: all` runs for E–M (not recorded) | M step 8 (one run covers E–M); then at the exit of every later patch | approved |
 | F-75 / R-03 (two unpinned action references) | M step 0 | approved |
 | R-20 sandbox for executed targets | M step 5 | approved |

@@ -481,3 +481,16 @@ macOS/Windows runtime behavior; the 893-line capability suite was run but not re
 ## Implementation status after 0.2.0-beta.6
 
 Superseded: statuses of F-07, F-08, F-11, F-12, F-16, F-17 and the recommendations are recorded in section A2 above, and the closure review of 0.2.0-beta.7 is Audit 4 at the top of this file.
+
+## Maintenance note — full-matrix confirmation (2026-11-11)
+
+**Evidence provided by the maintainer (green runs, commit `66fee60`).**
+
+| Workflow | Run | Result | Matrix |
+|---|---|---|---|
+| Capabilities | [43024000265](https://github.com/ecooorg/reverse/actions/runs/43024000265) | Success | Ubuntu/macOS/Windows × Node 22/24; package Ubuntu/Windows; one artifact `Capabilities` |
+| Structure | [43024033261](https://github.com/ecooorg/reverse/actions/runs/43024033261) | Success | Ubuntu/macOS/Windows; one artifact `Structure` |
+| Supply chain | [43024423915](https://github.com/ecooorg/reverse/actions/runs/43024423915) | Success | Ubuntu; one artifact `Supply chain` |
+
+This closes the documentation gap that macOS/Windows results for post–A–D work were “not claimed”, and verifies the single-artifact CI layout (F-66). Roadmap status dashboard and pending-verification list updated in the same change.
+
