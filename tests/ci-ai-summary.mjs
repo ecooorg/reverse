@@ -322,9 +322,25 @@ export async function buildSummary({ logsDir = DEFAULT_LOG_DIR, rootDir = '.', e
   return { markdown, stats: { logs: steps.length, failures: failures.length, junitFailures: junitFailures.length, capabilityIssues: capabilityIssues.length, suspicious: suspicious.length } };
 }
 
+
+/** Emit the failure brief as a GitHub Actions annotation (Annotations panel). */
+function emitGitHubAnnotations(markdown, stats) {
+  if (process.env.GITHUB_ACTIONS !== 'true') return;
+  if (!stats.failures && !stats.junitFailures && !stats.capabilityIssues) return;
+  // Workflow command: newlines must be %0A; max practical message ~60k.
+  const body = String(markdown)
+    .replace(/%/g, '%25')
+    .replace(/\r?\n/g, '%0A')
+    .replace(/\r/g, '%0A')
+    .slice(0, 60000);
+  // One error annotation carries the whole brief so it shows under Annotations.
+  process.stdout.write(`::error title=Reverse CI failure brief::${body}\n`);
+}
+
 export async function writeSummary({ logsDir = DEFAULT_LOG_DIR, rootDir = '.', outputPath = 'AI-DEBUG-SUMMARY.md', env = process.env, host = null } = {}) {
   const result = await buildSummary({ logsDir, rootDir, env, host });
   await writeFile(outputPath, result.markdown);
+  emitGitHubAnnotations(result.markdown, result.stats);
   return result.stats;
 }
 

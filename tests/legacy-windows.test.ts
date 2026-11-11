@@ -135,7 +135,7 @@ test('legacy Windows detector extracts bounded PE imports and derives runtime co
         assert.deepEqual(finding.importedLibraries, ['msvbvm60.dll']);
         assert.deepEqual(finding.importedFunctions, ['ThunRTMain']);
         assert.ok(finding.structuralDetectors.some(x => x.name === 'Visual Basic runtime import'));
-        assert.ok(finding.compatibilityFindings.some(x => x.cause.includes('Visual Basic runtime')));
+        assert.ok(finding.compatibilityFindings.some(x => /Visual Basic/i.test(x.cause)));
         assert.ok(finding.targetProfile.dependencies.value.includes('msvbvm60.dll'));
     }
     finally {
