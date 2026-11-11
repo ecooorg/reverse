@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -83,7 +83,9 @@ test('works/fails matrix marks missing engines as unsupported', async () => {
             limits: { timeoutMs: 3000 }
         });
         assert.ok(cells.length >= 3);
-        assert.ok(cells.every(c => c.outcome === 'unsupported' || c.outcome === 'error'));
+        assert.ok(cells.every((c: {
+            outcome: string;
+        }) => c.outcome === 'unsupported' || c.outcome === 'error'));
     }
     finally {
         process.env.PATH = prevPath;

@@ -395,7 +395,9 @@ check('Execution', 'works/fails matrix marks absent engines unsupported', async 
             limits: { timeoutMs: 2000 }
         });
         assert.ok(cells.length >= 1);
-        assert.ok(cells.every(c => c.outcome === 'unsupported' || c.outcome === 'error'));
+        assert.ok(cells.every((c: {
+            outcome: string;
+        }) => c.outcome === 'unsupported' || c.outcome === 'error'));
     }
     finally {
         process.env.PATH = prevPath;
