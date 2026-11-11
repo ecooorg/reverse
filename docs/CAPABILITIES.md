@@ -134,4 +134,6 @@ The remaining work is one ordered sequence, not parallel capability tracks: M co
 | `analyzeLegacyLinux` a.out + ELF32/64 inventory | ✅ | PT_INTERP, DT_NEEDED, RPATH/RUNPATH, PIE/NX/RELRO hints |
 | Linux fields on shared Target Profile | ✅ | libcGeneration, compilerAbiGeneration, dynamicInterpreter, threadModel (stub) |
 | libc5 / glibc / libstdc++ markers | ✅ | Static string/soname heuristics; not calibrated |
+| Linux calibration fixtures + precision/recall harness | ✅ | Crafted a.out/ELF only; operator corpora via hash manifest |
+| Sourced Linux libc/libstdc++ diagnosis tables | ✅ | Documentary rows; findings cite table ids |
 | Symbol version walk, package metadata, execution | 🚧 | Later N steps |

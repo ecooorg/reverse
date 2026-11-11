@@ -18,16 +18,16 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.3.0** (Patch N started — old Linux static inventory; 2026-11-11).
+State as of **1.3.1** (Patch N — Linux calibration + sourced diagnosis tables; 2026-11-11).
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.3.0** (Patch N in progress) |
+| What is the product version? | **1.3.1** (Patch N in progress) |
 | What is finished? | The 1.0 foundation (**patches A–L**) and **Patch M** (Windows compatibility through 2010, release **1.2.0**). |
-| What is being built? | **Patch N** — old Linux compatibility (target **1.3**). Status: **in progress**. Delivered: a.out/ELF inventory, Linux Target Profile fields, libc/GCC markers (1.3.0). |
+| What is being built? | **Patch N** — old Linux compatibility (target **1.3**). Status: **in progress**. Delivered: a.out/ELF inventory (1.3.0); calibration fixtures + sourced libc/libstdc++ tables + diagnosis (1.3.1). |
 | What has not started? | **Patches O, P, Q** (Classic Mac/early macOS; legacy Android; newer generations and unified compatibility intelligence). Next is **N** (old Linux). Plans: [Detailed plans for patches N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q). |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Continue Patch N work order: step 2 calibration corpus, step 3 remaining parsers (symbol versions, package metadata, providers), then diagnosis tables. |
+| What is the next concrete step? | Continue Patch N: symbol-version walk, package metadata readers, opt-in providers (readelf/objdump/lief), then execution environments (step 5). |
 | What is open but not blocking? | See the [carry-over debt register](#carry-over-debt-register): No open item blocks M. R-20 sandbox delivered (Linux-first); Windows/macOS hard isolation remains a recorded limitation. Remaining M work is steps 6–8. |
 | What is unverified? | Residual M limitations (explicit): no bundled licensed Windows oracle (preservation L0); Windows/macOS hard sandbox isolation not wired; deep bound-import coverage still partial where noted in CAPABILITIES. Full-matrix green recorded for commit `b66312e` (Capabilities 43037232211, Structure 43037271948, Supply chain 43037302969). |
 
