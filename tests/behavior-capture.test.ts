@@ -17,10 +17,13 @@ test('capture refuses without CONTROLLED_EXECUTION', async () => {
 });
 test('capture then replay of a deterministic node script matches', async () => {
     process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
-    const script = 'console.log("hello-capture"); console.error("err"); process.exit(0);;;
-    ';;;
-    const scenario = {
-        schemaVersion: '1.0' as const,
+    const script = [
+        'console.log("hello-capture");',
+        'console.error("err");',
+        'process.exit(0);'
+    ].join('\n');
+    const scenario: BehaviorScenario = {
+        schemaVersion: '1.0',
         id: 'det-hello',
         command: process.execPath,
         args: ['hello.mjs'],
