@@ -346,7 +346,7 @@ Providers are independent so that connecting Ghidra, Rizin, Frida, GDB, eBPF, ET
 
 ## Size guidance
 
-The compact core is sized for planning, not as a measure of quality: roughly 20,000–30,000 lines of own TypeScript is the preferred target, up to about 50,000 where there is a justified technical need, compared with about 606,000 lines of production code in the original REA. Third-party engines are excluded from this count. Line count must never be a reason to remove necessary verification, security or evidence. The sensible approach is to build the minimum working core first, then measure its size and operating cost.
+The compact core is sized for planning, not as a measure of quality: roughly 20,000–30,000 lines of own TypeScript is the preferred target, up to about 50,000 where there is a justified technical need. Third-party engines are excluded from this count. Line count must never be a reason to remove necessary verification, security or evidence. The sensible approach is to build the minimum working core first, then measure its size and operating cost.
 
 ## Product direction
 
