@@ -203,16 +203,17 @@ async function readCapabilityReports(rootDir) {
 
 function environmentLines(env, host) {
   const value = (key) => env[key] || 'unknown';
+  const runUrl = value('GITHUB_SERVER_URL') !== 'unknown'
+    && value('GITHUB_REPOSITORY') !== 'unknown'
+    && value('GITHUB_RUN_ID') !== 'unknown'
+    ? `${value('GITHUB_SERVER_URL')}/${value('GITHUB_REPOSITORY')}/actions/runs/${value('GITHUB_RUN_ID')}`
+    : 'unknown';
   return [
-    `- Workflow: ${value('GITHUB_WORKFLOW')}`,
-    `- Job: ${value('GITHUB_JOB')}`,
-    `- Run: ${value('GITHUB_RUN_ID')} (attempt ${value('GITHUB_RUN_ATTEMPT')})`,
-    `- Event/ref: ${value('GITHUB_EVENT_NAME')} / ${value('GITHUB_REF')}`,
+    `- Workflow: ${value('GITHUB_WORKFLOW')} / job ${value('GITHUB_JOB')}`,
+    `- Run: ${value('GITHUB_RUN_ID')} attempt ${value('GITHUB_RUN_ATTEMPT')} (${value('GITHUB_EVENT_NAME')} ${value('GITHUB_REF')})`,
     `- Commit: ${value('GITHUB_SHA')}`,
-    `- Run URL: ${value('GITHUB_SERVER_URL') !== 'unknown' && value('GITHUB_REPOSITORY') !== 'unknown' && value('GITHUB_RUN_ID') !== 'unknown' ? `${value('GITHUB_SERVER_URL')}/${value('GITHUB_REPOSITORY')}/actions/runs/${value('GITHUB_RUN_ID')}` : 'unknown'}`,
-    `- Matrix: OS=${value('RUNNER_OS')}, image=${value('ImageOS')}, arch=${host.arch}`,
-    `- Runner: ${host.platform} ${host.release} ${host.arch} (${host.hostname})`,
-    `- Node: ${process.version}; CPUs: ${host.cpuCount}; RAM GiB: ${host.ramGiB}`,
+    `- URL: ${runUrl}`,
+    `- Runner: ${value('RUNNER_OS')} ${host.arch} Node ${process.version}`,
   ];
 }
 
@@ -252,124 +253,67 @@ export async function buildSummary({ logsDir = DEFAULT_LOG_DIR, rootDir = '.', e
   const noMarker = steps.filter((step) => !step.hasExit).length;
   const invalidMarkers = steps.filter((step) => step.hasExit && step.exitCode === null).length;
   const out = [
-    '# Reverse CI — AI debugging report',
+    '# Reverse CI — failure brief',
     '',
-    '> Paste this complete file into an AI assistant. It is designed to identify the earliest failure and propose a minimal fix without requiring the companion ZIP. Logs remain the source of truth.',
-    '',
-    '## 1. Run identity',
     ...environmentLines(env, hostInfo),
     '',
-    '## 2. Executive diagnosis',
-    `- Log files found: ${steps.length}`,
-    `- Recorded failed steps: ${failures.length}`,
-    `- Explicitly successful steps (exit marker = 0): ${completed}`,
-    `- Steps without an exit marker: ${noMarker} (may be successful or skipped; the current workflow marker format cannot distinguish these states).`,
-    `- Invalid/empty exit markers: ${invalidMarkers}` ,
-    `- Empty log files: ${emptyLogs.length}` ,
-    `- Capability JSON reports: ${capabilityReports.length}; failed/drift checks: ${capabilityIssues.length}`,
-    `- JUnit reports found: ${junit.length}; failed test cases: ${junitFailures.length}`,
   ];
 
-  if (failures.length) {
-    const first = failures[0];
-    out.push(`- **Earliest recorded failure:** \`${first.name}\` (exit ${first.exitCode}).`, `- **Failure category:** ${classifyFailure(first.name, first.content)}.`, '- The first failed step is the starting point for root-cause analysis; later failures may be downstream effects.');
-  } else if (junitFailures.length || capabilityIssues.length) {
-    out.push('- **Test/capability failure evidence:** structured reports contain failed cases or drift records. Inspect the named checks below, even if no non-zero step marker was recorded.');
-  } else if (suspicious.length) {
-    out.push('- **Review required:** error-like output exists in logs without a recorded non-zero exit code. Do not assume the workflow failed until the command status is confirmed.');
-  } else if (!steps.length) {
-    out.push('- **No step logs found.** The job may have failed before log initialization, or the expected `ci-logs/` directory was not uploaded.');
+  if (!failures.length && !junitFailures.length && !capabilityIssues.length) {
+    if (suspicious.length) {
+      out.push('No non-zero exit marker recorded, but error-like lines exist:');
+      for (const step of suspicious) {
+        out.push(`## ${step.name}`, '');
+        out.push(`${step.excerpt.errorCount} error-like lines (no exit marker).`);
+        out.push('', '```text', step.excerpt.text, '```', '');
+      }
+    } else if (!steps.length) {
+      out.push('No step logs found under ci-logs/.');
+      out.push('');
+    } else {
+      out.push('No recorded failures.');
+      out.push('');
+    }
   } else {
-    out.push('- No non-zero exit marker or JUnit failure was found. This is not proof that every expected workflow step ran.');
-  }
-  out.push('');
-
-  if (failures.length) {
-    out.push('## 3. Failed steps — evidence and context', '');
-    for (const step of failures) {
-      const category = classifyFailure(step.name, step.content);
-      out.push(`### ${step.name}`, `- Exit code: \`${step.exitCode}\``, `- Category: ${category}`, `- Error-like lines: ${step.excerpt.errorCount}; warning-like lines: ${step.excerpt.warningCount}`);
-      if (step.excerpt.commands.length) out.push(`- Commands detected: ${step.excerpt.commands.map((command) => `\`${command}\``).join('; ')}`);
-      if (step.excerpt.testFailures.length) {
-        out.push('- Test/capability failure markers:');
-        for (const failure of step.excerpt.testFailures) out.push(`  - ${failure}`);
+    if (failures.length) {
+      const first = failures[0];
+      out.push(
+        `Earliest failure: \`${first.name}\` (exit ${first.exitCode}) — ${classifyFailure(first.name, first.content)}.`,
+        ''
+      );
+      for (const step of failures) {
+        const category = classifyFailure(step.name, step.content);
+        out.push(`## ${step.name}`, '');
+        out.push(`Exit: ${step.exitCode} | Category: ${category}`);
+        if (step.excerpt.commands.length)
+          out.push(`Commands: ${step.excerpt.commands.map((c) => `\`${c}\``).join('; ')}`);
+        if (step.excerpt.testFailures.length) {
+          out.push('Failed tests:');
+          for (const failure of step.excerpt.testFailures)
+            out.push(`- ${failure}`);
+        }
+        if (step.excerpt.fileReferences.length)
+          out.push(`Files: ${step.excerpt.fileReferences.map((f) => `\`${f}\``).join(', ')}`);
+        out.push('', '```text', step.excerpt.text, '```', '');
       }
-      if (step.excerpt.fileReferences.length) out.push(`- File/line references: ${step.excerpt.fileReferences.map((file) => `\`${file}\``).join(', ')}`);
-      out.push('', `**${step.excerpt.kind}:**`, '```text', step.excerpt.text, '```', '');
-      if (step.stepSummary.trim()) out.push('**Step summary:**', '```text', redact(step.stepSummary.trim()).slice(0, 6000), '```', '');
     }
-  }
 
-  if (emptyLogs.length) {
-    out.push('## Empty or unavailable step output', '');
-    for (const step of emptyLogs) out.push(`- \`${step.name}\`: log file exists but contains no output; inspect its exit marker and workflow step condition.`);
-    out.push('');
-  }
-
-  if (capabilityReports.length) {
-    out.push('## 4. Capability report details (JSON)', '');
-    for (const report of capabilityReports) {
-      const totals = report.totals ?? {};
-      out.push(`### ${report.name}`, `- Environment: ${report.platform ?? 'unknown'} / Node ${report.node ?? 'unknown'}`, `- Totals: verified=${totals.verified ?? '?'}, limitation=${totals.limitation ?? '?'}, drift=${totals.drift ?? '?'}, failed=${totals.failed ?? '?'}`);
-      if (report.parseError) out.push(`- JSON parse error: ${redact(report.parseError)}`);
-      for (const issue of report.actionable ?? []) out.push(`- **${issue.status.toUpperCase()} — ${issue.area} / ${issue.name}:** ${redact(issue.detail ?? '')}`);
+    if (capabilityIssues.length) {
+      out.push('## Capability failures', '');
+      for (const item of capabilityIssues.slice(0, 40)) {
+        out.push(`- [${item.report}] ${item.area ?? ''} / ${item.name ?? ''}: ${redact(String(item.detail ?? item.message ?? '')).slice(0, 500)}`);
+      }
       out.push('');
     }
-  }
 
-  if (junit.length) {
-    out.push('## 5. Test report details (JUnit)', '');
-    for (const report of junit) {
-      out.push(`### ${report.name}`, `- Test cases: ${report.total}; failed: ${report.failed.length}; skipped: ${report.skipped}`);
-      for (const item of report.failed) {
-        out.push(`- **${item.suite ? `${item.suite} — ` : ''}${item.name}**${item.message ? `: ${item.message}` : ''}`);
-        if (item.detail) out.push('  ```text', ...item.detail.split(/\r?\n/).slice(0, 35).map((line) => `  ${line}`), '  ```');
+    if (junitFailures.length) {
+      out.push('## JUnit failures', '');
+      for (const item of junitFailures.slice(0, 40)) {
+        out.push(`- [${item.report}] ${item.classname ?? ''} / ${item.name ?? ''}: ${redact(String(item.message ?? '')).slice(0, 500)}`);
       }
       out.push('');
     }
   }
-
-  if (suspicious.length) {
-    out.push('## 6. Error-like output without a failed exit marker', '');
-    for (const step of suspicious) {
-      out.push(`### ${step.name}`, `- Exit marker: ${step.hasExit ? String(step.exitCode) : 'not recorded'}`, '```text', step.excerpt.errorLines.slice(0, 30).join('\n') || '(no matching lines)', '```', '');
-    }
-  }
-
-  out.push('## 7. Complete step inventory', '', '| Step log | Status evidence | Exit code | Error-like lines | Warnings |', '|---|---|---:|---:|---:|');
-  for (const step of steps) {
-    const status = step.failed ? 'FAILED' : step.hasExit && step.exitCode === null ? 'INVALID EXIT' : !step.content.trim() ? 'EMPTY LOG' : step.hasExit ? 'EXIT 0' : 'NO MARKER';
-    out.push(`| ${step.name.replace(/\|/g, '\\|')} | ${status} | ${step.exitCode ?? 'not recorded'} | ${step.excerpt.errorCount} | ${step.excerpt.warningCount} |`);
-  }
-  out.push('');
-
-  const sidecarsWithoutLogs = [...summaries].filter((name) => !logNames.includes(name.replace(/\.summary\.md$/, '.log')));
-  if (sidecarsWithoutLogs.length) {
-    out.push('## 8. Step summaries without matching log files', '');
-    for (const name of sidecarsWithoutLogs) {
-      const content = redact((await readText(join(logsDir, name))).trim()).slice(0, 5000);
-      out.push(`### ${name}`, '```text', content || '(summary file is empty)', '```', '');
-    }
-  }
-
-  out.push(
-    '## 9. Instructions for the AI assistant',
-    '',
-    '1. Start with the earliest recorded failed step, not the last visible symptom. Separate primary causes from downstream failures.',
-    '2. Use the exact error text, command, file path and line number above as evidence. Do not invent missing diagnostics.',
-    '3. Prefer concrete compiler diagnostics, assertion failures, TAP failure names, capability JSON records and JUnit details over broad keyword matches. Do not classify a test failure as formatting merely because a test or summary mentions formatting.',
-    '4. If evidence is insufficient, request only the named missing log or report file; do not request the whole archive by default.',
-    '5. Provide the exact commands to rerun and clearly label checks that have not actually been run.',
-    '6. Correlate duplicate evidence across step logs, GitHub annotations, capability JSON and JUnit; report each root cause once while preserving every affected check/test name.',
-    '7. Do not claim a fix or a green CI run until the relevant checks have been executed successfully.',
-    '',
-    '## 10. Companion artifact',
-    '',
-    '- Detailed logs, `.exit` markers and per-step `.summary.md` files: `ci-logs/` in the companion CI Logs ZIP.',
-    '- Optional capability JUnit reports: `capability-reports/*.xml` (summarized above when present).',
-    '- This report is a diagnostic index and evidence digest, not a replacement for raw logs. Secret-like values are redacted where recognized.',
-    '',
-  );
 
   let markdown = out.join('\n');
   if (markdown.length > MAX_SUMMARY_CHARS) {

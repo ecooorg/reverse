@@ -225,3 +225,42 @@ test('calibration harness scores crafted fixtures and reports precision/recall',
         await rm(dir, { recursive: true, force: true });
     }
 });
+test('PE hardening flags are read from DllCharacteristics', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'reverse-legacy-hard-'));
+    try {
+        const file = path.join(dir, 'hard.exe');
+        const b = Buffer.alloc(256);
+        const pe = 128;
+        b.write('MZ', 0, 'ascii');
+        b.writeUInt32LE(pe, 0x3c);
+        b.write('PE\u0000\u0000', pe, 'ascii');
+        b.writeUInt16LE(0x14c, pe + 4);
+        b.writeUInt16LE(224, pe + 20);
+        b.writeUInt16LE(0x10b, pe + 24);
+        // DllCharacteristics at optional+70: DYNAMIC_BASE|NX_COMPAT = 0x0140
+        b.writeUInt16LE(0x0140, pe + 24 + 70);
+        await writeFile(file, b);
+        const f = (await analyzeLegacyWindows(file, testAuth)).findings[0];
+        assert.equal(f.hardening.aslr, true);
+        assert.equal(f.hardening.dep, true);
+        assert.equal(f.hardening.dllCharacteristics, 0x0140);
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
+test('UPX-like packer stub is reported as a heuristic', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'reverse-legacy-upx-'));
+    try {
+        const file = path.join(dir, 'upx.exe');
+        const b = Buffer.alloc(128);
+        b.write('MZ', 0, 'ascii');
+        b.write('UPX0 UPX1 UPX!', 40, 'ascii');
+        await writeFile(file, b);
+        const f = (await analyzeLegacyWindows(file, testAuth)).findings[0];
+        assert.ok(f.packerHeuristics.some(p => /UPX/i.test(p.name)));
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
