@@ -1,4 +1,5 @@
 import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { appendFileSync } from 'node:fs';
 import { hostname, platform, release, arch, cpus, totalmem } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -323,18 +324,36 @@ export async function buildSummary({ logsDir = DEFAULT_LOG_DIR, rootDir = '.', e
 }
 
 
-/** Emit the failure brief as a GitHub Actions annotation (Annotations panel). */
+/** Emit the failure brief so it appears under Actions → Annotations (and job summary). */
 function emitGitHubAnnotations(markdown, stats) {
   if (process.env.GITHUB_ACTIONS !== 'true') return;
-  if (!stats.failures && !stats.junitFailures && !stats.capabilityIssues) return;
-  // Workflow command: newlines must be %0A; max practical message ~60k.
-  const body = String(markdown)
+  const hasProblems = stats.failures || stats.junitFailures || stats.capabilityIssues || stats.suspicious;
+  if (!hasProblems) return;
+
+  const full = String(markdown);
+  // Workflow commands: encode so multi-line text survives; write to stdout AND stderr
+  // (some step wrappers only surface one stream to the runner log parser).
+  const encode = (s) => s
     .replace(/%/g, '%25')
-    .replace(/\r?\n/g, '%0A')
-    .replace(/\r/g, '%0A')
-    .slice(0, 60000);
-  // One error annotation carries the whole brief so it shows under Annotations.
-  process.stdout.write(`::error title=Reverse CI failure brief::${body}\n`);
+    .replace(/\r\n/g, '%0A')
+    .replace(/\n/g, '%0A')
+    .replace(/\r/g, '%0A');
+
+  // Primary: one error annotation with the complete brief (GitHub hard-limits ~64KiB).
+  const body = encode(full).slice(0, 60000);
+  const line = `::error title=Reverse CI failure brief::${body}\n`;
+  process.stdout.write(line);
+  process.stderr.write(line);
+
+  // Job Summary panel (always visible on the job page, not only Annotations).
+  const summaryPath = process.env.GITHUB_STEP_SUMMARY;
+  if (summaryPath) {
+    try {
+      appendFileSync(summaryPath, `\n## Reverse CI failure brief\n\n${full}\n`);
+    } catch {
+      // non-fatal
+    }
+  }
 }
 
 export async function writeSummary({ logsDir = DEFAULT_LOG_DIR, rootDir = '.', outputPath = 'AI-DEBUG-SUMMARY.md', env = process.env, host = null } = {}) {
