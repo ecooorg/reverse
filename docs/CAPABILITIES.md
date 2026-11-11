@@ -141,4 +141,6 @@ The remaining work is one ordered sequence, not parallel capability tracks: M co
 | Opt-in readelf/objdump detect-only providers | ✅ | Unavailable when missing; never simulated |
 | qemu-user / chroot-rootfs / oss-shim execution environments | ✅ | Absent rootfs/binary → unavailable, never simulated |
 | Desktop/audio sourced tables (X11, GTK1, Qt3, OSS) | ✅ | Documentary diagnosis rows |
-| Full verneed walk, lief/goblin, Linux reference trials | 🚧 | Later N steps |
+| Linux reference trials (diagnose-and-advise + compare-versions) | ✅ | L0 without operator rootfs/oracle |
+| Linux behavior capture/replay round-trip helper | ✅ | Shared sandbox pipeline; no rootfs claim |
+| Full verneed graph walk, lief/goblin | 🚧 | Later N steps / release close |
