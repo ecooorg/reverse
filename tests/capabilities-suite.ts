@@ -86,6 +86,8 @@ function check(area: string, name: string, fn: (c: Ctx) => Promise<void> | void)
     });
 }
 after(async () => {
+    closeWindowsHelper();
+
     const totals: Record<Status, number> = { verified: 0, limitation: 0, drift: 0, failed: 0 };
     for (const r of records)
         totals[r.status]++;
