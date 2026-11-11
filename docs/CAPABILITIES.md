@@ -6,7 +6,7 @@ Patch **M** closed at **1.2.0** and Patch **N** closed at **1.3.5** (2026-11-11)
 
 This file states what really works and what does not. Planned work is only in the last section and in [ROADMAP.md](ROADMAP.md). The first table covers the core areas; the sections below cover the capabilities added by later patches, newest area last.
 
-| Area | Implemented (cumulative through 1.3.7; the patch that added a part is named in brackets) | Explicit limitations |
+| Area | Implemented (cumulative through 1.3.8; the patch that added a part is named in brackets) | Explicit limitations |
 |---|---|---|
 | ELF / PE / Mach-O / Java class | Header magic (Java `.class` is told apart from universal Mach-O), architecture/bitness, file size, hash evidence; **sections, symbols, imports/exports and load commands** where the format tables are present in the read window (Patch E) | No disassembly, decompilation, call graph, or malware verdict (provider engines in F) |
 | Android APK/AAB | ZIP inventory: entries, `classes*.dex`, `lib/<abi>/*.so`, ABI list, AndroidManifest/resources.arsc presence, R8/ProGuard path indicators, sibling Gradle lock notes (Patch E) | Binary AXML not decoded; no DEX class listing; no full Gradle resolution |
@@ -102,7 +102,7 @@ Process sampling remains read-only. It captures an OS start-time identity token 
 
 | Target Profile envelope (per-field evidence/confidence/coverage) | step 1 | ✅ | Installer field null until detectors land; confidence uncalibrated |
 | Calibration harness (crafted fixtures + operator hash manifests) | step 2 | ✅ | Precision/recall, Brier score and five-bin ECE; crafted corpus is small and descriptive, not statistically representative; operator samples require SHA-256, source and license |
-| Legacy authorization and provenance across analyzers, calibration, execution, capture/replay, preservation and migration | 1.3.7 | ✅ | Explicit authorization or authorized session is required; reports carry the declaration; legal status and referenced license/consent are not verified |
+| Legacy authorization and provenance across analyzers, calibration, execution, capture/replay, preservation and migration | 1.3.8 | ✅ | Explicit authorization or authorized session is required; reports carry the declaration; legal status and referenced license/consent are not verified |
 
 ### Target-platform and era support matrix (G-09)
 

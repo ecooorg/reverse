@@ -1,3 +1,21 @@
+## Audit 22 — 2026-11-11 — CI formatting recovery and failure aggregation (1.3.8)
+
+**Scope.** Resolve the first failing gate in Capabilities run [43079862360](https://github.com/ecooorg/reverse/actions/runs/43079862360) and prevent a downstream summary job from obscuring an upstream failure when no capability report exists. No product capability or Patch O work is included.
+
+**Findings.**
+
+- **F-80 — TypeScript formatting drift.** The 1.3.7 manual matrix failed its static quality step on all six OS/Node cells because the TypeScript printer check found ten unformatted `.ts` files. The previous local verification had not run `format:check` with the locked formatter package because dependency installation timed out. The ten files are now printed using the TypeScript compiler printer; the repository format check is locally exercised with the available global compiler, while the exact locked TypeScript 5.9.3 toolchain and GitHub rerun remain pending.
+- **F-81 — Cascading missing-report failure.** The capability suite did not start after the earlier formatting step failed, so its `after` hook could not create JSON reports. The summary job nevertheless ran `capability-report.mjs reports/*.json` and failed with a second, derivative error. Report aggregation now runs only when the capability matrix succeeds; otherwise the job writes an explicit note that reports are absent because the prerequisite matrix failed. The original capability job remains the authoritative failure.
+
+**Verification.** Ten TypeScript files were normalized with the available TypeScript 5.8.3 printer; the format check, static quality, size gate, source structure, and CI summary tests are recorded in the delivery report. `npm ci --ignore-scripts` timed out, so the locked TypeScript 5.9.3 package and full build/test suite were not available locally. The required manual `os: all` rerun has not yet been run. No cross-platform green result is claimed.
+
+| ID | Sev | Area | Finding | Status |
+|---|---|---|---|---|
+| F-80 | Medium | CI formatting | Ten TypeScript files failed the formatter gate in all six 1.3.7 matrix cells; local verification had not run the locked formatter | Status: pending verification in 1.3.8; TypeScript 5.8.3 printer check passes locally, exact locked-toolchain CI rerun pending |
+| F-81 | Low | CI diagnostics | Summary aggregation reported missing capability JSON as a second failure when upstream jobs failed before the capability suite ran | Status: implemented in 1.3.8; local regression test passes, GitHub workflow rerun pending verification |
+
+---
+
 ## Audit 21 — 2026-11-11 — M/N cross-cutting governance and roadmap verification (1.3.7)
 
 **Scope.** Close the remaining M/N governance gap identified while reviewing G-01…G-10 and H-03…H-10, enforce corpus provenance in calibration manifests, add meaningful calibration error metrics, and reconcile the Roadmap/Architecture/CAPABILITIES statements. No Patch O work is included.

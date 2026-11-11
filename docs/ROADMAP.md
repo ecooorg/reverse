@@ -18,18 +18,18 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.3.7** (M/N cross-cutting authorization, corpus and roadmap audit; 2026-11-11).
+State as of **1.3.8** (CI formatting recovery and failure-report aggregation; 2026-11-11).
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.3.7** (M/N cross-cutting audit increment; N remains closed at 1.3.5) |
+| What is the product version? | **1.3.8** (CI formatting recovery; N remains historically closed at 1.3.5) |
 | What is finished? | The 1.0 foundation (**patches A–L**) and **Patch M** (Windows compatibility through 2010, release **1.2.0**) and **Patch N** (old Linux compatibility, closed at **1.3.5**). |
-| What is being built? | No product feature is in progress. Patch N maintenance 1.3.6 closed R-07 and the N/Linux portions of R-02/R-15, and implemented R-19 Windows pending CI verification. Maintenance 1.3.7 extends H-05/H-10 authorization and provenance across M/N legacy workflows, validates calibration corpus provenance (H-06), adds descriptive calibration metrics (H-08), and reconciles M/N G/H status claims. Next is **Patch O** (Classic Mac and early macOS, target **1.4**); it remains not started until its entry criteria and O step 0 are satisfied. Patch N delivered: Linux Target Profile fields, a.out/ELF inventory, sourced diagnosis, environments, behavior capture/replay, reference trials, verneed-oriented summary, MCP `analyze_legacy_linux` and the detect-only `lief` provider. |
+| What is being built? | No product feature is in progress. Patch N maintenance 1.3.6 closed R-07 and the N/Linux portions of R-02/R-15, and implemented R-19 Windows pending CI verification. Maintenance 1.3.7 extended H-05/H-10 authorization and provenance across M/N legacy workflows, validated calibration corpus provenance (H-06), added descriptive calibration metrics (H-08), and reconciled M/N G/H status claims. Maintenance 1.3.8 fixes the ten TypeScript files reported by Capabilities run 43079862360 and prevents the summary job from producing a secondary missing-report failure when capability jobs stop before the suite runs. Next is **Patch O** (Classic Mac and early macOS, target **1.4**); it remains not started until its entry criteria and O step 0 are satisfied. Patch N delivered: Linux Target Profile fields, a.out/ELF inventory, sourced diagnosis, environments, behavior capture/replay, reference trials, verneed-oriented summary, MCP `analyze_legacy_linux` and the detect-only `lief` provider. |
 | What has not started? | **Patches O, P, Q** (Classic Mac/early macOS; legacy Android; newer generations and unified compatibility intelligence). Next is **O**. Plans: [Detailed plans for patches N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q). |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Before O, run and record the required manual `os: all` workflow for 1.3.7 (including Windows R-19 lifecycle verification); then close O step 0 debts F-08 macOS and R-19 macOS. O has not started. |
+| What is the next concrete step? | Before O, rerun and record the required manual `os: all` workflow for 1.3.8 (including Windows R-19 lifecycle verification); then close O step 0 debts F-08 macOS and R-19 macOS. O has not started. |
 | What is open but not blocking? | R-01 (Stryker), R-05 (`knip`, `jscpd`, dedicated linter; dependency-free `quality:static` is now CI-gated), R-04 (`fast-check`), R-19 Windows (implementation delivered; Windows CI verification pending) and R-19 macOS remain open. M/N G/H residual scope is itemized below and in `CAPABILITIES.md`. See the [carry-over debt register](#carry-over-debt-register). |
-| What is unverified? | Residual M/N limitations (explicit): no bundled Windows/Linux oracle (preservation stays L0); execution lifecycle lacks snapshot/restore/trace; behavior capture does not cover registry/network/UI/audio/time/randomness or code coverage; no function-level equivalence lab; migration options are limited; similarity BSim is unconfigured; calibration uses small crafted corpora; containers share the host kernel; the verneed summary is a string-residue scan, not a full `SHT_GNU_verneed` walk; `goblin` is nott wired; libc/compiler generation heuristics are not calibrated beyond the crafted fixtures. Full-matrix green recorded for commit `b5ea3fa` (Capabilities 43059743774, Structure 43059819947, Supply chain 43059851184). Windows/macOS hard sandbox isolation remains a recorded limitation from M. |
+| What is unverified? | Residual M/N limitations (explicit): no bundled Windows/Linux oracle (preservation stays L0); execution lifecycle lacks snapshot/restore/trace; behavior capture does not cover registry/network/UI/audio/time/randomness or code coverage; no function-level equivalence lab; migration options are limited; similarity BSim is unconfigured; calibration uses small crafted corpora; containers share the host kernel; the verneed summary is a string-residue scan, not a full `SHT_GNU_verneed` walk; `goblin` is nott wired; libc/compiler generation heuristics are not calibrated beyond the crafted fixtures. The 1.3.7 manual matrix (Capabilities run 43079862360) stopped at the formatting gate on all six OS/Node cells, before build or capability tests; no cross-platform result is inferred from that run. The earlier N closure matrix remains recorded for commit `b5ea3fa` (Capabilities 43059743774, Structure 43059819947, Supply chain 43059851184). Windows/macOS hard sandbox isolation remains a recorded limitation from M. |
 
 ## Delivery plan: foundation A–L and product patches M–Q
 
@@ -911,7 +911,7 @@ Closes audit tasks R-08 and R-18 (core) and quality debts R-03 / F-16 / R-05 (pa
 
 Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **approved project task**. Each belongs to exactly one patch (or is already closed). A patch is not done until its rows here are closed and the matching findings in [AUDIT.md](AUDIT.md) carry `Status: closed in <version>`. The capability suite checks that every ID of the audit appears in this table. New audits append their IDs here in the same way. In rows and audits written before the consolidation, the label **M1** is a historical name for the early increments of Patch M (1.1.0-beta.1 and .2); it is not a separate patch.
 
-### Findings (Audit 1, approved 2026-11-09, plus the later findings F-50 to F-79; sorted by ID — F-18 to F-41 follow in the tables of Audits 4 to 6)
+### Findings (Audit 1, approved 2026-11-09, plus the later findings F-50 to F-81; sorted by ID — F-18 to F-41 follow in the tables of Audits 4 to 6)
 
 | ID | Task | Patch / status |
 |---|---|---|
@@ -959,6 +959,8 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-77 | Calibration manifests did not enforce SHA-256/source/license provenance and accepted unexpected embedded payload fields | closed in 1.3.7; every entry is hash-checked and sourced; embedded payload fields are rejected |
 | F-78 | M/N G/H status and architecture statements contradicted actual delivered scope | closed in 1.3.7 documentation reconciliation; residuals remain partial/open |
 | F-79 | `ghidra-similarity` returned a zero score when no BSim database was configured, risking a false measured dissimilarity | closed in 1.3.7; no score/findings are returned until a local corpus is configured |
+| F-80 | Ten TypeScript source/test files failed the formatter gate in the 1.3.7 full-matrix run; local verification had not used the locked formatter package | pending verification in 1.3.8; local TypeScript 5.8.3 printer passes, exact locked-toolchain and matrix rerun pending |
+| F-81 | Summary job emitted a second missing-capability-report failure when upstream capability jobs stopped before the suite could write reports | implemented in 1.3.8; local regression test passes, GitHub workflow rerun pending |
 
 ### Findings (Audit 4, A–D closure review, 2026-11-10)
 
@@ -1067,6 +1069,11 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 
 ## Release history
 
+### 1.3.8 — CI formatting recovery (maintenance; no product patch)
+
+- **Scope.** Apply the repository TypeScript printer formatting to the ten files reported by Capabilities run [43079862360](https://github.com/ecooorg/reverse/actions/runs/43079862360). Change the manual summary job so it merges capability reports only when the capability matrix succeeded; when an upstream capability job fails before producing reports, the summary job records that reports are unavailable because the prerequisite failed, rather than generating a second misleading `No capability report found` failure.
+- **Verification.** Local TypeScript printer check, size/quality/structure checks and CI summary tests are recorded in the delivery report. The locked npm toolchain and the required manual `os: all` rerun remain pending; no platform green is claimed.
+
 ### 1.3.7 — M/N cross-cutting audit increment (no new product patch)
 
 - **Scope.** Extend the shared authorization/provenance gate to M/N calibration, execution-environment runs, works/fails matrices, behavior observation/capture/replay, preservation reports and migration advice; calibration manifests now reject embedded payloads and require hash/source/license for operator corpus entries; reports include authorization provenance; calibration reports include Brier score and five-bin expected calibration error alongside precision/recall.
@@ -1126,6 +1133,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.3.5 | Patch N closed (old Linux compatibility) | 2026-11-11; runs 43059743774 / 43059819947 / 43059851184 |
 | 1.3.6 | Post-N debt increment: R-07, R-02 Linux, R-15 Linux, F-33/R-05 partial; R-19 Windows implemented pending CI | 2026-11-11; local Linux build/tests and structure gates; Windows CI and full `os: all` pending |
 | 1.3.7 | M/N cross-cutting authorization, corpus policy, calibration metrics and roadmap audit | 2026-11-11; local Linux build/tests; full `os: all` and Windows R-19 verification pending |
+| 1.3.8 | CI formatting recovery and capability-report aggregation guard | 2026-11-11; local format/quality/structure checks and 123 unit tests; locked toolchain and full `os: all` rerun pending |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP
