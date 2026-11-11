@@ -145,20 +145,26 @@ export function diagnoseLinuxFromTables(input: {
         for (const e of t.entries)
             byId.set(e.id, e);
     }
-    const push = (id: string, cause: string, evidence: string, confidence: number, needsExec: boolean) => {
-        const row = byId.get(id);
+    const push = (spec: {
+        id: string;
+        cause: string;
+        evidence: string;
+        confidence: number;
+        needsExec: boolean;
+    }) => {
+        const row = byId.get(spec.id);
         if (!row)
             return;
         findings.push({
-            cause,
-            evidence: `${evidence} [table:${id}; source:${row.source}]`,
-            confidence,
+            cause: spec.cause,
+            evidence: `${spec.evidence} [table:${spec.id}; source:${row.source}]`,
+            confidence: spec.confidence,
             limitations: [
                 'Table entry is documentary; host runtime is not probed.',
                 'No execution environment is started by diagnosis alone.'
             ],
-            needsExecutionEnvironment: needsExec,
-            tableEntryIds: [id]
+            needsExecutionEnvironment: spec.needsExec,
+            tableEntryIds: [spec.id]
         });
     };
     if (input.format === 'a.out') {

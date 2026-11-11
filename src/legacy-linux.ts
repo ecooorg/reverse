@@ -11,6 +11,8 @@ import { result } from './core-types.js';
 import { profileField, type LegacyAuthorization, type TargetProfile } from './legacy-types.js';
 import { requireLegacyGate } from './legacy-gate.js';
 import { diagnoseLinuxFromTables, type LinuxCompatDiagnosis } from './legacy-linux-tables.js';
+import { extractSymbolVersionHints, type SymbolVersionHint } from './legacy-linux-symver.js';
+import { inspectPackageBuffer, type PackageMetadata } from './legacy-linux-packages.js';
 export interface LegacyLinuxFinding {
     format: 'a.out' | 'ELF' | 'unknown';
     architecture: string;
@@ -29,6 +31,8 @@ export interface LegacyLinuxFinding {
     libcMarkers: string[];
     compilerMarkers: string[];
     compatibilityFindings: LinuxCompatDiagnosis[];
+    symbolVersionHints: SymbolVersionHint[];
+    packageMetadata: PackageMetadata | null;
     targetProfile: TargetProfile;
     authorization: LegacyAuthorization;
     sha256: string;
@@ -398,6 +402,10 @@ export async function analyzeLegacyLinux(filePath: string, authorization?: Legac
     }
     const libcMarkers = detectLibcMarkers(text, needed);
     const compilerMarkers = detectCompilerMarkers(text, needed);
+    const symbolVersionHints = extractSymbolVersionHints(b);
+    // Package containers are a separate path; only annotate when magic matches.
+    const pkg = inspectPackageBuffer(b, abs);
+    const packageMetadata = pkg.kind === 'unknown' ? null : pkg;
     const libcGen = guessLibcGeneration(libcMarkers, needed);
     const compilerAbi = guessCompilerAbi(compilerMarkers);
     const targetProfile: TargetProfile = {
@@ -435,10 +443,15 @@ export async function analyzeLegacyLinux(filePath: string, authorization?: Legac
             complete: !!interpreter
         }),
         toolchainRuntimeFramework: profileField({
-            value: [...libcMarkers, ...compilerMarkers],
+            value: [
+                ...libcMarkers,
+                ...compilerMarkers,
+                ...symbolVersionHints.map(h => h.name)
+            ],
             evidence: [
                 ...libcMarkers.map(m => `marker: ${m}`),
-                ...compilerMarkers.map(m => `marker: ${m}`)
+                ...compilerMarkers.map(m => `marker: ${m}`),
+                ...symbolVersionHints.slice(0, 8).map(h => h.evidence)
             ],
             confidence: libcMarkers.length || compilerMarkers.length ? 0.75 : 0.3,
             coverageNotes: [
@@ -514,6 +527,8 @@ export async function analyzeLegacyLinux(filePath: string, authorization?: Legac
         libcMarkers,
         compilerMarkers,
         compatibilityFindings,
+        symbolVersionHints,
+        packageMetadata,
         targetProfile,
         authorization: auth,
         sha256

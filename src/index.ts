@@ -55,3 +55,6 @@ export { analyzeLegacyLinux } from './legacy-linux.js';
 export type { LegacyLinuxFinding } from './legacy-linux.js';
 export * from './legacy-linux-tables.js';
 export * from './legacy-linux-calibration.js';
+export * from './legacy-linux-symver.js';
+export * from './legacy-linux-packages.js';
+export { createReadelfProvider, createObjdumpProvider } from './providers-detect-tools.js';

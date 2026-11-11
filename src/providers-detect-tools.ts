@@ -167,3 +167,21 @@ export function registerDetectOnlyProviders(register: (p: AnalyzerProvider) => v
         }
     }
 }
+/** GNU readelf — ELF headers and dynamic section (detect-only). */
+export function createReadelfProvider(): AnalyzerProvider {
+    return detectOnlyProvider({
+        name: 'readelf',
+        binaryNames: ['readelf'],
+        buildArgs: (target) => ['-d', '-h', '-l', target],
+        capabilities: ['elf-headers', 'dynamic-section', 'detect-only']
+    });
+}
+/** GNU objdump — section headers / disassembly summary (detect-only). */
+export function createObjdumpProvider(): AnalyzerProvider {
+    return detectOnlyProvider({
+        name: 'objdump',
+        binaryNames: ['objdump'],
+        buildArgs: (target) => ['-x', '-T', target],
+        capabilities: ['elf-headers', 'symbols', 'detect-only']
+    });
+}
