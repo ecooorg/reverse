@@ -1,5 +1,7 @@
 # MCP interface
 
+The server exposes **60 tools** (the capability suite checks that the tables below list exactly the tools returned by `tools/list`), plus prompts and resources methods and an optional HTTP gateway. Sections: the core tool table, the optimization-loop tools (patch J), the runtime-analyzer tools (patch K), the optional HTTP transport (patch K), prompts and resources (patch L), the legacy Windows tools (patch M, in progress) and the future plan.
+
 Transport: newline-delimited JSON-RPC 2.0 over stdin/stdout (MCP stdio). Supported methods: `initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`, `prompts/list`, `prompts/get`, `resources/list`, `resources/read`.
 
 Each tool returns its result as JSON text in `content[0].text` and as the same data in `structuredContent` (an array result is wrapped as `{ "items": [...] }`, because `structuredContent` must be an object). `initialize` answers with the client's `protocolVersion` when it is `2024-11-05`, `2025-03-26`, `2025-06-18` or `2025-11-25`, and with `2025-11-25` otherwise. The stateless 2026-07-28 protocol era is not implemented. Protocol problems are JSON-RPC errors: `-32700` for a line that is not JSON (`id: null`), `-32600` invalid request, `-32601` unknown method, `-32602` unknown tool or missing tool name. A tool that fails while running (missing file, invalid PID, rejected argument) returns a normal result with `isError: true` and the message in `content[0].text`. Every result also carries an `untrustedContent` field `{ notice, maxStringLength, truncatedStrings }` (inside `structuredContent`; for object results also in the text): strings from analyzed targets are untrusted data, and strings longer than 4096 characters are truncated with a `…[truncated N chars]` suffix. Total tool responses are capped at 1 MiB; oversized `findings` arrays are truncated, marked `partial`, and include `responseBudget` metadata.
@@ -68,7 +70,7 @@ Tool argument schemas are intentionally compact. Validate all paths, PIDs, and c
 Long-running `profile_process` and `monitor_process` calls accept MCP `notifications/cancelled` for their request ID. Cancellation returns a `partial` result and persists the samples collected so far. The library API also accepts an `AbortSignal`.
 
 
-## Optimization loop tools (patch J)
+## Optimization loop tools (patch J, completed in 0.5.0-beta.2)
 
 | Tool | Role |
 |---|---|
@@ -86,18 +88,14 @@ Long-running `profile_process` and `monitor_process` calls accept MCP `notificat
 | `remove_git_worktree` | Remove git worktree |
 | `create_git_worktree` | Git worktree workspace |
 
-## Patch J completion (0.5.0-beta.2)
+Device-preparation tools (`adb_install`, `adb_pm_clear`, `adb_emu_snapshot_load`) require `confirm` and `CONTROLLED_EXECUTION` and target a test device only (0.5.0-beta.2). `create_git_worktree` and `remove_git_worktree` provide the git worktree alternative to the directory-copy workspace. `run_optimization_trial` and `run_all_reference_trials` run the fixture-based end-to-end loop for the three reference shapes.
 
-| Tool | Role |
+## Runtime analyzer tools (patch K)
+
+| Tool | Purpose |
 |---|---|
-| `create_git_worktree` / `remove_git_worktree` | Git worktree workspace |
-| `adb_install` / `adb_pm_clear` / `adb_emu_snapshot_load` | Device prep (confirm + CONTROLLED_EXECUTION) |
-| `run_optimization_trial` / `run_all_reference_trials` | Fixture E2E loop for three shapes |
-
 | `analyze_javascript` | JS/TS/Electron static inventory |
-
 | `analyze_dotnet` | .NET CLI header detection on PE |
-
 | `analyze_wasm` | WebAssembly section inventory |
 
 ## Optional HTTP transport (patch K)
@@ -117,7 +115,7 @@ Default bind `127.0.0.1:7331`. Not full MCP Streamable HTTP.
 | `resources/read` | Read local JSON artifact by URI |
 
 
-### Legacy Windows tools (Patch M, initial slice; M remains in progress)
+## Legacy Windows tools (patch M, initial slice; M remains in progress)
 
 1. Call `create_research_session` with the target identifier.
 2. Call `declare_legacy_authorization` with `basis` (`open_source` or `written_consent`), a human-readable `license_or_consent_reference`, and `declared_by`. This records the operator's declaration; Reverse does not validate the legal basis.

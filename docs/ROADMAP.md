@@ -1,10 +1,38 @@
 # Roadmap
 
-The design behind each item is described in [ARCHITECTURE.md](ARCHITECTURE.md).
+The design behind each item is described in [ARCHITECTURE.md](ARCHITECTURE.md). Rules for assistants are in [AGENTS.md](../AGENTS.md); the reasons behind accepted tasks are in [AUDIT.md](AUDIT.md).
 
-## Delivery plan: completed foundation A–L, followed by five sequential product patches M–Q
+## How to read this file
 
-This plan closes **every** item listed in the release sections below (0.2, 0.3, 0.4 and Later), so that Reverse can analyze a program, reverse-engineer it, find the cause of excessive resource use, apply an optimization and prove the result. Each patch is a large, independently releasable unit: it ends in a merged, tested change set, not in a partially working branch. The patches are ordered by dependency; the release sections further down describe the same work item by item.
+This file is the single source of truth for **what is done, what is not done and what to do next**. Read it in this order:
+
+1. [Status at a glance](#status-at-a-glance): the current version, the active patch and the next concrete step.
+2. [Delivery plan](#delivery-plan-foundation-al-and-product-patches-mq): the one ordered table of all patches A–Q, how progress is measured and what "done" means.
+3. [Active work: product patches M–Q](#active-work-product-patches-mq): the scope, the working checklist of Patch M and the delivery rules. **Start work here.**
+4. [Carry-over debt register](#carry-over-debt-register): approved tasks that are still open although their patch is closed or that have no recorded closure.
+5. Reference material, in this order: [completed foundation A–L](#completed-foundation-patches-al) (historical records, do not re-open), [approved audit backlog](#approved-audit-backlog-audit-1-approved-2026-11-09) (every finding and recommendation with its status), [coverage table](#coverage-of-the-roadmap), [release history](#release-history) and the original [core readiness criteria](#core-development-order-and-completion-criteria).
+
+**Status vocabulary** used everywhere in this file: **done** (code, automated check and documentation are in place, and the capability gate was run), **in progress** (some items delivered, acceptance criteria still open), **not started**, **open** (an approved task without delivery), **partial** (delivered in part; the remainder is named), **pending verification** (delivered and tested locally, but a run that only GitHub Actions can provide is not recorded). Checkboxes: `[x]` delivered and proven, `[ ]` not delivered. Nothing is marked done without code and a passing check (AGENTS.md section 5).
+
+**When you finish work, update in the same change:** the [status dashboard](#status-at-a-glance), the checklist of the patch, the [version index](#version-index), the affected backlog rows here and in AUDIT.md, the [debt register](#carry-over-debt-register), `ARCHITECTURE.md` (*planned* to *implemented*), `CAPABILITIES.md` and `MCP.md`.
+
+## Status at a glance
+
+State as of **1.1.0-beta.2** (`package.json` and `src/core-version.ts` agree; documentation-only patch of 2026-11-11 on top; no product change).
+
+| Question | Answer |
+|---|---|
+| What is the product version? | **1.1.0-beta.2** (prerelease of the 1.2 milestone) |
+| What is finished? | The 1.0 foundation, **patches A–L**: process intelligence, benchmark engine, evidence and research sessions, static analysis, providers (Ghidra, Rizin, JADX, Apktool, Frida, GDB, profilers), validation and integrity, controlled optimization loop, JS/.NET/WASM analyzers, agent integration. 60 MCP tools. Own code in `src/`: about 9,300 lines (budget 20,000–30,000). |
+| What is being built? | **Patch M** — complete Windows compatibility, DOS through Windows 7-era software (up to 2010); target release **1.2**. Status: **in progress**. Delivered so far: initial detector slices (1.1.0-beta.1, 1.1.0-beta.2). |
+| What has not started? | **Patches N, O, P, Q** (old Linux; Classic Mac/early macOS; legacy Android; newer generations and unified compatibility intelligence). Do not start them before M passes its acceptance criteria. |
+| What is the next concrete step? | Work the open items of the [Patch M checklist](#patch-m-working-checklist), in the suggested order given there. The first open step is the **full Target Profile and sourced OS/API availability data** (checklist sections 1 and 2). |
+| What is open but not blocking? | See the [carry-over debt register](#carry-over-debt-register): No open item is recorded as blocking M; one proposed prerequisite (R-20, sandbox for executed targets, before execution environments are added). |
+| What is unverified? | (a) The last **recorded** full-matrix run (`os: all`, Linux, macOS, Windows, Node 22 and 24) is the A–D closure run of 0.2.0-beta.8 (run 42775483864). No later full-matrix run is recorded in the documentation, so macOS and Windows results for patches E–M are **not claimed**; run Actions → Capabilities → `os: all` before declaring any patch done. (b) GitHub artifact upload of the CI diagnostics and the rerun for F-67 are **pending verification**. (c) One known open defect: F-75, two unpinned action references (the R-03 check shows 🚧). |
+
+## Delivery plan: foundation A–L and product patches M–Q
+
+This plan closes **every** item listed in the release sections below (0.2, 0.3, 0.4 and Later), so that Reverse can analyze a program, reverse-engineer it, find the cause of excessive resource use, apply an optimization and prove the result, and then diagnose and restore old software. Each patch is a large, independently releasable unit: it ends in a merged, tested change set, not in a partially working branch. The patches are ordered by dependency; the release sections further down describe the same work item by item.
 
 ### How progress is measured
 
@@ -21,26 +49,199 @@ Version 1.0 is reached when patches A–K are done and the capability matrix con
 
 ### Order and dependencies
 
-| Patch | Name | Milestone | Depends on |
-|---|---|---|---|
-| A | Defect closure and verification gate | 0.1.x | none |
-| B | Process intelligence and safety | 0.2 | A |
-| C | Measurement engine and baselines | 0.2 | A |
-| D | Evidence engine, research sessions and MCP surface | 0.2 | B, C |
-| E | Static analysis core | 0.3 | A |
-| F | Provider framework, Ghidra and Rizin | 0.3 | E |
-| G | Dynamic analysis: Frida and GDB | 0.4 | F, B |
-| H | Native profilers and hotspots | 0.4 | B, F |
-| I | Validation, integrity and reports | 0.4 | C, D |
-| J | Controlled optimization loop | 1.0 | G, H, I |
-| K | Runtime analyzers and on-demand extensions | 1.0 | F, J |
-| L | Agent integration and distribution | 1.x (after 1.0) | D, J |
-| M | Compatibility diagnosis and legacy formats | 1.1–1.5 (waves; initial Windows slice in 1.1.0-beta.1) | E, F, G, J |
-| N | Execution environments | 1.1–1.5 (waves) | G, M |
-| O | Behavior capture and replay | 1.1–1.5 (waves) | I, N |
-| P | Function equivalence lab and migration advisor | 1.1–1.5 (waves) | O, J |
+One table for every patch. Patches A–L are the completed 1.0 foundation; M–Q are the only future product patches (see [Active work](#active-work-product-patches-mq)).
 
-B and C can proceed in parallel after A; E can start at the same time. G and H can proceed in parallel once F is done.
+| Patch | Name | Milestone / release | Depends on | Status |
+|---|---|---|---|---|
+| A | Defect closure and verification gate | 0.1.x (0.1.1) | none | done |
+| B | Process intelligence and safety | 0.2 | A | done |
+| C | Measurement engine and baselines | 0.2 | A | done |
+| D | Evidence engine, research sessions and MCP surface | 0.2 | B, C | done |
+| E | Static analysis core | 0.3 | A | done |
+| F | Provider framework, Ghidra and Rizin | 0.3 | E | done |
+| G | Dynamic analysis: Frida and GDB | 0.4 | F, B | done |
+| H | Native profilers and hotspots | 0.4 | B, F | done |
+| I | Validation, integrity and reports | 0.4 | C, D | done |
+| J | Controlled optimization loop | 1.0 | G, H, I | done |
+| K | Runtime analyzers and on-demand extensions | 1.0 | F, J | done |
+| L | Agent integration and distribution | 1.x (core in 1.0.0, hygiene in 1.0.1) | D, J | done (full H-09 harness and optional single-file binary remain open) |
+| M | Windows compatibility, DOS through Windows 7-era (up to 2010) | 1.2 | A–L foundation; initial analyzer in 1.1.0-beta.1/.2 | **in progress** |
+| N | Old Linux software | 1.3 | M shared contracts and evidence model | not started |
+| O | Classic Mac and early macOS software | 1.4 | N shared contracts and environment/replay foundations | not started |
+| P | Legacy Android software | 1.5 | O shared contracts; Android foundations already present in E/J | not started |
+| Q | Newer generations and unified compatibility intelligence | 2.0 | M–P complete | not started |
+
+B and C can proceed in parallel after A; E can start at the same time. G and H can proceed in parallel once F is done (historical note; A–L are complete).
+
+**Superseded classification.** Earlier drafts of this table listed N *Execution environments*, O *Behavior capture and replay* and P *Function equivalence lab and migration advisor* as separate patches, and M as "Compatibility diagnosis and legacy formats", "1.1–1.5 (waves; initial Windows slice in 1.1.0-beta.1)", depending on E, F, G and J (N depended on G and M, O on I and N, P on O and J). Audit 18 (F-71) replaced that with the platform sequence above. The three capability areas were not dropped: they are acceptance dimensions 3 to 5 of **every** product patch M–Q (see [Scope and acceptance for every product patch](#scope-and-acceptance-for-every-product-patch)).
+
+## Active work: product patches M–Q
+
+Patches A–L are the completed 1.0 foundation and remain historical release records. All remaining product work is delivered as **five sequential product patches: M, N, O, P and Q**. These letters are the only active planning units. Do not create parallel tracks, platform-wave sub-patches, M1-style release plans, or separate cross-cutting patch families. A patch may have internal implementation tasks, but it is released and accepted as one product outcome.
+
+Each patch is a vertical product slice: detection and Target Profile, compatibility diagnosis, required execution environment, behavior capture/replay, validation/equivalence where an oracle exists, MCP/CLI surface, documentation, and end-to-end reference trials are delivered together to the extent relevant to that target family. Reuse shared interfaces; do not defer a capability to a later patch if it is necessary to make the current platform slice useful. Q consolidates and generalizes the completed platform work rather than introducing a second planning taxonomy.
+
+### Ordered product patches
+
+| Patch | Target and outcome | Target release | Depends on |
+|---|---|---:|---|
+| M | **Complete Windows compatibility, DOS through Windows 7-era software (up to 2010).** Finish the initial 1.1 Windows detector slice; deliver evidence-backed Target Profiles, sourced API/runtime compatibility diagnosis, relevant execution providers, behavior capture/replay, preservation reporting and migration recommendations. | 1.2 | A–L foundation; initial Windows analyzer in 1.1.0-beta.1/.2 |
+| N | **Old Linux software.** Support a.out/early ELF, old libc and ABI generations, legacy desktop/audio stacks and old package formats; deliver the same end-to-end diagnosis, environment, replay and validation workflow. | 1.3 | M shared contracts and evidence model |
+| O | **Classic Mac and early macOS software.** Support 68k, PEF/CFM, resource forks, PowerPC and early Intel Mach-O, Carbon and legacy bundle layouts; deliver end-to-end recovery and preservation workflow. | 1.4 | N shared contracts and environment/replay foundations |
+| P | **Legacy Android software.** Support Dalvik/early ART, old API levels, 32-bit ARM/x86/MIPS native components and legacy framework behavior; deliver device/emulator diagnosis, capture/replay and preservation validation. | 1.5 | O shared contracts and Android foundations already present in E/J |
+| Q | **Newer generations and unified compatibility intelligence.** Extend the proven workflow to post-2010 Windows, newer Linux, modern/classic-transition macOS and newer Android generations; unify profiles, API/runtime knowledge, evidence, confidence, environment matrices and migration reports across all supported platforms. | 2.0 | M–P complete |
+
+### Scope and acceptance for every product patch
+
+Every patch must deliver all of the following for its target family, with honest limitations where a platform or external engine cannot provide a capability:
+
+1. **Target Profile and static inventory:** executable/container formats, architecture, ABI, OS era, toolchain/runtime/framework, installer/packager and dependencies. Every field links to source evidence, confidence and coverage.
+2. **Compatibility diagnosis:** sourced, versioned OS/API/runtime availability data; concrete findings for missing/changed APIs, libraries, permissions, filesystem/registry/preferences, locale, graphics/audio, timing and hardware assumptions. Hypotheses remain separate from facts.
+3. **Execution and observation:** real provider detection, user-supplied licensed images, environment fingerprints, bounded execution, first-failure diagnostics and traces. No fabricated provider results.
+4. **Behavior capture and replay:** deterministic scenarios for applicable inputs, outputs, files, UI and other observable side effects; nondeterminism controls and explicit replay limitations.
+5. **Preservation and migration:** differential validation against an oracle, coverage and residual-risk reporting, L0–L3 preservation levels, and ranked migration options. Without an oracle, preservation remains L0.
+6. **Product integration:** stable CLI/MCP contracts, matching `docs/MCP.md`, capability checks, security review, examples and updated README/architecture/capabilities docs.
+7. **Reference trials:** at least two reproducible reference-program scenarios where lawful fixtures and environments exist: diagnose/restore a program that fails in the current environment, and compare a changed/repackaged/reimplemented version against the original. If a platform oracle or licensed environment is unavailable, record that as an explicit release limitation rather than claiming success.
+
+### Delivery rules
+
+- Work strictly in M → N → O → P → Q order. Do not start a later patch while the current patch's acceptance criteria remain open, except for a documented blocking fix.
+- Internal work breakdowns are not patch names and must not appear as competing roadmap classifications.
+- Each patch has one scope, one acceptance checklist, one release record and one capability-gate result. A documentation-only maintenance change does not count as a product patch and is not folded into these five deliverables.
+- Preserve backward compatibility and all existing safety gates. Legacy analysis is limited to open-source software or software with full rights-holder consent; operating-system images and proprietary tools are user supplied, never bundled.
+- The initial Windows slice in 1.1.0-beta.1 and detector increment in 1.1.0-beta.2 are historical progress within M, not separate future roadmap units. M remains open until its complete Windows outcome passes the criteria above.
+
+**Version policy:** M 1.2, N 1.3, O 1.4, P 1.5, Q 2.0. Do not assign versions to internal tasks or invent intermediate patch labels. Patch L remains part of the completed 1.0 foundation, not a parallel future track.
+
+### Patch M working checklist
+
+Patch M is **in progress** (target release 1.2). The items below are *internal tasks*, grouped by the seven acceptance dimensions above; they are not patches and must not be given patch labels or versions. A box is ticked only where code and a passing check exist at 1.1.0-beta.2. Backlog IDs refer to the [approved audit backlog](#approved-audit-backlog-audit-1-approved-2026-11-09).
+
+**1. Target Profile and static inventory**
+- [x] DOS MZ, Windows NE, LE, LX and PE header recognition (1.1.0-beta.1).
+- [x] Machine, PE bitness and subsystem extraction from the bounded header window.
+- [x] Bounded scan (8 MiB) for selected Borland/Delphi, VB6, MFC, Visual C++, DirectX and Glide markers.
+- [x] Bounded PE import table: imported libraries and named functions (1.1.0-beta.2).
+- [x] Static framework signatures: Delphi form/RTTI-style, VB6 metadata, MFC class/message-map (1.1.0-beta.2). Indicators with explicit confidence, **not calibrated**.
+- [ ] Delay imports, bound imports and out-of-window tables (known limitation).
+- [ ] Packer/protector detection.
+- [ ] Installer/packager and dependency identification.
+- [ ] Full Target Profile object: OS and era, CPU, bitness, ABI, toolchain/runtime/framework, installer, dependencies; every field with source evidence, confidence and coverage (ARCHITECTURE.md *Target Profile*).
+- [ ] Remaining Windows detector matrix (F-63 stays open until done; G-02).
+- [ ] Reference corpus with ground truth and precision/recall/calibration metrics for the detectors (H-08); corpus holds hashes and signatures only, with source and license per entry (H-06).
+- [ ] Further similarity adapters (H-03) and the rule "deterministic detectors first; analogy tag only with confidence and deterministic basis" (H-04).
+- [ ] Target-platform and era support matrix in `CAPABILITIES.md`, with a capability check against the registered format detectors (G-09).
+
+**2. Compatibility diagnosis**
+- [x] Preliminary static compatibility candidates from legacy headers and selected PE runtime/graphics imports, with confidence and limitations (F-69). They are candidates, not diagnosed causes.
+- [ ] Sourced, versioned OS/API/runtime availability tables (data, not code; no OS-version availability is inferred today).
+- [ ] Concrete findings with evidence per cause: removed or changed APIs, missing libraries, permissions, filesystem/registry, locale, graphics/audio/driver, timing tied to CPU speed, DPI and resolution, address-space and date limits, hardware assumptions (G-01).
+- [ ] Causes that only a run can confirm are marked as needing an execution environment; hypotheses stay separate from facts.
+
+**3. Execution and observation**
+- [ ] Execution-environment provider contract (detect, prepare, snapshot, restore, run with limits, trace, shut down) and real, detected adapters for Wine, DOSBox-class emulators and QEMU/VMs; user-supplied licensed images only, hashes recorded in the environment fingerprint (G-03).
+- [ ] Sandbox for executed targets under `CONTROLLED_EXECUTION` (R-20, proposed prerequisite: Patch M is the first patch that would run legacy targets).
+- [ ] Bounded execution, first-failure diagnostics, traces and a works/fails matrix across environments. No fabricated provider results.
+
+**4. Behavior capture and replay**
+- [ ] Deterministic scenarios for inputs, outputs, files, registry/preferences, network, UI events; time and randomness control; code coverage of the original; normalization; old-versus-new comparison; explicit replay limitations (G-04).
+
+**5. Preservation and migration**
+- [ ] Differential validation against an oracle and the function equivalence lab (emulation, differential and property tests) (G-05).
+- [ ] Behavior-preservation report with levels L0–L3, coverage and residual risk (G-10); no level above L0 without an oracle and provenance for generated code (H-07).
+- [ ] Migration strategy advisor with ranked options (G-06).
+
+**6. Product integration and authorization**
+- [x] Legal-policy documentation (SECURITY.md, ARCHITECTURE.md); this closes only the documentation part of G-07.
+- [x] Operator authorization declaration (`declare_legacy_authorization`) stored in the research session; `analyze_legacy_windows` refuses without it; the declaration is embedded in the result (F-64 in part, F-70, H-10 in part).
+- [ ] Extend the authorization and provenance gate to **every** new analysis, execution, capture, replay and migration operation (H-05, F-64 remainder, G-07 enforcement).
+- [ ] Stable CLI/MCP contracts for all new tools, `docs/MCP.md` matching `tools/list` exactly, capability checks, security review, examples, updated README/ARCHITECTURE/CAPABILITIES.
+
+**7. Reference trials**
+- [ ] Scenario 1: diagnose and restore a lawful reference program that fails in the current environment.
+- [ ] Scenario 2: compare a changed, repackaged or reimplemented version against the original.
+- Where no lawful fixture, platform oracle or licensed environment exists, record that as an explicit release limitation instead of claiming success.
+
+**Suggested order of work inside M** (derived from the dependencies between the items; confirm with the maintainer before reordering): (1) Target Profile and the missing detectors, with the ground-truth corpus and calibration; (2) sourced API/runtime tables and the diagnosis built on them, plus the support matrix (G-09); (3) sandbox (R-20) and the execution-environment provider contract with a first real adapter; (4) capture/replay on top of execution; (5) preservation levels, equivalence lab and migration advisor; (6) extend the authorization gate to each new operation as it is added (not at the end); (7) reference trials, documentation and the capability gate on all three operating systems.
+
+**M is done when** every item above is ticked or recorded as an explicit limitation, the seven acceptance dimensions pass, the capability matrix has no ❌/⚠️ and no 🚧 for an in-scope M capability, the manual `os: all` run is green, backlog rows G-01…G-10, F-63, F-64, H-03…H-08, H-10 assigned to M are closed, and the release is **1.2.0** with its release record below.
+
+### Patch M history: delivered increments
+
+These are historical progress notes inside Patch M, not separate roadmap units. The open work is in the [Patch M working checklist](#patch-m-working-checklist).
+
+#### Patch M implementation note — 1.1.0-beta.1 (initial Windows slice)
+
+This prerelease adds `analyze_legacy_windows` and `declare_legacy_authorization`, the session authorization record, deterministic executable-header recognition (MZ/NE/LE/LX/PE), bounded selected marker scanning, and preliminary compatibility candidates. It closes only the legal-policy documentation item and the initial authorization/header-detector sub-slice; it does **not** close G-01/G-02/G-07/G-09 or the Windows wave. Remaining M checklist items are intentionally unchecked.
+
+#### Patch M1 implementation note — historical label for the same patch M — 1.1.0-beta.2 (Windows detector expansion)
+
+- [x] Bounded PE import-table parsing reports imported libraries and named functions without executing the target.
+- [x] Static VB6/MFC runtime-import signatures and Delphi form-stream, VCL RTTI-style, VB6 metadata and MFC class/message-map signatures are reported with explicit confidence and evidence.
+- [x] Selected VB6/MFC/DirectX/Glide imports feed compatibility candidates; no OS-version availability is inferred.
+- [x] Legacy analysis results embed the research session's declared authorization basis, reference, declarant and timestamp.
+- [x] Unit and capability checks cover import extraction, framework signatures and authorization provenance.
+
+This is an M1 product increment, not completion of the Windows wave. Packer detection, sourced API availability tables, ground-truth corpus calibration and the full Target Profile remain open.
+
+### Maintenance record: CI diagnostics (delivered in 1.1.0-beta.1; not a product patch)
+
+This record was previously headed "CI diagnostics mini-patch". It is maintenance work outside the A–Q sequence; it claims no product capability and does not count toward M.
+
+- [x] Publish a downloadable detailed-log ZIP artifact for each workflow (`Capabilities`, `Structure`, `Supply chain`), even when a job fails.
+- [x] Publish a separate plain-text/Markdown `AI-DEBUG-SUMMARY.md` artifact with run identity, step inventory, failure exit codes and relevant error excerpts.
+- [x] Add a reusable local summary generator and `npm run ci:summary`.
+- [x] Document artifact names, contents, retention and the limits of AI-generated diagnosis in README and `docs/GITHUB.md`.
+- [x] Harden the generator against empty/missing log content; distinguish missing exit markers from confirmed success; classify common failures; include command lines, file/line references, TAP failure names, surrounding context, capability JSON failures/drift, JUnit failures and stack frames when present; redact common secret patterns. Concrete test/assertion evidence takes precedence over incidental category keywords.
+- [x] Close the first Patch M contract drift found by CI: add F-63…F-65 to the approved backlog and include both Patch M MCP tools in the exact 60-tool contract fixture.
+- [x] Add regression tests and run them before generating the artifact in all workflows.
+- [ ] Verify artifact upload and summary content in actual GitHub Actions runs for all three workflows; local checks cannot prove GitHub artifact availability.
+
+## Carry-over debt register
+
+Approved tasks that are **not** closed, collected from the backlog, the patch records and the audits, so that nothing hides inside a patch marked done. None of them is recorded as blocking Patch M. "State" says what was verified at 1.1.0-beta.2; "No implementation found" means a search of `src/` for the feature found nothing. Handling proposals marked *proposal* need the maintainer's approval before they become plan (AGENTS.md section 1, point 3).
+
+### Approved tasks without delivery or without recorded closure
+
+| ID | Task | Backlog assignment | State at 1.1.0-beta.2 | Handling |
+|---|---|---|---|---|
+| F-75 / R-03 | Pin the two remaining tag references in `.github/workflows/supply-chain.yml` to full commit SHAs | 1.0.1 (R-03 recorded closed) | Open defect: the capability check shows 🚧 (2 of 25 references are tags; 23 pinned) | *Proposal:* fix at the start of the next change that touches workflows (pin to `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a`, v7.0.1, as in the other workflows), then re-run the check |
+| R-20 | Sandbox for executed targets under `CONTROLLED_EXECUTION` (bwrap/unshare, sandbox-exec, Job Objects/AppContainer or a container provider; no network by default; scratch directory; rlimits) | G (done) | No implementation found. Only the cgroup v2 limiter exists; SECURITY.md lists the gap | *Proposal:* do it inside M before execution environments are added, because M is the first patch that runs legacy targets |
+| R-14 | Merkle root, Ed25519 detached signature, `reverse export` / `reverse verify` | I (done) | Hash chain and optional HMAC-SHA256 are done; Merkle, public-key signatures and the two commands: no implementation found | *Proposal:* schedule with Q (unified evidence) or earlier if a consumer needs third-party verification |
+| R-11 | Hardening-flag report (PIE, NX, RELRO, canary, CFG, ASLR) | E (done) | No implementation found | *Proposal:* PE flags with the M Target Profile; ELF flags with N |
+| R-10 | Opt-in providers: lief/goblin, objdump/readelf, capa, yara-x, diec, syft, osv-scanner, cargo-auditable, Go build info | E, F, H (done) | Only rz-bin/Rizin, Ghidra, JADX, Apktool and profilers exist; the others: no implementation found | *Proposal:* diec/yara-x/capa with M packer and toolchain detection; the rest only when a real need appears |
+| R-12 | Profile ingestion in standard formats (perf, pprof, `.cpuprofile`, Speedscope, Firefox Profiler); eBPF via bpftrace | H (done) | Export shape closed in 0.2.0-beta.6; ingestion: no implementation found | Open; schedule only when a task needs it |
+| R-15 | Golden results and the three reference trials as manual CI jobs | J (done) | Fixture trials run in the suite; golden results and dedicated manual CI jobs: no implementation found | Open; reuse for the M reference trials |
+| R-01 | Mutation testing (Stryker) on pure modules | D (done) | No mutation runner configured | Open, non-blocking |
+| R-04 | Fuzz and property tests (`fast-check`) for parsers | D (done) | Partial: deterministic hostile process-parser corpus; `fast-check` and binary-parser fuzzing open | Open; the new PE/NE parsers of M are natural targets |
+| R-05 | Linter, `knip`, `jscpd`, own-line size gate | C (done) | Partial: strict TypeScript, format gate, size gate, `quality:static`; `knip`, `jscpd` and a dedicated linter not installed | Open, non-blocking |
+| R-07 | Contract-first MCP (docs generated from one definition) | D (done) | Partial: schemas, profiles, errors, pagination, size budget exist; docs are contract-tested, not generated | Open, non-blocking |
+| R-19 | Windows/macOS metric parity: persistent helpers instead of a fork per sample; `typeperf`/ETW and `libproc` | D/H (done) | Open: PowerShell helper forks per sample | Open, non-blocking |
+| F-08 | Single-PID fast path for inspection and sampling | B (done) | Linux and Windows done; macOS reads the full table | Open (macOS part), non-blocking |
+| F-06 | MCP protocol: stateless 2026 protocol era | D (done) | Stateful revisions through 2025-11-25 only | Open |
+| R-08 / R-18 / H-09 | Full live-agent evaluation corpus harness; optional single-file binary | L | Core shipped in 1.0.0; lite evaluation (`evaluateAgentPrompts`) in 1.0.1; full harness and single binary open | Open (patch L checklist) |
+| H-03 / H-04 / H-05 / H-06 / H-07 / H-08 / H-10 | Similarity adapters, deterministic-first rule, authorization enforcement, corpus policy, oracle rule, calibrated reference corpus, authorization record in reports | M (introduced) | Partial or open; tracked in the [Patch M working checklist](#patch-m-working-checklist) | Closed by M, extended in N–Q |
+| G-01…G-10 | Compatibility diagnosis, legacy formats, execution environments, capture/replay, equivalence lab, migration advisor, legal policy, platform order, support matrix, preservation report | M (introduced), extended in N–Q | Open except the documentation part of G-07 and the platform order (G-08, closed by F-71) | Closed by M, extended in N–Q |
+
+### Non-claims carried over from the E–K audits (Audit 8 and others)
+
+These capabilities are **not** implemented and must not be described as available. They stay provider-backed or explicit limitations until a task needs them.
+
+- Full control-flow graph, interactive decompilation and cross-references; BSim scores without an operator corpus.
+- CVE database, registry "outdated" queries, size and replacement recommendations for dependencies; binary `AndroidManifest.xml` (AXML) decoding; DEX class listing; full Gradle resolution.
+- Continuous Frida call-frequency profiles and `Java.perform` session scripts; Windows ETW automatic hotspot sessions; per-process network I/O.
+- Full test-framework discovery (jest, pytest); Merkle roots and detached signatures (R-14 above).
+- Acceptance trials on real external applications of the three reference shapes (fixture trials are done); external commercial reference apps are not bundled.
+- OS sandbox, network isolation, Windows/macOS hard resource quotas (R-20 above).
+
+### Pending verification (delivered, run not recorded)
+
+- Full-matrix `os: all` Capabilities run for patches E–M (last recorded: A–D closure run 42775483864 on 0.2.0-beta.8).
+- GitHub artifact upload and summary content of the CI diagnostics workflows (F-66) and the rerun for F-67.
+
+## Completed foundation: patches A–L
+
+Historical records of the 1.0 foundation. These patches are done; do not re-open them. Remaining debts from them are in the [carry-over debt register](#carry-over-debt-register).
 
 ### Patch A — Defect closure and verification gate (0.1.x) — done, released as 0.1.1
 
@@ -243,7 +444,7 @@ Closes audit tasks R-08 and R-18 (core) and quality debts R-03 / F-16 / R-05 (pa
 1. Optional knip/jscpd and R-19 platform helpers when they block real work.
 2. Product patches M–Q in the strict sequence defined below.
 
-### Coverage of the roadmap
+## Coverage of the roadmap
 
 | Roadmap section | Closed by |
 |---|---|
@@ -266,9 +467,9 @@ Closes audit tasks R-08 and R-18 (core) and quality debts R-03 / F-16 / R-05 (pa
 
 ## Approved audit backlog (Audit 1, approved 2026-11-09)
 
-Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **approved project task**. Each belongs to exactly one patch (or is already closed). A patch is not done until its rows here are closed and the matching findings in [AUDIT.md](AUDIT.md) carry `Status: closed in <version>`. The capability suite checks that every ID of the audit appears in this table. New audits append their IDs here in the same way.
+Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **approved project task**. Each belongs to exactly one patch (or is already closed). A patch is not done until its rows here are closed and the matching findings in [AUDIT.md](AUDIT.md) carry `Status: closed in <version>`. The capability suite checks that every ID of the audit appears in this table. New audits append their IDs here in the same way. In rows and audits written before the consolidation, the label **M1** is a historical name for the early increments of Patch M (1.1.0-beta.1 and .2); it is not a separate patch.
 
-### Findings
+### Findings (Audit 1, approved 2026-11-09, plus the later findings F-50 to F-71; sorted by ID — F-18 to F-41 follow in the tables of Audits 4 to 6)
 
 | ID | Task | Patch / status |
 |---|---|---|
@@ -285,12 +486,14 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-11 | Streamed hashing, atomic evidence writes, lookup by evidence id, one evidence code path | closed in 0.2.0-beta.6 (shared atomic JSON writer) |
 | F-12 | Process-group kill with identity-checked sweep; real counts on Windows | closed in 0.2.0-beta.6 |
 | F-13 | Mach-O CPU type and fat slice table, PE `e_lfanew` beyond the buffer reported as `partial` | closed in **0.3.0-beta.1 / E** (hardened 0.4.1) |
+| F-14 | Remaining: `.gitattributes`, `noUnusedParameters` | closed in 0.2.0-beta.3 |
+| F-15 | Documentation drift and the planned-tools check | closed in 0.2.0-beta.2 |
+| F-16 | Split capability harness | closed in **1.0.1** (entry + `capabilities-suite.ts`) |
+| F-17 | Threat model: agent as untrusted caller, prompt injection through target data | closed in 0.2.0-beta.5 |
+| R-25 | Docs lagged E–I implementation | closed in **0.4.1** |
 | F-50 | CLI android help text wrong | closed in **0.4.1** |
 | F-51 | Ghidra import-only without postScript | closed in **0.4.1** |
 | F-52 | Frida/GDB trivial probes only | closed in **0.4.1** |
-| R-25 | Docs lagged E–I implementation | closed in **0.4.1** |
-| F-14 | Remaining: `.gitattributes`, `noUnusedParameters` | closed in 0.2.0-beta.3 |
-| F-15 | Documentation drift and the planned-tools check | closed in 0.2.0-beta.2 |
 | F-53 | No isolated change workspace before J | closed in **0.5.0-beta.1 / J** |
 | F-54 | No deterministic optimization decision helper | closed in **0.5.0-beta.1 / J** |
 | F-55 | No git worktree path for changes | closed in **0.5.0-beta.2 / J** |
@@ -305,20 +508,18 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-64 | No recorded declared authorization basis for legacy analysis | initial gate in **1.1.0-beta.1 / M**; report provenance closed in **1.1.0-beta.2 / M1**; future operation gates remain open |
 | F-65 | Initial M slice not reflected consistently in package metadata and project documentation | closed in **1.1.0-beta.1 / M** |
 | F-66 | CI AI summary could crash or omit actionable diagnostics | closed in **1.1.0-beta.1 maintenance** |
-| F-67 | CI AI summary could misclassify capability-suite test failures as formatting failures | fix in **1.1.0-beta.1 maintenance**; verified by regression tests |
+| F-67 | CI AI summary could misclassify capability-suite test failures as formatting failures | fix in **1.1.0-beta.1 maintenance**; verified by regression tests; GitHub rerun pending verification |
 | F-68 | Windows legacy analyzer lacked PE imports and structural framework signatures | closed in **1.1.0-beta.2 / M1** (bounded static detectors; corpus calibration remains open) |
 | F-69 | Legacy compatibility candidates ignored PE import evidence | closed in **1.1.0-beta.2 / M1** (selected imports; OS API availability tables remain open) |
 | F-70 | Legacy authorization was not embedded in analysis results | closed in **1.1.0-beta.2 / M1** |
 | F-71 | Future platform and cross-cutting work used overlapping patch classifications | closed in documentation-only planning patch (2026-11-10); no product capability claimed |
-| F-16 | Split capability harness | closed in **1.0.1** (entry + `capabilities-suite.ts`) |
-| F-17 | Threat model: agent as untrusted caller, prompt injection through target data | closed in 0.2.0-beta.5 |
 
 ### Findings (Audit 4, A–D closure review, 2026-11-10)
 
 | ID | Task | Patch / status |
 |---|---|---|
 | F-18 | Patch A text said "nine environments" next to "(6 environments)" | closed in 0.2.0-beta.7 |
-| F-19 | Patch A has no recorded green run on macOS and Windows | open: release gate in Patch A (manual `os: all` run) |
+| F-19 | Patch A has no recorded green run on macOS and Windows | closed in 0.2.0-beta.8 (A–D closure run 42775483864, commit `996cbf4`) |
 | F-20 | `withProcessResourceLimits` success and cleanup paths untested | closed in 0.2.0-beta.7 (fake cgroup tree; real-cgroup check where delegated) |
 | F-21 | `detect_resource_anomalies` had no behavioral tests | closed in 0.2.0-beta.7 |
 | F-22 | `OBSERVE` was identical to `READ_ONLY` | closed in 0.2.0-beta.7 (verified-ownership sampling) |
@@ -332,25 +533,34 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-30 | Process, Memory, CPU, I/O and Binary evidence could only be typed in by hand | closed in 0.2.0-beta.7 (`session_id` on measurement tools) |
 | F-31 | The research-cycle trial used hand-written evidence | closed in 0.2.0-beta.7; real external applications remain a release gate |
 | F-32 | `docs/MCP.md` repeated a sentence | closed in 0.2.0-beta.7 |
-| F-33 | R-03, R-05 and F-16 still open although patches C and D read as delivered | open: recorded as 🚧 checks and release gates |
+| F-33 | R-03, R-05 and F-16 still open although patches C and D read as delivered | partly closed: F-16 closed in 1.0.1; R-03 closed in 1.0.1 but reopened by F-75 (two unpinned refs); R-05 partial (see the debt register) |
 
 ### Findings (Audit 5, CI evidence for 0.2.0-beta.7, 2026-11-10)
 
 | ID | Task | Patch / status |
 |---|---|---|
-| F-34 | Windows timeout run reported `processesTerminated: 0` (finalized before the tree kill ended) | B/C, fix in 0.2.0-beta.8; closed when the Windows run is green |
-| F-35 | Windows tree kill: one PowerShell per victim and a full table with command lines | B/C, fix in 0.2.0-beta.8; Windows run pending |
-| F-36 | Windows `inspectProcess` enumerated every process for one PID | B (F-08, Windows part), fix in 0.2.0-beta.8; Windows run pending |
-| F-37 | Four Windows checks assumed Linux timing | C/D tests, fix in 0.2.0-beta.8 (delays and windows scaled, assertions unchanged) |
+| F-34 | Windows timeout run reported `processesTerminated: 0` (finalized before the tree kill ended) | B/C, closed in 0.2.0-beta.8 (verified green in A–D closure run 42775483864 (AUDIT Audit 7)) |
+| F-35 | Windows tree kill: one PowerShell per victim and a full table with command lines | B/C, closed in 0.2.0-beta.8 (verified green in A–D closure run 42775483864 (AUDIT Audit 7)) |
+| F-36 | Windows `inspectProcess` enumerated every process for one PID | B (F-08, Windows part), closed in 0.2.0-beta.8 (verified green in A–D closure run 42775483864 (AUDIT Audit 7)); macOS part stays open as F-08 |
+| F-37 | Four Windows checks assumed Linux timing | C/D tests, closed in 0.2.0-beta.8 (delays and windows scaled, assertions unchanged; verified green in A–D closure run 42775483864 (AUDIT Audit 7)) |
 | F-38 | No single copyable closure record from the A–D closure workflow | closed in 0.2.0-beta.8 |
 
 ### Findings (Audit 6, A–D closure run of 0.2.0-beta.8, 2026-11-10)
 
 | ID | Task | Patch / status |
 |---|---|---|
-| F-39 | Profile-mode and `OBSERVE` unit tests assumed Linux sample cost (3–4 samples in 600–1000 ms) | C/D tests, fix in 0.2.0-beta.8 (window derived from the measured sample cost, assertions unchanged); closed when the closure run is green |
+| F-39 | Profile-mode and `OBSERVE` unit tests assumed Linux sample cost (3–4 samples in 600–1000 ms) | C/D tests, closed in 0.2.0-beta.8 (window derived from the measured sample cost, assertions unchanged; verified green in A–D closure run 42775483864 (AUDIT Audit 7)) |
 | F-40 | A closure cell that failed before the capability suite left no log and no row in the record | closed in 0.2.0-beta.8 |
-| F-41 | Windows: the research-cycle benchmark delay (150 ms) was below the start-up noise of a Windows process | C/D tests, fix in 0.2.0-beta.8 (1500 ms on Windows, assertion unchanged); closed when the Windows closure run is green |
+| F-41 | Windows: the research-cycle benchmark delay (150 ms) was below the start-up noise of a Windows process | C/D tests, closed in 0.2.0-beta.8 (1500 ms on Windows, assertion unchanged; verified green in A–D closure run 42775483864 (AUDIT Audit 7)) |
+
+### Findings (Audit 19, roadmap and documentation consolidation, documentation-only, 2026-11-11)
+
+| ID | Task | Patch / status |
+|---|---|---|
+| F-72 | ROADMAP structure and status drift: a stale A–P dependency table without Q, no working checklist for Patch M, unticked 0.3/0.4/Later checklists for delivered patches, "closed when the run is green" statuses after a green run, planning notes after the last section | closed in documentation-only consolidation patch (2026-11-11); no product capability claimed |
+| F-73 | Cross-document drift: README tool count (34 versus 60), CAPABILITIES header and MCP row, mixed Windows tables, GITHUB.md action pins, duplicated ARCHITECTURE sentence, unstructured MCP.md rows, AUDIT.md notice in the middle of the file | closed in documentation-only consolidation patch (2026-11-11); no product capability claimed |
+| F-74 | Approved tasks (R-10, R-11, R-12, R-14, R-15, R-20 and others) stayed assigned to completed patches with no recorded delivery | closed in documentation-only consolidation patch (2026-11-11) by the [carry-over debt register](#carry-over-debt-register); the tasks themselves remain open |
+| F-75 | Two action references in `supply-chain.yml` are tags, not SHAs; the R-03 check shows 🚧 although R-03 was recorded as closed in 1.0.1 | open: found while verifying the 2026-11-11 documentation patch; proposed fix in the debt register |
 
 ### Recommendations
 
@@ -358,7 +568,7 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 |---|---|---|
 | R-01 | Mutation testing (Stryker) on pure modules | **D** (open; no mutation runner configured) |
 | R-02 | Threat model and prompt-injection hardening (`untrustedContent` wrapper, length caps, adversarial fixtures) | closed in 0.2.0-beta.5 (basic wrapper and caps) |
-| R-03 | Pin GitHub Action SHAs | closed in **1.0.1** for workflow action refs; provenance/Scorecard remain optional hardening |
+| R-03 | Pin GitHub Action SHAs | closed in **1.0.1** for the workflow action refs of that time; **reopened by F-75** (two refs in `supply-chain.yml` are tags); provenance/Scorecard remain optional hardening |
 | R-04 | Fuzz and property tests (`fast-check`, devDependency) for parsers | partial in 0.2.0-beta.6: deterministic hostile process-parser corpus; fast-check and binary parser fuzzing remain open |
 | R-05 | Static gates: linter and formatter, `knip`, `jscpd`, own-line size gate | partial in 0.2.0-beta.6: strict TypeScript, format check and own-line size gate; knip/jscpd/dedicated linter remain open; 0.2.0-beta.7: format gate now covers every TypeScript file and the size gate limits line length to 140 characters; knip, jscpd and a dedicated linter remain open |
 | R-06 | Reformat dense files, formatter check in the structure workflow | closed in 0.2.0-beta.7 (beta.6 had reformatted only part of the files and left 186 lines over 140 characters; now every `src/` and `tests/` file passes the format gate and the line-length gate) |
@@ -383,14 +593,14 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 |---|---|---|
 | G-01 | Compatibility diagnosis with evidence per cause | **M** |
 | G-02 | Legacy formats and toolchains, by platform wave | **M** |
-| G-03 | Execution-environment providers, snapshots, works/fails matrix | **M** (introduced), extended in N–P |
-| G-04 | Behavior capture and replay, coverage, normalization, old-versus-new comparison | **M** (introduced), extended in N–P |
-| G-05 | Function equivalence lab (emulation, differential and property tests) | **M** (introduced), extended in N–P |
+| G-03 | Execution-environment providers, snapshots, works/fails matrix | **M** (introduced), extended in N–Q |
+| G-04 | Behavior capture and replay, coverage, normalization, old-versus-new comparison | **M** (introduced), extended in N–Q |
+| G-05 | Function equivalence lab (emulation, differential and property tests) | **M** (introduced), extended in N–Q |
 | G-06 | Migration strategy advisor | **M** (introduced), extended in N–Q |
 | G-07 | Authorized-use and legal scope policy (first item of M) | **M** |
 | G-08 | Single ordered product sequence: Windows, old Linux, Classic Mac/early macOS, legacy Android, newer generations | **M–Q** |
 | G-09 | Target-platform and era support matrix in `CAPABILITIES.md` | **M** |
-| G-10 | Behavior-preservation report with levels L0–L3 | **M** (introduced), extended in N–P |
+| G-10 | Behavior-preservation report with levels L0–L3 | **M** (introduced), extended in N–Q |
 
 ### Hypotheses, analogy and authorization (Audit 3, approved 2026-11-09)
 
@@ -409,49 +619,99 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 
 ---
 
-## Product delivery after 1.0 — one ordered patch sequence
-
-Patches A–L are the completed 1.0 foundation and remain historical release records. All remaining product work is delivered as **five sequential product patches: M, N, O, P and Q**. These letters are the only active planning units. Do not create parallel tracks, platform-wave sub-patches, M1-style release plans, or separate cross-cutting patch families. A patch may have internal implementation tasks, but it is released and accepted as one product outcome.
-
-Each patch is a vertical product slice: detection and Target Profile, compatibility diagnosis, required execution environment, behavior capture/replay, validation/equivalence where an oracle exists, MCP/CLI surface, documentation, and end-to-end reference trials are delivered together to the extent relevant to that target family. Reuse shared interfaces; do not defer a capability to a later patch if it is necessary to make the current platform slice useful. Q consolidates and generalizes the completed platform work rather than introducing a second planning taxonomy.
-
-### Ordered product patches
-
-| Patch | Target and outcome | Target release | Depends on |
-|---|---|---:|---|
-| M | **Complete Windows compatibility, DOS through Windows 7-era software (up to 2010).** Finish the initial 1.1 Windows detector slice; deliver evidence-backed Target Profiles, sourced API/runtime compatibility diagnosis, relevant execution providers, behavior capture/replay, preservation reporting and migration recommendations. | 1.2 | A–L foundation; initial Windows analyzer in 1.1.0-beta.1/.2 |
-| N | **Old Linux software.** Support a.out/early ELF, old libc and ABI generations, legacy desktop/audio stacks and old package formats; deliver the same end-to-end diagnosis, environment, replay and validation workflow. | 1.3 | M shared contracts and evidence model |
-| O | **Classic Mac and early macOS software.** Support 68k, PEF/CFM, resource forks, PowerPC and early Intel Mach-O, Carbon and legacy bundle layouts; deliver end-to-end recovery and preservation workflow. | 1.4 | N shared contracts and environment/replay foundations |
-| P | **Legacy Android software.** Support Dalvik/early ART, old API levels, 32-bit ARM/x86/MIPS native components and legacy framework behavior; deliver device/emulator diagnosis, capture/replay and preservation validation. | 1.5 | O shared contracts and Android foundations already present in E/J |
-| Q | **Newer generations and unified compatibility intelligence.** Extend the proven workflow to post-2010 Windows, newer Linux, modern/classic-transition macOS and newer Android generations; unify profiles, API/runtime knowledge, evidence, confidence, environment matrices and migration reports across all supported platforms. | 2.0 | M–P complete |
-
-### Scope and acceptance for every product patch
-
-Every patch must deliver all of the following for its target family, with honest limitations where a platform or external engine cannot provide a capability:
-
-1. **Target Profile and static inventory:** executable/container formats, architecture, ABI, OS era, toolchain/runtime/framework, installer/packager and dependencies. Every field links to source evidence, confidence and coverage.
-2. **Compatibility diagnosis:** sourced, versioned OS/API/runtime availability data; concrete findings for missing/changed APIs, libraries, permissions, filesystem/registry/preferences, locale, graphics/audio, timing and hardware assumptions. Hypotheses remain separate from facts.
-3. **Execution and observation:** real provider detection, user-supplied licensed images, environment fingerprints, bounded execution, first-failure diagnostics and traces. No fabricated provider results.
-4. **Behavior capture and replay:** deterministic scenarios for applicable inputs, outputs, files, UI and other observable side effects; nondeterminism controls and explicit replay limitations.
-5. **Preservation and migration:** differential validation against an oracle, coverage and residual-risk reporting, L0–L3 preservation levels, and ranked migration options. Without an oracle, preservation remains L0.
-6. **Product integration:** stable CLI/MCP contracts, matching `docs/MCP.md`, capability checks, security review, examples and updated README/architecture/capabilities docs.
-7. **Reference trials:** at least two reproducible reference-program scenarios where lawful fixtures and environments exist: diagnose/restore a program that fails in the current environment, and compare a changed/repackaged/reimplemented version against the original. If a platform oracle or licensed environment is unavailable, record that as an explicit release limitation rather than claiming success.
-
-### Delivery rules
-
-- Work strictly in M → N → O → P → Q order. Do not start a later patch while the current patch's acceptance criteria remain open, except for a documented blocking fix.
-- Internal work breakdowns are not patch names and must not appear as competing roadmap classifications.
-- Each patch has one scope, one acceptance checklist, one release record and one capability-gate result. A documentation-only maintenance change does not count as a product patch and is not folded into these five deliverables.
-- Preserve backward compatibility and all existing safety gates. Legacy analysis is limited to open-source software or software with full rights-holder consent; operating-system images and proprietary tools are user supplied, never bundled.
-- The initial Windows slice in 1.1.0-beta.1 and detector increment in 1.1.0-beta.2 are historical progress within M, not separate future roadmap units. M remains open until its complete Windows outcome passes the criteria above.
-
-**Version policy:** M 1.2, N 1.3, O 1.4, P 1.5, Q 2.0. Do not assign versions to internal tasks or invent intermediate patch labels. Patch L remains part of the completed 1.0 foundation, not a parallel future track.
-
-## Release sections
+## Release history
 
 Sequencing principle: do not start with Ghidra and do not try to implement every external analyzer at once. First strengthen Reverse's ability to investigate running programs, detect real performance problems and collect evidence, because the main job of Reverse is to help an AI agent find the causes of excessive resource use and objectively verify optimization results. Linux is the first fully supported profiling environment, with interfaces for Windows and macOS designed in from the start.
 
-## 0.2.0-beta.8 — Windows closure and A–D evidence
+### Version index
+
+One line per release, oldest first. Details are in the patch records above and the release sections below.
+
+| Version | Patch / content | Record |
+|---|---|---|
+| 0.1.0 | Compact MVP | 0.1.0 section below |
+| 0.1.1 | Patch A defect closure | Patch A |
+| 0.2.0-beta.1 … beta.8 | Patches B, C, D and the A–D closure (beta.7 closure, beta.8 Windows closure and evidence) | 0.2.0-beta.x sections below, A–D closure evidence |
+| 0.3.0-beta.1 | Patch E static analysis core | Patch E |
+| 0.3.0-beta.2 | Patch F providers (milestone 0.3) | Patch F |
+| 0.4.0-beta.1 | Patches G and H | Patches G, H |
+| 0.4.0 | Patch I (milestone 0.4) | Patch I |
+| 0.4.1 | Hardening and documentation alignment of E–I (Audit 8) | Audit 8 |
+| 0.5.0-beta.1, 0.5.0-beta.2 | Patch J controlled optimization loop | Patch J |
+| 1.0.0-beta.1 | Patch K runtime analyzers | Patch K |
+| 1.0.0 | Foundation A–K on a green capability matrix; Patch L core | Patch K, Patch L |
+| 1.0.1 | Hygiene: SHA-pinned Actions, harness split, `quality:static`, lite H-09 | Patch L |
+| 1.1.0-beta.1 | Patch M initial Windows slice; CI diagnostics maintenance | [Patch M history](#patch-m-history-delivered-increments) |
+| 1.1.0-beta.2 | Patch M Windows detector expansion | Patch M history |
+| 1.2.0 | Patch M complete (planned) | — |
+| 1.3 / 1.4 / 1.5 / 2.0 | Patches N / O / P / Q (planned) | — |
+
+### 0.1.0 — compact MVP
+
+- [x] Standalone TypeScript project, CLI, MCP stdio server
+- [x] ELF/PE/Mach-O header recognition
+- [x] Source and npm manifest inventory
+- [x] Basic process inventory and CPU/RSS sampling
+- [x] Repeated wall-clock benchmark and comparison
+- [x] Exact output/exit-code validation
+- [x] Local JSON evidence/artifacts
+- [x] Explicit extension-point registry and capability matrix
+
+### 0.1.1 — defect closure (patch A)
+
+- [x] Everything listed under Patch A above
+
+### 0.2.0-beta.1 — Patch B: Process intelligence and safety
+
+- [x] OS-backed process inventory and inspection with available memory, CPU, I/O, thread and process-tree metrics.
+- [x] Persisted time-series sampling, deterministic anomaly detection and process identity checks.
+- [x] AbortSignal and MCP request cancellation.
+- [x] Explicit operating modes and scoped Linux cgroup v2 resource limits (not a sandbox).
+- [x] MCP process tools plus `get_resource_control_status`; backward-compatible existing tools.
+- [x] Capability checks and updated safety / capability documentation.
+
+The overall 0.2 milestone remains unreleased until patches C and D are complete. Windows/macOS metric parity and cross-platform CI are outstanding release gates.
+
+### 0.2.0-beta.2 — hotfix from audit 1
+
+- [x] Benchmark median is correct for even sample counts (F-02); captured output is capped in bytes, not characters (F-03).
+- [x] `validate_changes` never matches truncated output; a clean mismatch is `completed` with `passed: false`, `partial` means the comparison could not be made in full (F-05).
+- [x] MCP: parse errors answer `-32700`, a failing tool returns `isError: true`, unknown tools and missing names are `-32602` (F-06 a–c).
+- [x] Source inventory: 2 MiB per-file read cap, exact 5000-file cap, `lstat`, `.wasm` no longer read as text (F-09 caps).
+- [x] `noUnusedLocals` and `noImplicitReturns` enabled; unused symbols removed; stale planned-tool table fixed (F-14, F-15).
+
+Everything else in [AUDIT.md](AUDIT.md) stays open and is assigned to patches C, D and E.
+
+### 0.2.0-beta.3 — Patch C, part 1
+
+- [x] Command-running MCP tools refuse unless `REVERSE_MODE=CONTROLLED_EXECUTION` and `REVERSE_COMMAND_ALLOWLIST` are set; optional `REVERSE_CWD_ROOT`; allowlisted child environment; tool annotations (F-01). **Breaking default**, announced here.
+- [x] Benchmark statistics (P95, std-dev, MAD, outliers, 95% interval), `warmupRuns`, failed runs excluded; `compare_results` verdict by Mann-Whitney plus bootstrap, `insufficient_evidence` under 5 runs (F-04, R-13 in part).
+- [x] Environment fingerprint, comparability warning, MCP tool `get_environment_fingerprint`.
+- [x] `noUnusedParameters`, `.gitattributes`, Node 22 and 24 only (F-14, R-16). `improved` in `compare_results` is now `true` only for a statistically supported speedup.
+
+### 0.2.0-beta.4 — Patch C, part 2
+
+- [x] Per-run CPU time and peak RAM of the benchmark child, sampled (Linux `/proc` every 5 ms, macOS/POSIX `ps` every 25 ms); fields are `null` where nothing could be sampled, never zero. Windows uses PowerShell `Get-Process` sampling (higher overhead; manual Windows CI verification remains required).
+- [x] Binary size of the command, cold/warm labels (`temperature`, `coldDurationMs`, `warmMedianDurationMs`).
+- [x] `compare_results` reports CPU time, peak RAM (own verdicts, 5-run minimum) and binary size per metric; the headline verdict stays wall-clock.
+- [x] New module `src/benchmark-resources.ts`; parsers are unit-tested with fixtures on every platform (`tests/benchmark-resources.test.ts`).
+
+### 0.2.0-beta.5 — Patch C, part 3
+
+- [x] `src/core-untrusted.ts`: every MCP tool result gets `untrustedContent` and strings over 4096 characters are truncated (R-02). Tests: `tests/untrusted.test.ts`, capability check *Security — tool results carry untrustedContent…*.
+- [x] Threat model (agent as untrusted caller, prompt injection through target data) in `docs/SECURITY.md` (F-17).
+- Not done: filename/process-name fixtures beyond the long-string case; per-tool field allowlists.
+
+### 0.2.0-beta.7 — A–D closure
+
+- [x] Evidence promotion checks content (`promotionBlocker`); typed evidence is produced from analyzer results (`src/evidence-collect.ts`, optional `session_id` on 15 measurement tools).
+- [x] Profile modes `Diagnostic` (anomaly findings) and `Compare` (two periods) differ from `Monitor`; `OBSERVE` samples only with verified ownership.
+- [x] `createResourceLimiter` makes the cgroup writer testable; success and cleanup paths are tested; a real-cgroup check runs where the hierarchy is delegated.
+- [x] Line-length gate (140 characters, `src/` and `tests/`), format gate over every TypeScript file, `mcp-server.ts` split into `mcp-tools*.ts`.
+- [x] Documentation drift closed (Patch A text, 0.2 checklists, fact categories, duplicated MCP sentence, audit status lines).
+- Open and recorded by checks, not claimed: R-03, R-05, F-16, R-19, F-08 (macOS), R-01, R-04 (fast-check), a green Windows run.
+
+### 0.2.0-beta.8 — Windows closure and A–D evidence
 
 - [x] Windows timeouts report `processesTerminated` after the tree kill finished (the run used to be finalized by the 2 s stdio grace timer first; AUDIT F-34).
 - [x] Windows tree kill: lean table without command lines, one identity re-check, parallel `taskkill` (AUDIT F-35).
@@ -463,72 +723,7 @@ Sequencing principle: do not start with Ghidra and do not try to implement every
 - [x] The research-cycle trial uses a delay that dominates Windows start-up noise; no assertion weakened (AUDIT F-41).
 - Open and recorded by checks, not claimed: the Windows run of the Capabilities workflow, R-19 (persistent helper), F-08 (macOS), R-03, R-05, F-16, R-01, R-04.
 
-## 0.2.0-beta.7 — A–D closure
-
-- [x] Evidence promotion checks content (`promotionBlocker`); typed evidence is produced from analyzer results (`src/evidence-collect.ts`, optional `session_id` on 15 measurement tools).
-- [x] Profile modes `Diagnostic` (anomaly findings) and `Compare` (two periods) differ from `Monitor`; `OBSERVE` samples only with verified ownership.
-- [x] `createResourceLimiter` makes the cgroup writer testable; success and cleanup paths are tested; a real-cgroup check runs where the hierarchy is delegated.
-- [x] Line-length gate (140 characters, `src/` and `tests/`), format gate over every TypeScript file, `mcp-server.ts` split into `mcp-tools*.ts`.
-- [x] Documentation drift closed (Patch A text, 0.2 checklists, fact categories, duplicated MCP sentence, audit status lines).
-- Open and recorded by checks, not claimed: R-03, R-05, F-16, R-19, F-08 (macOS), R-01, R-04 (fast-check), a green Windows run.
-
-## 0.2.0-beta.5 — Patch C, part 3
-
-- [x] `src/core-untrusted.ts`: every MCP tool result gets `untrustedContent` and strings over 4096 characters are truncated (R-02). Tests: `tests/untrusted.test.ts`, capability check *Security — tool results carry untrustedContent…*.
-- [x] Threat model (agent as untrusted caller, prompt injection through target data) in `docs/SECURITY.md` (F-17).
-- Not done: filename/process-name fixtures beyond the long-string case; per-tool field allowlists.
-
-## 0.2.0-beta.4 — Patch C, part 2
-
-- [x] Per-run CPU time and peak RAM of the benchmark child, sampled (Linux `/proc` every 5 ms, macOS/POSIX `ps` every 25 ms); fields are `null` where nothing could be sampled, never zero. Windows uses PowerShell `Get-Process` sampling (higher overhead; manual Windows CI verification remains required).
-- [x] Binary size of the command, cold/warm labels (`temperature`, `coldDurationMs`, `warmMedianDurationMs`).
-- [x] `compare_results` reports CPU time, peak RAM (own verdicts, 5-run minimum) and binary size per metric; the headline verdict stays wall-clock.
-- [x] New module `src/benchmark-resources.ts`; parsers are unit-tested with fixtures on every platform (`tests/benchmark-resources.test.ts`).
-
-## 0.2.0-beta.3 — Patch C, part 1
-
-- [x] Command-running MCP tools refuse unless `REVERSE_MODE=CONTROLLED_EXECUTION` and `REVERSE_COMMAND_ALLOWLIST` are set; optional `REVERSE_CWD_ROOT`; allowlisted child environment; tool annotations (F-01). **Breaking default**, announced here.
-- [x] Benchmark statistics (P95, std-dev, MAD, outliers, 95% interval), `warmupRuns`, failed runs excluded; `compare_results` verdict by Mann-Whitney plus bootstrap, `insufficient_evidence` under 5 runs (F-04, R-13 in part).
-- [x] Environment fingerprint, comparability warning, MCP tool `get_environment_fingerprint`.
-- [x] `noUnusedParameters`, `.gitattributes`, Node 22 and 24 only (F-14, R-16). `improved` in `compare_results` is now `true` only for a statistically supported speedup.
-
-## 0.2.0-beta.2 — hotfix from audit 1
-
-- [x] Benchmark median is correct for even sample counts (F-02); captured output is capped in bytes, not characters (F-03).
-- [x] `validate_changes` never matches truncated output; a clean mismatch is `completed` with `passed: false`, `partial` means the comparison could not be made in full (F-05).
-- [x] MCP: parse errors answer `-32700`, a failing tool returns `isError: true`, unknown tools and missing names are `-32602` (F-06 a–c).
-- [x] Source inventory: 2 MiB per-file read cap, exact 5000-file cap, `lstat`, `.wasm` no longer read as text (F-09 caps).
-- [x] `noUnusedLocals` and `noImplicitReturns` enabled; unused symbols removed; stale planned-tool table fixed (F-14, F-15).
-
-Everything else in [AUDIT.md](AUDIT.md) stays open and is assigned to patches C, D and E.
-
-## 0.2.0-beta.1 — Patch B: Process intelligence and safety
-
-- [x] OS-backed process inventory and inspection with available memory, CPU, I/O, thread and process-tree metrics.
-- [x] Persisted time-series sampling, deterministic anomaly detection and process identity checks.
-- [x] AbortSignal and MCP request cancellation.
-- [x] Explicit operating modes and scoped Linux cgroup v2 resource limits (not a sandbox).
-- [x] MCP process tools plus `get_resource_control_status`; backward-compatible existing tools.
-- [x] Capability checks and updated safety / capability documentation.
-
-The overall 0.2 milestone remains unreleased until patches C and D are complete. Windows/macOS metric parity and cross-platform CI are outstanding release gates.
-
-## 0.1.0 — compact MVP
-
-- [x] Standalone TypeScript project, CLI, MCP stdio server
-- [x] ELF/PE/Mach-O header recognition
-- [x] Source and npm manifest inventory
-- [x] Basic process inventory and CPU/RSS sampling
-- [x] Repeated wall-clock benchmark and comparison
-- [x] Exact output/exit-code validation
-- [x] Local JSON evidence/artifacts
-- [x] Explicit extension-point registry and capability matrix
-
-## 0.1.1 — defect closure (patch A)
-
-- [x] Everything listed under Patch A above
-
-## 0.2 — Deep Process & Performance Intelligence
+### 0.2 — Deep Process & Performance Intelligence
 
 Priorities: Process Manager, Performance Profiler, Evidence Engine and Benchmark Engine. This release is not about adding more analyzers.
 
@@ -577,7 +772,7 @@ Priorities: Process Manager, Performance Profiler, Evidence Engine and Benchmark
 
 **Explicitly deferred from 0.2:** Ghidra and Rizin (0.3); Frida and GDB (0.4); eBPF, Windows ETW and macOS Instruments as separate platform providers later; Android implementation is scheduled across patches E–J. The independent-provider architecture is laid down now so these can be added without rewriting the core.
 
-### Acceptance criteria for 0.2
+#### Acceptance criteria for 0.2
 
 1. Reverse can observe any accessible process.
 2. It can collect CPU, RAM and I/O over a given time.
@@ -613,32 +808,36 @@ What the suite proves today, per criterion (Linux; macOS and Windows need the ma
 
 Criterion 9 is satisfied for tools that receive a `session_id`; the trials on real external applications of the three shapes are still a release gate.
 
-## 0.3 — static analysis and providers
+### 0.3 — static analysis and providers
 
 - [x] Parse ELF program/section headers and symbol tables (Patch E)
 - [x] PE sections/imports/exports and Mach-O load commands (Patch E)
 - [x] Function discovery from symbols/exports and import-edge graph (Patch E); full CFG, duplicated/unused-component proof remain for provider engines (F)
 - [x] Dependency lockfile parsers and transitive/lock-only nodes (Patch E); size/resource impact and replacement recommendations remain limitations
-- [ ] Provider contract tests and executable discovery
-- [ ] Real, opt-in Ghidra and Rizin adapters with integration tests (Ghidra as the main deep-analysis engine, Rizin as the alternative)
+- [x] Provider contract tests and executable discovery (Patch F)
+- [x] Real, opt-in Ghidra and Rizin adapters with integration tests (Ghidra as the main deep-analysis engine, Rizin as the alternative) (Patch F)
 
-## 0.4 — dynamic analysis, validation and evidence
+### 0.4 — dynamic analysis, validation and evidence
 
-- [ ] Real, opt-in Frida and GDB adapters with integration tests: execution tracing, frequently called functions, repeated computation, component interaction, behavior under different loads
-- [ ] Test suite adapters and build verification; regression-test execution
-- [ ] Structured behavior fixtures and normalization rules; comparison of behavior before and after a change on predefined inputs (for programs without source)
-- [ ] Explicit reporting when full equivalence cannot be proven
-- [ ] Evidence manifest integrity and optional signing
-- [ ] Before/after report generation with uncertainty and limitations (what was found, what changed and why, metrics before and after, residual risks, what to optimize next)
+- [x] Real, opt-in Frida and GDB adapters with integration tests: attach sample with modules, threads and backtraces (Patch G)
+- [ ] Residual of the same item: continuous call-frequency profiles, repeated computation, component interaction, behavior under different loads (not delivered; see the debt register)
+- [x] Fixture-based regression execution (`run_validation_fixtures`) (Patch I)
+- [ ] Residual: test-framework discovery (jest, pytest) and build verification (not delivered)
+- [x] Structured behavior fixtures and normalization rules; comparison of behavior before and after a change on predefined inputs (for programs without source) (Patch I)
+- [x] Explicit reporting when full equivalence cannot be proven (Patch I)
+- [x] Evidence manifest integrity (hash chain) and optional HMAC-SHA256 signing (Patch I)
+- [ ] Residual: Merkle root and public-key detached signatures (R-14; not delivered)
+- [x] Before/after report generation with uncertainty and limitations (what was found, what changed and why, metrics before and after, residual risks, what to optimize next)
 
-## Later
+### Later
 
-- [ ] Function hotspots via real external profilers (perf, eBPF, ETW, Instruments, Valgrind as additional providers)
-- [ ] Disk/network I/O providers
-- [ ] JS/Electron, .NET and WASM analyzers
-- [ ] Plugin loading and provider lifecycle
-- [ ] Extensions added only when a real need appears, each with its own adapter, contracts, requirements and tests: Browser, GPU, Network, Database, Firmware, Container, Cloud, Compiler, Algorithm, Energy
-- [ ] HTTP MCP transport only if a concrete deployment need exists
+- [x] Function hotspots via real external profilers (perf and macOS `sample` produce hotspots; eBPF, ETW, Instruments, Valgrind, simpleperf are detect-only providers) (Patch H)
+- [x] Disk I/O (`get_process_io`, Linux) (Patch H)
+- [ ] Per-process network I/O (not delivered)
+- [x] JS/Electron, .NET and WASM analyzers (Patch K)
+- [x] Plugin loading and provider lifecycle (Patch F)
+- [ ] (on demand, none required today) Extensions added only when a real need appears, each with its own adapter, contracts, requirements and tests: Browser, GPU, Network, Database, Firmware, Container, Cloud, Compiler, Algorithm, Energy
+- [x] Optional token-gated HTTP MCP transport (Patch K; not full Streamable HTTP)
 
 ## Core development order and completion criteria
 
@@ -660,31 +859,3 @@ The core is considered ready for first production use when it:
 12. allows new analyzers to be connected.
 
 Trials cover at least two scenarios: detecting a real performance problem, and verifying an optimization with a measurable result. Three things are never traded for size: Evidence (otherwise the agent decides on unreliable assumptions), Profiler plus Benchmark (otherwise optimization effectiveness cannot be established objectively), and Validation (otherwise a faster but broken program can result).
-
-
-### Patch M implementation note — 1.1.0-beta.1 (initial Windows slice)
-
-This prerelease adds `analyze_legacy_windows` and `declare_legacy_authorization`, the session authorization record, deterministic executable-header recognition (MZ/NE/LE/LX/PE), bounded selected marker scanning, and preliminary compatibility candidates. It closes only the legal-policy documentation item and the initial authorization/header-detector sub-slice; it does **not** close G-01/G-02/G-07/G-09 or the Windows wave. Remaining M checklist items are intentionally unchecked.
-
-
-### CI diagnostics mini-patch — delivered in 1.1.0-beta.1 maintenance (verification pending)
-
-- [x] Publish a downloadable detailed-log ZIP artifact for each workflow (`Capabilities`, `Structure`, `Supply chain`), even when a job fails.
-- [x] Publish a separate plain-text/Markdown `AI-DEBUG-SUMMARY.md` artifact with run identity, step inventory, failure exit codes and relevant error excerpts.
-- [x] Add a reusable local summary generator and `npm run ci:summary`.
-- [x] Document artifact names, contents, retention and the limits of AI-generated diagnosis in README and `docs/GITHUB.md`.
-- [x] Harden the generator against empty/missing log content; distinguish missing exit markers from confirmed success; classify common failures; include command lines, file/line references, TAP failure names, surrounding context, capability JSON failures/drift, JUnit failures and stack frames when present; redact common secret patterns. Concrete test/assertion evidence takes precedence over incidental category keywords.
-- [x] Close the first Patch M contract drift found by CI: add F-63…F-65 to the approved backlog and include both Patch M MCP tools in the exact 60-tool contract fixture.
-- [x] Add regression tests and run them before generating the artifact in all workflows.
-- [ ] Verify artifact upload and summary content in actual GitHub Actions runs for all three workflows; local checks cannot prove GitHub artifact availability.
-
-### Patch M1 implementation note — 1.1.0-beta.2 (Windows detector expansion)
-
-- [x] Bounded PE import-table parsing reports imported libraries and named functions without executing the target.
-- [x] Static VB6/MFC runtime-import signatures and Delphi form-stream, VCL RTTI-style, VB6 metadata and MFC class/message-map signatures are reported with explicit confidence and evidence.
-- [x] Selected VB6/MFC/DirectX/Glide imports feed compatibility candidates; no OS-version availability is inferred.
-- [x] Legacy analysis results embed the research session's declared authorization basis, reference, declarant and timestamp.
-- [x] Unit and capability checks cover import extraction, framework signatures and authorization provenance.
-
-This is an M1 product increment, not completion of the Windows wave. Packer detection, sourced API availability tables, ground-truth corpus calibration and the full Target Profile remain open.
-

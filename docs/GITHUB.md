@@ -22,7 +22,7 @@
 4. In GitHub, review repository visibility, description, topics (`typescript`, `nodejs`, `mcp`, `benchmarking`, `reverse-engineering`, `performance-analysis`), and security settings.
 5. Replace `YOUR-USERNAME` references in README and documentation with the real owner/repository.
 6. CI is already provided by `.github/workflows/capabilities.yml` (Node.js 22/24 on Linux, macOS and Windows) and `.github/workflows/structure.yml`. Add a release workflow, issue templates, and CODEOWNERS before tagging a public release.
-7. Create a version tag only after tests pass: `git tag v0.1.0 && git push origin v0.1.0`.
+7. Create a version tag only after tests pass and the manual `os: all` Capabilities run is green (use the current version from `package.json`, for example `git tag v1.1.0-beta.2 && git push origin v1.1.0-beta.2`; the first public tag was planned as `v0.1.0`).
 
 Never commit private binaries, benchmark data containing sensitive paths, credentials, `.env` files, or local `.reverse` evidence. Review `git diff --cached` before committing.
 
@@ -50,6 +50,6 @@ Every workflow (`Capabilities`, `Structure`, and `Supply chain`) publishes two d
 
 - Every capability job writes a **job summary** (stored in that artifact, not shown on the run page) (runner facts, totals, failed checks, the ten slowest checks, limitations and drift of that platform), emits an annotation for each failed check and for any check slower than 60 s, and keeps the capability JSON plus the JUnit XML (per-check durations) inside the single per-workflow artifact. A single check that hangs is reported by name after 240 s instead of ending the job at its timeout.
 - `structure.yml` keeps the checker output in the single per-workflow artifact and in the job summary, and prints warnings (never failures) for CRLF files, tracked build output, archives, possible secret files and folders deeper than the layout allows. A manual run can choose one OS or all three.
-- Actions are pinned to major versions that run on Node 24 (`checkout@v5`, `setup-node@v5`, `upload-artifact@v6`, `download-artifact@v7`); the Node 20 deprecation warning seen in older logs came from `checkout@v4`.
+- Actions are pinned to full commit SHAs in `capabilities.yml` and `structure.yml`; two references in `supply-chain.yml` are still tags (F-75, open; the capability check *GitHub Actions are pinned to full commit SHAs* shows 🚧 until they are pinned); the version in the trailing comment of each `uses:` line (for example `actions/checkout` v7.0.1, `actions/setup-node` v7.1.0, `actions/upload-artifact` v7.0.1) names the release the SHA belongs to. The Node 20 deprecation warning seen in older logs came from `checkout@v4`. Update a pin together with its comment, and let Dependabot propose the change.
 
 - **Quiet console and downloadable diagnostics.** Command output is captured under `ci-logs/`; per-workflow upload steps run with `if: always()` so failures still produce diagnostics. `Capabilities` and `Structure` merge job parts into one detailed-log artifact; `Supply chain` uploads its detailed logs directly. Each also publishes `AI-DEBUG-SUMMARY.md` as a separate artifact. The artifact download is a ZIP; the summary is a plain Markdown file. Re-run `node tests/ci-quiet.mjs .github/workflows/*.yml` after adding a step to an unwrapped workflow and ensure it is captured.

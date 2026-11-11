@@ -1,5 +1,35 @@
 # Audit log
 
+This file is permanent. **New audits are added at the top** (newest first); older audits are never edited except to mark a finding as closed (`Status: closed in <version>, <patch>`). Each audit lists findings with an ID, severity, evidence and a recommended fix, then improvement proposals. Findings that are accepted are copied into [ROADMAP.md](ROADMAP.md) under the patch named in the "Patch" column; this file stays the record of *why*.
+
+IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H** hypothesis and authorization gap. Severity: **High** = wrong results or a safety/honesty violation of [AGENTS.md](../AGENTS.md); **Medium** = incorrect or fragile behavior with limited blast radius; **Low** = hygiene, docs, polish.
+
+---
+
+## Audit 19 — 2026-11-11 — Roadmap and documentation consolidation (documentation-only)
+
+**Scope.** Make the roadmap readable and consistent after many iterations, so that any assistant can tell what is done, what is open and where the project stands, without changing any product behavior. All existing roadmap content was kept; blocks were moved, headed or corrected. Package version stays 1.1.0-beta.2.
+
+**Delivered.**
+
+- `docs/ROADMAP.md` is reorganized: a status dashboard first, one table for patches A–Q (the stale A–P table without Q and with the superseded N/O/P names was replaced), the active product patches with an explicit working checklist for Patch M, a carry-over debt register, the completed foundation A–L, the approved audit backlog (sorted by ID), the coverage table, and the release history with a version index. Planning notes that sat after the last section moved into Patch M history and a maintenance record; the old "mini-patch" label was removed because it contradicted the rule that only M–Q are patch units.
+- Statuses were corrected where the evidence already existed: F-19, F-34…F-37, F-39 and F-41 are closed by the green A–D closure run 42775483864 (Audit 7); F-33 is partly closed (F-16 closed in 1.0.1; R-03 closed in 1.0.1 but reopened as F-75; R-05 partial). The stale 0.3, 0.4 and Later checklists were ticked per delivered patch, with the undelivered remainder kept as explicit unchecked residuals.
+- Approved tasks that stayed assigned to completed patches with no delivery were checked against `src/` (no implementation found for R-11, R-12, R-15, R-20, the Merkle/Ed25519 part of R-14 and the extra providers of R-10) and recorded in the debt register. Nothing was marked delivered.
+- README, CAPABILITIES, MCP, ARCHITECTURE, SECURITY, GITHUB and AGENTS were aligned with the code and with each other (60 tools; HTTP transport, prompts and resources exist; Windows capability tables merged; action pins are full SHAs).
+
+**Found while verifying (not fixed here).** The capability suite shows the R-03 check as 🚧: two action references in `.github/workflows/supply-chain.yml` are tags (F-75). This patch changes no workflow, so the finding is recorded and the fix is proposed in the roadmap debt register.
+
+**Not done / not verified.** No product capability was implemented or claimed. No GitHub Actions run was made for this change; the Linux build, unit tests, structure check and capability suite were run locally (see the delivery note).
+
+| ID | Sev | Area | Finding | Status |
+|---|---|---|---|---|
+| F-72 | Medium | Planning/documentation | ROADMAP structure and status drift: stale A–P dependency table without Q, no working checklist for Patch M, unticked checklists for delivered patches, "closed when green" statuses after a green run, planning notes after the last section | Status: closed in documentation-only consolidation patch (2026-11-11); no product capability claimed |
+| F-73 | Low | Documentation | Cross-document drift: README tool count, CAPABILITIES header and MCP row, mixed Windows tables, GITHUB.md action pins, duplicated ARCHITECTURE sentence, unstructured MCP.md rows, AUDIT.md notice in the middle of the file | Status: closed in documentation-only consolidation patch (2026-11-11); no product capability claimed |
+| F-74 | Medium | Planning | Approved tasks (R-10, R-11, R-12, R-14, R-15, R-20 and others) stayed assigned to completed patches with no recorded delivery | Status: closed in documentation-only consolidation patch (2026-11-11) by the carry-over debt register; the tasks themselves remain open |
+| F-75 | Medium | CI / supply chain | Two action references in `.github/workflows/supply-chain.yml` (`actions/upload-artifact@v6`, `actions/upload-artifact/merge@v6`) are tags, not full commit SHAs, so the check *Supply chain — GitHub Actions are pinned to full commit SHAs (R-03)* shows 🚧 (23 of 25 references pinned). R-03 was recorded as closed in 1.0.1; the two references appeared later (CI diagnostics, 1.1.0-beta.1 maintenance) | Status: open; found while verifying this documentation patch; not fixed here because the patch changes no workflow. Proposed fix: pin both to the commit SHA already used for `upload-artifact` in the other workflows (`043fb46d1a93c77aae656e7c1c64a875d1fc6a0a`, v7.0.1), run the checks, and close R-03 again |
+
+---
+
 ## Audit 18 — 2026-11-10 — Product roadmap and architecture coherence (documentation-only)
 
 **Scope.** Consolidate the post-1.0 plan into one ordered set of product patches. Earlier documentation described platform waves (M–P) and cross-cutting capabilities (execution, replay, equivalence and migration) as separate classifications, making it unclear which patch owned a complete product outcome.
@@ -50,12 +80,6 @@
 
 ---
 
-This file is permanent. **New audits are added at the top** (newest first); older audits are never edited except to mark a finding as closed (`Status: closed in <version>, <patch>`). Each audit lists findings with an ID, severity, evidence and a recommended fix, then improvement proposals. Findings that are accepted are copied into [ROADMAP.md](ROADMAP.md) under the patch named in the "Patch" column; this file stays the record of *why*.
-
-IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H** hypothesis and authorization gap. Severity: **High** = wrong results or a safety/honesty violation of [AGENTS.md](../AGENTS.md); **Medium** = incorrect or fragile behavior with limited blast radius; **Low** = hygiene, docs, polish.
-
----
-
 ## Audit 14 — 2026-11-10 — Patch M initial Windows slice (1.1.0-beta.1)
 
 **Scope.** Review the first Windows ≤2010 implementation slice against AGENTS.md and the M1 roadmap. This is a prerelease slice, not closure of the Windows wave or patch M.
@@ -78,7 +102,7 @@ IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H*
 
 | ID | Sev | Area | Finding | Status |
 |---|---|---|---|---|
-| R-03 | Medium | CI | Unpinned action tags in workflows | Status: closed in 1.0.1 (SHA pins) |
+| R-03 | Medium | CI | Unpinned action tags in workflows | Status: closed in 1.0.1 (SHA pins); reopened by F-75 (Audit 19): two references in `supply-chain.yml` are tags |
 | F-16 | Medium | Tests | Monolithic capabilities.check.ts | Status: closed in 1.0.1 (suite split) |
 | R-05 | Low | Quality | knip/jscpd/linter | Status: partial in 1.0.1 (`quality:static`; knip/jscpd still optional) |
 | F-62 | Low | Agent | No H-09 prompt scoring | Status: closed in 1.0.1 (lite eval harness) |
@@ -200,9 +224,9 @@ IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H*
 
 | ID | Sev | Area | Finding | Status |
 |---|---|---|---|---|
-| F-39 | Medium | Tests | Monitor, Diagnostic and Compare in `tests/profiling-modes.test.ts` and the `OBSERVE` Compare check in `tests/mcp-evidence.test.ts` asserted 3–4 samples inside fixed 600–1000 ms windows; with a sample cost of 0.1–1.5 s (`ps`, PowerShell) they cannot hold. AGENTS.md §7 forbids tests that depend on timing luck | Status: fix in 0.2.0-beta.8, A–D closure (`tests/sampling-window.ts` derives the window from the measured cost of one sample; no assertion weakened); closed when the closure run is green on every cell |
+| F-39 | Medium | Tests | Monitor, Diagnostic and Compare in `tests/profiling-modes.test.ts` and the `OBSERVE` Compare check in `tests/mcp-evidence.test.ts` asserted 3–4 samples inside fixed 600–1000 ms windows; with a sample cost of 0.1–1.5 s (`ps`, PowerShell) they cannot hold. AGENTS.md §7 forbids tests that depend on timing luck | Status: fix in 0.2.0-beta.8, A–D closure (`tests/sampling-window.ts` derives the window from the measured cost of one sample; no assertion weakened); closed in 0.2.0-beta.8 (verified green in A–D closure run 42775483864 (Audit 7)) |
 | F-40 | Low | CI | A closure cell that failed in the static gates or the unit tests wrote no JSON report and no log, and the closure record silently omitted it | Status: closed in 0.2.0-beta.8, A–D closure (both steps keep a log in the cell's artifact; the record names every cell without a report) |
-| F-41 | Medium | Tests | Windows closure run 42773325959 (Node 22 and 24): the only failing unit test was `research cycle` (`tests/research-cycle.test.ts`): the benchmark of a 150 ms delay against no delay gave `no_significant_change` instead of `improved`, because the delay is smaller than the spread of a Windows process start-up. The other 65 unit tests passed there, including the profile-mode and `OBSERVE` tests of F-39 | Status: fix in 0.2.0-beta.8, A–D closure (the delay is 1500 ms on Windows, as in the capability check of F-37; the assertion is unchanged); closed when the Windows closure run is green |
+| F-41 | Medium | Tests | Windows closure run 42773325959 (Node 22 and 24): the only failing unit test was `research cycle` (`tests/research-cycle.test.ts`): the benchmark of a 150 ms delay against no delay gave `no_significant_change` instead of `improved`, because the delay is smaller than the spread of a Windows process start-up. The other 65 unit tests passed there, including the profile-mode and `OBSERVE` tests of F-39 | Status: fix in 0.2.0-beta.8, A–D closure (the delay is 1500 ms on Windows, as in the capability check of F-37; the assertion is unchanged); closed in 0.2.0-beta.8 (verified green in A–D closure run 42775483864 (Audit 7)) |
 
 **Update after the second closure run (commit `484dbde`).** Linux, macOS (Node 22 and 24) and the real-cgroup job are green; the logs added by F-40 show that Windows ended in the unit tests with one failure (F-41).
 
@@ -222,10 +246,10 @@ Tasks F-39, F-40 and F-41 are tracked in the [approved audit backlog](ROADMAP.md
 
 | ID | Sev | Area | Finding | Status |
 |---|---|---|---|---|
-| F-34 | **High** | Benchmark | On Windows a timed-out run was reported with `processesTerminated: 0`: the run was finalized by the 2 s stdio grace timer while the tree kill (PowerShell snapshot, one more PowerShell call per victim, `taskkill`) was still running, so the count was never stored | Status: fix in 0.2.0-beta.8, A–D closure; closed when the Windows run of the Capabilities workflow is green |
-| F-35 | Medium | Process | A Windows tree kill started one PowerShell per victim to re-check identity and read the full process table with command lines; seconds per kill | Status: fix in 0.2.0-beta.8, A–D closure (lean `WINDOWS_TREE_SCRIPT`, one re-check, parallel `taskkill`); Windows run pending |
-| F-36 | Medium | Profiling | `inspectProcess` on Windows enumerated every process for one PID (F-08, Windows part), so Monitor and Compare got under one sample per second | Status: fix in 0.2.0-beta.8, A–D closure (filtered single-PID WMI query with fallback); macOS fast path stays open; Windows run pending |
-| F-37 | Medium | Tests | Four Windows checks assumed Linux timing (a 300 ms delay against a start-up of several hundred ms, a 400 ms child against a PowerShell sample of 0.5–1.5 s, 700 ms and 1000 ms profile windows); AGENTS.md §7 forbids tests that depend on timing luck | Status: fix in 0.2.0-beta.8, A–D closure (the injected delay and the observation window are scaled on Windows; no assertion was weakened) |
+| F-34 | **High** | Benchmark | On Windows a timed-out run was reported with `processesTerminated: 0`: the run was finalized by the 2 s stdio grace timer while the tree kill (PowerShell snapshot, one more PowerShell call per victim, `taskkill`) was still running, so the count was never stored | Status: closed in 0.2.0-beta.8, A–D closure (verified green in A–D closure run 42775483864 (Audit 7)) |
+| F-35 | Medium | Process | A Windows tree kill started one PowerShell per victim to re-check identity and read the full process table with command lines; seconds per kill | Status: fix in 0.2.0-beta.8, A–D closure (lean `WINDOWS_TREE_SCRIPT`, one re-check, parallel `taskkill`); closed in 0.2.0-beta.8 (verified green in A–D closure run 42775483864 (Audit 7)) |
+| F-36 | Medium | Profiling | `inspectProcess` on Windows enumerated every process for one PID (F-08, Windows part), so Monitor and Compare got under one sample per second | Status: fix in 0.2.0-beta.8, A–D closure (filtered single-PID WMI query with fallback); macOS fast path stays open (F-08); Windows part closed in 0.2.0-beta.8 (verified green in A–D closure run 42775483864 (Audit 7)) |
+| F-37 | Medium | Tests | Four Windows checks assumed Linux timing (a 300 ms delay against a start-up of several hundred ms, a 400 ms child against a PowerShell sample of 0.5–1.5 s, 700 ms and 1000 ms profile windows); AGENTS.md §7 forbids tests that depend on timing luck | Status: closed in 0.2.0-beta.8, A–D closure (the injected delay and the observation window are scaled on Windows; no assertion was weakened; verified green in A–D closure run 42775483864 (Audit 7)) |
 | F-38 | Low | CI | The A–D closure workflow printed one result per cell but no single record that could be copied into the documents | Status: closed in 0.2.0-beta.8, A–D closure (`record` job) |
 
 **Still open, deliberately.** R-19: on Windows every sample still starts a PowerShell. A child that ends before the first sample has no CPU or RSS data (`resources.available: false`, reason recorded); the capability check uses a child that outlives a sample. A persistent helper is the fix and is not part of this change because it cannot be verified without a Windows runner.
@@ -259,7 +283,7 @@ Tasks F-34…F-38 are tracked in the [approved audit backlog](ROADMAP.md#approve
 | F-30 | Medium | Evidence | Process, Memory, CPU, I/O and Binary evidence existed only as a type name | Status: closed in 0.2.0-beta.7, A–D closure |
 | F-31 | Medium | Tests | The research-cycle trial used hand-written evidence | Status: closed in 0.2.0-beta.7, A–D closure (real analyzers on fixtures; external applications remain a release gate) |
 | F-32 | Low | Docs | `docs/MCP.md` repeated a sentence | Status: closed in 0.2.0-beta.7, A–D closure |
-| F-33 | Medium | Process | R-03, R-05 and F-16 are open although patches C and D read as delivered | open: shown as 🚧 checks and release gates |
+| F-33 | Medium | Process | R-03, R-05 and F-16 are open although patches C and D read as delivered | Status: partly closed: F-16 closed in 1.0.1; R-03 closed in 1.0.1 but reopened by F-75; R-05 partial (see the ROADMAP debt register) |
 
 **Behavior changes users can notice.** A hypothesis can no longer be promoted by arbitrary Benchmark or Validation evidence. `REVERSE_MODE=OBSERVE` now refuses sampling of processes whose ownership is unverified. `Diagnostic` and `Compare` results carry extra fields. `withProcessResourceLimits` is now created by `createResourceLimiter` (same signature and behavior). Measurement tools accept an optional `session_id`.
 
@@ -290,7 +314,7 @@ Tasks F-18…F-33 are tracked in the [approved audit backlog](ROADMAP.md#approve
 | H-09 | Medium | "Train the agent" is not an available mechanism | Prompts, skill section and evaluation harness | L |
 | H-10 | Medium | Consent is not recorded | Authorization record in sessions and reports | M |
 
-Tasks H-01…H-10 are tracked in the [approved audit backlog](ROADMAP.md#approved-audit-backlog-audit-1-approved-2026-11-09). Audit 2 follows.
+Tasks H-01…H-10 are tracked in the [approved audit backlog](ROADMAP.md#approved-audit-backlog-audit-1-approved-2026-11-09); the "Patch" column here is historical and the backlog table is authoritative where they differ. Audit 2 follows.
 
 ---
 
@@ -315,7 +339,7 @@ Tasks H-01…H-10 are tracked in the [approved audit backlog](ROADMAP.md#approve
 | G-09 | Medium | No per-target support matrix | `CAPABILITIES.md` gets a target-platform and era matrix; the suite checks it against the registered format detectors | M |
 | G-10 | Medium | "Full preservation" is an unmeasurable promise | Behavior-preservation report with levels L0–L3 (defined in [ARCHITECTURE.md](ARCHITECTURE.md)); L4 (formal proof) is explicitly out of scope | O, P |
 
-Tasks G-01…G-10 are tracked in the [approved audit backlog](ROADMAP.md#approved-audit-backlog-audit-1-approved-2026-11-09). Audit 1 follows; its text is unchanged except for status marks.
+Tasks G-01…G-10 are tracked in the [approved audit backlog](ROADMAP.md#approved-audit-backlog-audit-1-approved-2026-11-09); the "Patch" column here is historical and the backlog table is authoritative where they differ (Audit 18). Audit 1 follows; its text is unchanged except for status marks.
 
 ---
 
