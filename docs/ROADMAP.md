@@ -27,8 +27,8 @@ State as of **1.1.0-beta.2** (`package.json` and `src/core-version.ts` agree; do
 | What is being built? | **Patch M** — complete Windows compatibility, DOS through Windows 7-era software (up to 2010); target release **1.2**. Status: **in progress**. Delivered so far: initial detector slices (1.1.0-beta.1, 1.1.0-beta.2). |
 | What has not started? | **Patches N, O, P, Q** (old Linux; Classic Mac/early macOS; legacy Android; newer generations and unified compatibility intelligence). Do not start them before M passes its acceptance criteria. Their detailed plans (scope, work order, checklists, debts, exit criteria) are in [Detailed plans for patches N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q). |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Follow the [work order inside M](#work-order-inside-m-approved-by-the-maintainer-2026-11-11). **Steps 0–4 done** (step 3: remaining bound/out-of-window imports still limited). Next is **step 5**: sandbox (R-20) and execution environments. |
-| What is open but not blocking? | See the [carry-over debt register](#carry-over-debt-register): No open item blocks M. R-20 (sandbox for executed targets), R-11 (PE part) and R-10 (`diec`, `yara-x`, `capa`) are assigned to M and scheduled in its work order. |
+| What is the next concrete step? | Follow the [work order inside M](#work-order-inside-m-approved-by-the-maintainer-2026-11-11). **Steps 0–5 done** (sandbox + Wine/DOSBox/QEMU adapters; hard Windows/macOS isolation still a recorded limitation). Next is **step 6**: behavior capture and replay. |
+| What is open but not blocking? | See the [carry-over debt register](#carry-over-debt-register): No open item blocks M. R-20 sandbox delivered (Linux-first); Windows/macOS hard isolation remains a recorded limitation. Remaining M work is steps 6–8. |
 | What is unverified? | Full-matrix CI is recorded for commit `66fee60` (2026-11-11): [Capabilities](https://github.com/ecooorg/reverse/actions/runs/43024000265) Success — Linux/macOS/Windows × Node 22/24 and package on Ubuntu/Windows; [Structure](https://github.com/ecooorg/reverse/actions/runs/43024033261) Success — Ubuntu/macOS/Windows; [Supply chain](https://github.com/ecooorg/reverse/actions/runs/43024423915) Success. Each workflow produced one final artifact (`Capabilities` / `Structure` / `Supply chain`). Previous baseline remains A–D closure run 42775483864 (0.2.0-beta.8). |
 
 ## Delivery plan: foundation A–L and product patches M–Q
@@ -145,7 +145,7 @@ Patch M is **in progress** (target release 1.2). The items below are *internal t
 
 **3. Execution and observation**
 - [ ] Execution-environment provider contract (detect, prepare, snapshot, restore, run with limits, trace, shut down) and real, detected adapters for Wine, DOSBox-class emulators and QEMU/VMs; user-supplied licensed images only, hashes recorded in the environment fingerprint (G-03).
-- [ ] Sandbox for executed targets under `CONTROLLED_EXECUTION` (R-20; approved prerequisite, step 5 of the work order: Patch M is the first patch that runs legacy targets).
+- [x] Sandbox for executed targets under `CONTROLLED_EXECUTION` (R-20): scratch directory, timeout, process-group termination; Linux bwrap/unshare when present; honest limitations on other hosts (step 5).
 - [ ] Bounded execution, first-failure diagnostics, traces and a works/fails matrix across environments. No fabricated provider results.
 
 **4. Behavior capture and replay**
@@ -1000,7 +1000,7 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | R-17 | Node built-ins instead of code: `util.parseArgs`, `AbortSignal.timeout`, `fs.glob`, test coverage, `os.availableParallelism` | closed in 0.2.0-beta.6 |
 | R-18 | Distribution: `npx` entry, install scripts that only check Node and print configuration, optional single binary, `server.json` for MCP registries | **L** |
 | R-19 | Windows and macOS metric parity: persistent helpers instead of a fork per sample; `typeperf`/ETW and `libproc` providers | **D/H** open: PowerShell helper currently forks per sample (a run shorter than one sample has no CPU/RSS data on Windows); persistent helper and ETW/libproc remain |
-| R-20 | Sandbox for executed targets under `CONTROLLED_EXECUTION` (bwrap/unshare, sandbox-exec, Job Objects/AppContainer or a container provider; no network by default; scratch directory; rlimits) | **G**; not delivered; reassigned to **M** (approved 2026-11-11), work order step 5 |
+| R-20 | Sandbox for executed targets under `CONTROLLED_EXECUTION` (bwrap/unshare, sandbox-exec, Job Objects/AppContainer or a container provider; no network by default; scratch directory; rlimits) | **M step 5 (2026-11-11):** Linux bwrap/unshare when present; process-group+scratch+timeout everywhere; Windows/macOS hard isolation still open |
 
 ### Goal gaps (Audit 2, approved 2026-11-09)
 
