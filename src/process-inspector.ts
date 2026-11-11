@@ -3,8 +3,8 @@ import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { result } from './core-types.js';
 import { execTimeoutMs } from './core-util.js';
-import { MAC_PS_ARGS_FIELDS, MAC_PS_FIELDS, WINDOWS_CIM_SCRIPT, parseMacPs, parseWindowsCim } from './process-parse.js';
-import { windowsProcessScript } from './process-parse.js';
+import { MAC_PS_ARGS_FIELDS, MAC_PS_FIELDS, parseMacPs, parseWindowsCim } from './process-parse.js';
+import { windowsHelperRequest } from './process-windows-helper.js';
 const exec = promisify(execFile);
 export interface ProcessInfo {
     pid: number;
@@ -116,11 +116,7 @@ async function enumerate(): Promise<{
     else
         try {
             if (process.platform === 'win32') {
-                const { stdout } = await exec('powershell.exe', [
-                    '-NoProfile', '-NonInteractive', '-Command', WINDOWS_CIM_SCRIPT
-                ], {
-                    timeout: execTimeoutMs(15000), maxBuffer: 32 * 1024 * 1024, windowsHide: true
-                });
+                const stdout = await windowsHelperRequest('list', undefined, execTimeoutMs(15000));
                 rows = parseWindowsCim(stdout);
             }
             else {
@@ -188,11 +184,7 @@ export async function inspectProcess(pid: number) {
         // Fast path: ask WMI for this one PID (and its direct children) instead of enumerating every process. A failure falls
         // back to the full table below.
         try {
-            const { stdout } = await exec('powershell.exe', [
-                '-NoProfile', '-NonInteractive', '-Command', windowsProcessScript(pid)
-            ], {
-                timeout: execTimeoutMs(15000), maxBuffer: 4 * 1024 * 1024, windowsHide: true
-            });
+            const stdout = await windowsHelperRequest('inspect', pid, execTimeoutMs(15000));
             const rows = parseWindowsCim(stdout), one = rows.find(x => x.pid === pid);
             if (one) {
                 const found: ProcessInfo = { ...one, children: rows.filter(x => x.ppid === pid && x.pid !== pid).map(x => x.pid) };

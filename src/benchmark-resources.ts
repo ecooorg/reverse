@@ -1,6 +1,7 @@
 import { readFile, stat } from 'node:fs/promises';
 import { execFile, execFileSync } from 'node:child_process';
 import path from 'node:path';
+import { windowsHelperRequest } from './process-windows-helper.js';
 // Per-run resource measurement for benchmark children (Patch C, part 2).
 // Linux: /proc/<pid>/stat and /proc/<pid>/status are sampled every few milliseconds; CPU time is user+system
 // (including waited-for children), peak RAM is the kernel's resident high-water mark (VmHWM).
@@ -119,29 +120,17 @@ export class ResourceSampler {
         });
     }
     private readPowerShell(): Promise<void> {
-        return new Promise(resolve => {
-            const script = `$p=Get-Process -Id ${Number(this.pid)} -ErrorAction Stop; `
-                + '[pscustomobject]@{cpuMs=[int64]$p.TotalProcessorTime.TotalMilliseconds;'
-                + 'rss=[int64]$p.WorkingSet64;peak=[int64]$p.PeakWorkingSet64}|ConvertTo-Json -Compress';
-            execFile('powershell.exe', [
-                '-NoProfile', '-NonInteractive', '-Command', script
-            ], {
-                timeout: 5000, signal: AbortSignal.timeout(5000), windowsHide: true
-            }, (err, stdout) => {
-                if (!err) {
-                    try {
-                        const v = JSON.parse(String(stdout));
-                        const cpu = Number(v.cpuMs), rss = Math.max(Number(v.rss), Number(v.peak));
-                        if (Number.isFinite(cpu) && Number.isFinite(rss)) {
-                            this.samples++;
-                            this.cpu = Math.max(this.cpu ?? 0, cpu);
-                            this.peak = Math.max(this.peak ?? 0, rss);
-                        }
-                    }
-                    catch { /* process exited or malformed helper output */ }
-                }
-                resolve();
-            });
+        return windowsHelperRequest('sample', this.pid, 5000).then(stdout => {
+            const parsed = JSON.parse(stdout);
+            const v = Array.isArray(parsed) ? parsed[0] : parsed;
+            const cpu = Number(v?.cpuMs), rss = Math.max(Number(v?.rss), Number(v?.peak));
+            if (Number.isFinite(cpu) && Number.isFinite(rss)) {
+                this.samples++;
+                this.cpu = Math.max(this.cpu ?? 0, cpu);
+                this.peak = Math.max(this.peak ?? 0, rss);
+            }
+        }).catch(() => {
+            // Process exit, access denial or a helper failure leaves metrics explicitly unavailable.
         });
     }
     /** Call once the child has exited; returns the last values seen. */

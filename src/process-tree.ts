@@ -1,17 +1,14 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { readFile } from 'node:fs/promises';
-import { parseWindowsCim, WINDOWS_TREE_SCRIPT } from './process-parse.js';
+import { parseWindowsCim } from './process-parse.js';
+import { windowsHelperRequest } from './process-windows-helper.js';
 const exec = promisify(execFile);
 async function windowsSnapshot(): Promise<{
     children: Map<number, number[]>;
     identities: Map<number, string>;
 }> {
-    const { stdout } = await exec('powershell.exe', [
-        '-NoProfile', '-NonInteractive', '-Command', WINDOWS_TREE_SCRIPT
-    ], {
-        timeout: 15000, signal: AbortSignal.timeout(15000), maxBuffer: 32 * 1024 * 1024, windowsHide: true
-    });
+    const stdout = await windowsHelperRequest('tree', undefined, 15000);
     const children = new Map<number, number[]>(), identities = new Map<number, string>();
     for (const p of parseWindowsCim(stdout)) {
         const list = children.get(p.ppid ?? -1);

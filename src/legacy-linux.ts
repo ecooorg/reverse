@@ -13,6 +13,7 @@ import { requireLegacyGate } from './legacy-gate.js';
 import { diagnoseLinuxFromTables, type LinuxCompatDiagnosis } from './legacy-linux-tables.js';
 import { summarizeVerneed, type SymbolVersionHint, type VerneedSummary } from './legacy-linux-symver.js';
 import { inspectPackageBuffer, type PackageMetadata } from './legacy-linux-packages.js';
+import { wrapUntrusted } from './core-untrusted.js';
 export interface LegacyLinuxFinding {
     format: 'a.out' | 'ELF' | 'unknown';
     architecture: string;
@@ -540,7 +541,7 @@ export async function analyzeLegacyLinux(filePath: string, authorization: Legacy
         authorization: auth,
         sha256
     };
-    return result(abs, 'legacy_linux_analysis', [finding], {
+    const response = result(abs, 'legacy_linux_analysis', [finding], {
         status: format === 'unknown' ? 'partial' : 'completed',
         limitations: [
             'Bounded read of the file head only; truncated ELFs may miss dynamic data.',
@@ -551,4 +552,7 @@ export async function analyzeLegacyLinux(filePath: string, authorization: Legacy
                 : ['Hardening flags incomplete when GNU program headers are absent.']
         ]
     });
+    // ELF strings, dynamic names and package metadata originate in the inspected target.
+    // Mark and bound them at the library boundary as well as at the MCP transport boundary.
+    return wrapUntrusted(response).text as typeof response;
 }
