@@ -28,6 +28,7 @@ concurrency:
 
 permissions:
   contents: read
+  actions: write
 
 defaults:
   run:
@@ -184,3 +185,42 @@ jobs:
           path: artifact/
           retention-days: 14
           if-no-files-found: warn
+
+      - name: Delete intermediate ci-parts artifacts
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Keep only the final workflow artifact; drop every ci-parts-* from this run.
+          set -e
+          REPO="${{ github.repository }}"
+          RUN_ID="${{ github.run_id }}"
+          API="https://api.github.com/repos/${REPO}/actions/runs/${RUN_ID}/artifacts?per_page=100"
+          # Paginate lightly (one page is enough for our matrix size)
+          ids=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$API" \
+            | node -e '
+              let d=""; process.stdin.on("data",c=>d+=c); process.stdin.on("end",()=>{
+                const j=JSON.parse(d);
+                const keep=new Set(["Capabilities","Structure","Supply chain"]);
+                // Also keep the literal workflow name
+                const wf=process.env.GITHUB_WORKFLOW||"";
+                if (wf) keep.add(wf);
+                for (const a of j.artifacts||[]) {
+                  if (/^ci-parts-/.test(a.name) || /^ai-debug-summary-/.test(a.name) || /^supply-chain-/.test(a.name))
+                    console.log(a.id+"\t"+a.name);
+                }
+              });
+            ')
+          if [ -z "$ids" ]; then
+            echo "No intermediate artifacts to delete."
+            exit 0
+          fi
+          echo "$ids" | while IFS=$'\t' read -r id name; do
+            [ -z "$id" ] && continue
+            echo "Deleting artifact $name ($id)"
+            curl -fsSL -X DELETE \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${REPO}/actions/artifacts/${id}" \
+              && echo "  deleted" || echo "  delete failed (non-fatal)"
+          done
