@@ -1,9 +1,6 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import test from 'node:test';
-import { detectSandboxMechanism, runInSandbox, writeIsolationProbe } from '../dist/execution-sandbox.js';
+import { detectSandboxMechanism, runInSandbox } from '../dist/execution-sandbox.js';
 import { bootstrapExecutionEnvironments } from '../dist/execution-environment.js';
 import { createWineEnvironment } from '../dist/execution-environment.js';
 import { listExecutionEnvironments } from '../dist/execution-environment.js';
@@ -27,24 +24,25 @@ test('sandbox runs a probe in a scratch directory with a real mechanism report',
     process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
     const mechanism = await detectSandboxMechanism();
     assert.ok(['bwrap', 'unshare', 'process-group', 'none'].includes(mechanism.id));
-    const probeBody = `
-import net from 'node:net';
-const scratch = process.env.REVERSE_SCRATCH || process.cwd();
-try {
-  const fs = await import('node:fs');
-  fs.writeFileSync(scratch + '/inside-ok.txt', 'ok');
-} catch (e) {
-  console.error('inside-write-failed', e);
-}
-const s = net.connect({ host: '1.1.1.1', port: 80, timeout: 800 }, () => {
-  console.log('NETWORK_OK');
-  s.destroy();
-  process.exit(0);
-});
-s.on('error', () => { console.log('NETWORK_BLOCKED'); process.exit(0); });
-s.on('timeout', () => { console.log('NETWORK_BLOCKED'); s.destroy(); process.exit(0); });
-setTimeout(() => { console.log('NETWORK_BLOCKED'); process.exit(0); }, 1200);
-`;
+    const probeBody = [
+        "import net from 'node:net';",
+        "const scratch = process.env.REVERSE_SCRATCH || process.cwd();",
+        "try {",
+        "  const fs = await import('node:fs');",
+        "  fs.writeFileSync(scratch + '/inside-ok.txt', 'ok');",
+        "} catch (e) {",
+        "  console.error('inside-write-failed', e);",
+        "}",
+        "const s = net.connect({ host: '1.1.1.1', port: 80, timeout: 800 }, () => {",
+        "  console.log('NETWORK_OK');",
+        "  s.destroy();",
+        "  process.exit(0);",
+        "});",
+        "s.on('error', () => { console.log('NETWORK_BLOCKED'); process.exit(0); });",
+        "s.on('timeout', () => { console.log('NETWORK_BLOCKED'); s.destroy(); process.exit(0); });",
+        "setTimeout(() => { console.log('NETWORK_BLOCKED'); process.exit(0); }, 1200);",
+        ""
+    ].join('\n');
     const r = await runInSandbox({
         command: process.execPath,
         args: ['probe.mjs'],
@@ -55,7 +53,6 @@ setTimeout(() => { console.log('NETWORK_BLOCKED'); process.exit(0); }, 1200);
     assert.equal(typeof r.durationMs, 'number');
     assert.ok(r.mechanism.id);
     const out = r.stdout + r.stderr;
-    // Either the probe ran (NETWORK_*) or the sandbox honestly reported limits / non-zero exit.
     if (!/NETWORK_(OK|BLOCKED)/.test(out)) {
         const msg = `probe exit=${r.exitCode} out=${out.slice(0, 120)}`;
         assert.ok(r.limitations.length > 0 || r.exitCode !== 0, msg);
@@ -71,7 +68,6 @@ test('wine/dosbox/qemu adapters report unsupported when binary is absent', async
     assert.ok(names.includes('wine'));
     assert.ok(names.includes('dosbox'));
     assert.ok(names.includes('qemu'));
-    // Force PATH empty-ish so wine is unlikely to resolve.
     const prevPath = process.env.PATH;
     process.env.PATH = '/nonexistent-reverse-path';
     try {
@@ -89,7 +85,6 @@ test('works/fails matrix marks missing engines as unsupported', async () => {
     const prevPath = process.env.PATH;
     process.env.PATH = '/nonexistent-reverse-path';
     try {
-        // Re-bootstrap with empty path: register new instances
         const cells = await runWorksFailsMatrix(['/tmp/fixture.exe'], {
             confirm: true,
             limits: { timeoutMs: 3000 }
