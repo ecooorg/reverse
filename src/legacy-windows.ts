@@ -2,12 +2,11 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { result } from './core-types.js';
-export interface LegacyAuthorization {
-    basis: 'open_source' | 'written_consent';
-    licenseOrConsentReference: string;
-    declaredBy: string;
-    declaredAt: string;
-}
+import { profileField, type LegacyAuthorization, type TargetProfile } from './legacy-types.js';
+import { assertAuthorizationPresent, requireLegacyGate } from './legacy-gate.js';
+
+export type { LegacyAuthorization, TargetProfile } from './legacy-types.js';
+
 export interface LegacyWindowsFinding {
     format: 'DOS MZ' | 'Windows NE' | 'Windows LE' | 'Windows LX' | 'Windows PE' | 'unknown';
     architecture: string;
@@ -29,7 +28,9 @@ export interface LegacyWindowsFinding {
         limitations: string[];
         needsExecutionEnvironment: boolean;
     }>;
-    authorization: LegacyAuthorization | null;
+    /** Shared Target Profile envelope (Patch M step 1). Existing flat fields are kept for compatibility. */
+    targetProfile: TargetProfile;
+    authorization: LegacyAuthorization;
     sha256: string;
 }
 const markerRules: Array<[
@@ -157,7 +158,22 @@ function detectStructure(text: string, libraries: string[]) {
         add('MFC message-map/class markers', mfc, 0.78);
     return detectors;
 }
-export async function analyzeLegacyWindows(file: string, authorization: LegacyAuthorization | null = null) {
+/**
+ * Statically inspect a DOS/Windows binary.
+ * Requires a valid authorization (session declaration or explicit object) — the shared gate (step 1).
+ */
+export async function analyzeLegacyWindows(
+    file: string,
+    authorization: LegacyAuthorization | null = null,
+    options: { sessionId?: string } = {}
+) {
+    const auth = await requireLegacyGate({
+        sessionId: options.sessionId,
+        authorization,
+        operation: 'analyze_legacy_windows'
+    });
+    assertAuthorizationPresent(auth, 'analyze_legacy_windows');
+
     const abs = path.resolve(file);
     const info = await stat(abs);
     const handle = await readFile(abs);
@@ -273,10 +289,78 @@ export async function analyzeLegacyWindows(file: string, authorization: LegacyAu
             limitations: ['Import presence does not establish whether the runtime is installed on the target system.'],
             needsExecutionEnvironment: true
         });
+    const formatEvidence = format === 'unknown'
+        ? ['No recognized MZ/NE/LE/LX/PE signature in the bounded header window.']
+        : [`Header signature for ${format} at offset 0 / e_lfanew.`];
+    const targetProfile: TargetProfile = {
+        schemaVersion: '1.0',
+        osAndEra: profileField(
+            { family: 'Windows', era: targetEra },
+            formatEvidence,
+            format === 'unknown' ? 0.2 : 0.9,
+            targetEra ? [] : ['Era is a heuristic from format/bitness, not a calibrated classifier.'],
+            format !== 'unknown'
+        ),
+        cpu: profileField(
+            architecture,
+            format === 'Windows PE' && peOffset !== null
+                ? [`PE Machine field at PE+4`]
+                : formatEvidence,
+            architecture === 'unknown' ? 0.2 : 0.95
+        ),
+        bitness: profileField(
+            bitness,
+            format === 'Windows PE' && peOffset !== null
+                ? [`PE optional-header magic at PE+24`]
+                : formatEvidence,
+            bitness === null ? 0.2 : 0.95,
+            bitness === null ? ['Bitness not determined from the bounded header window.'] : []
+        ),
+        abi: profileField(
+            subsystem,
+            subsystem ? [`PE Subsystem field`] : ['Subsystem not present or not applicable for this format.'],
+            subsystem ? 0.9 : 0.3,
+            subsystem ? [] : ['ABI/subsystem incomplete for non-PE or truncated optional headers.'],
+            !!subsystem
+        ),
+        toolchainRuntimeFramework: profileField(
+            [...toolchainMarkers, ...structuralDetectors.map(d => d.name)],
+            [
+                ...toolchainMarkers.map(m => `string/marker: ${m}`),
+                ...structuralDetectors.flatMap(d => d.evidence.slice(0, 3))
+            ],
+            structuralDetectors.length || toolchainMarkers.length ? 0.75 : 0.4,
+            [
+                'Markers are static indicators, not calibrated (H-08 pending).',
+                'Confidence is uncalibrated until a ground-truth corpus exists.'
+            ],
+            false
+        ),
+        installer: profileField(
+            null,
+            [],
+            0,
+            ['Installer/packager detection is not implemented yet (Patch M checklist).'],
+            false
+        ),
+        dependencies: profileField(
+            imports.libraries,
+            imports.libraries.length
+                ? [`Bounded PE import table: ${imports.libraries.length} libraries`]
+                : ['No PE import table in the bounded window, or non-PE format.'],
+            imports.libraries.length ? 0.9 : 0.3,
+            format === 'Windows PE' && imports.libraries.length === 0
+                ? ['PE import table was absent, malformed, or outside the bounded read window.']
+                : [],
+            format === 'Windows PE' && imports.libraries.length > 0
+        )
+    };
+
     const finding: LegacyWindowsFinding = {
         format, architecture, bitness, targetEra, subsystem, toolchainMarkers,
         structuralDetectors, importedLibraries: imports.libraries,
-        importedFunctions: imports.functions, compatibilityFindings, authorization, sha256
+        importedFunctions: imports.functions, compatibilityFindings,
+        targetProfile, authorization: auth, sha256
     };
     return result<LegacyWindowsFinding>(abs, 'legacy_windows_analysis', [finding], {
         status: format === 'unknown' ? 'partial' : 'completed',
@@ -288,12 +372,20 @@ export async function analyzeLegacyWindows(file: string, authorization: LegacyAu
                 : []),
             'RTTI/form-stream and class-name signatures are static indicators, not proof that a framework is required at runtime.',
             `Read ${b.length} of ${info.size} bytes.`,
-            'No execution, corpus lookup, similarity score, or license verification is performed.'
+            'No execution, corpus lookup, similarity score, or license verification is performed.',
+            'Target Profile fields carry per-field evidence and confidence; calibration (H-08) is not done.'
         ],
         coverage: {
             examined: true,
             complete: format !== 'unknown' && b.length === info.size,
-            notes: [`SHA-256: ${sha256}`, `Detected format: ${format}`]
-        }
+            notes: [`SHA-256: ${sha256}`, `Detected format: ${format}`, 'Target Profile schema 1.0']
+        },
+        evidence: [{
+            id: sha256.slice(0, 16),
+            kind: 'file_hash',
+            source: abs,
+            observedAt: new Date().toISOString(),
+            sha256
+        }]
     });
 }

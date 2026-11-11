@@ -168,8 +168,8 @@ async function call(name: string, a: any, signal?: AbortSignal) {
             basis: a.basis, licenseOrConsentReference: a.license_or_consent_reference, declaredBy: a.declared_by
         });
         case 'analyze_legacy_windows': {
-            const session = await new EvidenceEngine().requireLegacyAuthorization(a.session_id);
-            return analyzeLegacyWindows(a.file, session.authorization ?? null);
+            // Shared gate (Patch M step 1): authorization required and embedded as provenance.
+            return analyzeLegacyWindows(a.file, null, { sessionId: a.session_id });
         }
         case 'add_research_hypothesis': return new EvidenceEngine().addHypothesis(a.session_id, {
             statement: a.statement, provenance: a.provenance, confidence: a.confidence
