@@ -359,6 +359,46 @@ check('Legacy Windows', 'reference trials run both scenarios with L0 limitations
     assert.equal(report.preservation.level, 'L0');
     assert.ok(report.limitations.some((l: string) => /oracle|licensed/i.test(l)));
 });
+check('Legacy Linux', 'analyzeLegacyLinux ELF64 reports Linux profile and interpreter', async () => {
+    const { analyzeLegacyLinux } = await import(pathToFileURL(path.join(DIST, 'legacy-linux.js')).href);
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'cap-ll-'));
+    try {
+        const b = Buffer.alloc(256);
+        b[0] = 0x7f;
+        b.write('ELF', 1, 'ascii');
+        b[4] = 2;
+        b[5] = 1;
+        b[6] = 1;
+        b.writeUInt16LE(3, 16);
+        b.writeUInt16LE(62, 18);
+        b.writeUInt32LE(1, 20);
+        b.writeBigUInt64LE(64n, 32);
+        b.writeUInt16LE(64, 52);
+        b.writeUInt16LE(56, 54);
+        b.writeUInt16LE(1, 56);
+        const interp = '/lib64/ld-linux-x86-64.so.2';
+        b.write(interp, 200, 'ascii');
+        b.writeUInt32LE(3, 64);
+        b.writeUInt32LE(4, 68);
+        b.writeBigUInt64LE(200n, 72);
+        b.writeBigUInt64LE(200n, 80);
+        b.writeBigUInt64LE(BigInt(interp.length + 1), 96);
+        const f = path.join(dir, 'e');
+        await writeFile(f, b);
+        const r = await analyzeLegacyLinux(f, {
+            basis: 'open_source',
+            licenseOrConsentReference: 'capability-suite',
+            declaredBy: 'capabilities-suite',
+            declaredAt: new Date().toISOString()
+        });
+        assert.equal(r.findings[0].format, 'ELF');
+        assert.equal(r.findings[0].targetProfile.osAndEra.value.family, 'Linux');
+        assert.ok(r.findings[0].interpreter?.includes('ld-linux'));
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
 check('Execution', 'sandbox refuses execution outside CONTROLLED_EXECUTION', async () => {
     const { runInSandbox } = await import(pathToFileURL(path.join(DIST, 'execution-sandbox.js')).href);
     const prev = process.env.REVERSE_MODE;
