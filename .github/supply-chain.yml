@@ -1,0 +1,195 @@
+name: Supply chain
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  npm-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: |
+          mkdir -p ci-logs
+          export GITHUB_STEP_SUMMARY=ci-logs/01-install-dependencies.summary.md
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/01-install-dependencies.exit' EXIT
+          {
+          mkdir -p ci-logs
+          if npm ci --ignore-scripts > ci-logs/01-npm-ci.log 2>&1; then rc=0; else rc=$?; fi
+          [ "$rc" = 0 ] || echo "$rc" > ci-logs/01-npm-ci.exit
+          exit "$rc"
+          } > ci-logs/01-install-dependencies.log 2>&1
+      - name: Audit production dependencies
+        if: always() && hashFiles('node_modules/.package-lock.json') != ''
+        run: |
+          mkdir -p ci-logs
+          export GITHUB_STEP_SUMMARY=ci-logs/02-audit-production-dependencies.summary.md
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/02-audit-production-dependencies.exit' EXIT
+          {
+          mkdir -p ci-logs
+          if npm audit --omit=dev > ci-logs/02-npm-audit-production.log 2>&1; then rc=0; else rc=$?; fi
+          [ "$rc" = 0 ] || echo "$rc" > ci-logs/02-npm-audit-production.exit
+          exit "$rc"
+          } > ci-logs/02-audit-production-dependencies.log 2>&1
+      - name: Verify npm signatures
+        if: always() && hashFiles('node_modules/.package-lock.json') != ''
+        run: |
+          mkdir -p ci-logs
+          export GITHUB_STEP_SUMMARY=ci-logs/03-verify-npm-signatures.summary.md
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/03-verify-npm-signatures.exit' EXIT
+          {
+          mkdir -p ci-logs
+          if npm audit signatures > ci-logs/03-npm-audit-signatures.log 2>&1; then rc=0; else rc=$?; fi
+          [ "$rc" = 0 ] || echo "$rc" > ci-logs/03-npm-audit-signatures.exit
+          exit "$rc"
+          } > ci-logs/03-verify-npm-signatures.log 2>&1
+      - name: Generate CycloneDX SBOM
+        if: always() && hashFiles('node_modules/.package-lock.json') != ''
+        run: |
+          mkdir -p ci-logs
+          export GITHUB_STEP_SUMMARY=ci-logs/04-generate-cyclonedx-sbom.summary.md
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/04-generate-cyclonedx-sbom.exit' EXIT
+          {
+          mkdir -p ci-logs
+          if npm sbom --sbom-format cyclonedx > reverse.cdx.json 2> ci-logs/04-generate-cyclonedx-sbom.log; then rc=0; else rc=$?; fi
+          [ "$rc" = 0 ] || echo "$rc" > ci-logs/04-generate-cyclonedx-sbom.exit
+          exit "$rc"
+          } > ci-logs/04-generate-cyclonedx-sbom.log 2>&1
+      - name: Check SBOM is non-empty and names the package
+        if: always() && hashFiles('reverse.cdx.json') != ''
+        run: |
+          mkdir -p ci-logs
+          export GITHUB_STEP_SUMMARY=ci-logs/05-check-sbom-is-non-empty-and-names-the-pa.summary.md
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/05-check-sbom-is-non-empty-and-names-the-pa.exit' EXIT
+          {
+          mkdir -p ci-logs
+          if node -e "const s=require('./reverse.cdx.json'); if(s.bomFormat!=='CycloneDX'||!String(s.metadata?.component?.purl).startsWith('pkg:npm/reverse-compact@')) process.exit(1)" > ci-logs/05-check-sbom.log 2>&1; then rc=0; else rc=$?; fi
+          [ "$rc" = 0 ] || echo "$rc" > ci-logs/05-check-sbom.exit
+          exit "$rc"
+          } > ci-logs/05-check-sbom-is-non-empty-and-names-the-pa.log 2>&1
+      - name: Test AI debugging summary generator
+        if: always()
+        run: |
+          mkdir -p ci-logs
+          export GITHUB_STEP_SUMMARY=ci-logs/06-test-ci-ai-summary-generator.summary.md
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/06-test-ci-ai-summary-generator.exit' EXIT
+          {
+          npm run ci:summary:test
+          } > ci-logs/06-test-ci-ai-summary-generator.log 2>&1
+      - name: Generate AI debugging summary
+        if: always()
+        run: |
+          mkdir -p ci-logs
+          export GITHUB_STEP_SUMMARY=ci-logs/07-generate-ai-debugging-summary.summary.md
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/07-generate-ai-debugging-summary.exit' EXIT
+          {
+          npm run ci:summary
+          } > ci-logs/07-generate-ai-debugging-summary.log 2>&1
+
+      - name: Upload job logs (merged later, ci-quiet)
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ci-parts-logs-npm-integrity
+          path: |
+            ci-logs/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  logs:
+    name: one artifact (detailed logs zip + failure brief)
+    needs: [npm-integrity]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Download job log parts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: ci-parts-*
+          path: collected
+          merge-multiple: true
+      - name: Flatten logs and package single artifact
+        if: always()
+        run: |
+          mkdir -p ci-logs
+          find collected -type f \( -name '*.log' -o -name '*.exit' -o -name '*.summary.md' -o -name '*.txt' -o -name '*.json' -o -name '*.xml' \) -print0 |
+            while IFS= read -r -d '' f; do
+              base=$(basename "$f")
+              parent=$(basename "$(dirname "$f")")
+              if [ "$parent" = "ci-logs" ] || [ "$parent" = "collected" ]; then
+                cp "$f" "ci-logs/$base" 2>/dev/null || true
+              else
+                cp "$f" "ci-logs/$parent-$base" 2>/dev/null || true
+              fi
+            done
+          find collected -type d \( -name 'capability-reports' -o -name 'reports' \) |
+            while read -r d; do
+              mkdir -p capability-reports
+              cp -r "$d"/* capability-reports/ 2>/dev/null || true
+            done
+          npm ci --ignore-scripts
+          node tests/ci-package-artifacts.mjs ci-logs artifact
+      - name: Upload single workflow artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ github.workflow }}
+          path: artifact/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Delete intermediate ci-parts artifacts
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Keep only the final workflow artifact; drop every ci-parts-* from this run.
+          set -e
+          REPO="${{ github.repository }}"
+          RUN_ID="${{ github.run_id }}"
+          API="https://api.github.com/repos/${REPO}/actions/runs/${RUN_ID}/artifacts?per_page=100"
+          # Paginate lightly (one page is enough for our matrix size)
+          ids=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$API" \
+            | node -e '
+              let d=""; process.stdin.on("data",c=>d+=c); process.stdin.on("end",()=>{
+                const j=JSON.parse(d);
+                const keep=new Set(["Capabilities","Structure","Supply chain"]);
+                // Also keep the literal workflow name
+                const wf=process.env.GITHUB_WORKFLOW||"";
+                if (wf) keep.add(wf);
+                for (const a of j.artifacts||[]) {
+                  if (/^ci-parts-/.test(a.name) || /^ai-debug-summary-/.test(a.name) || /^supply-chain-/.test(a.name))
+                    console.log(a.id+"\t"+a.name);
+                }
+              });
+            ')
+          if [ -z "$ids" ]; then
+            echo "No intermediate artifacts to delete."
+            exit 0
+          fi
+          echo "$ids" | while IFS=$'\t' read -r id name; do
+            [ -z "$id" ] && continue
+            echo "Deleting artifact $name ($id)"
+            curl -fsSL -X DELETE \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${REPO}/actions/artifacts/${id}" \
+              && echo "  deleted" || echo "  delete failed (non-fatal)"
+          done
