@@ -83,10 +83,30 @@ Process sampling remains read-only. It captures an OS start-time identity token 
 | Selected Borland/Delphi, VB6, MFC, Visual C++, DirectX and Glide string markers | beta.1 | ✅ | Bounded string scan (8 MiB); indicators, not proof of runtime use; no reference-corpus precision/recall calibration |
 | PE imported libraries and named functions | beta.2 | ✅ | Bounded PE import-table parsing; delay imports, bound imports and malformed/out-of-window tables may be absent |
 | Static framework signatures: Delphi form/RTTI-style, VB6 metadata, MFC class/message-map; VB6/MFC runtime imports | beta.2 | ✅ | Static indicators with explicit confidence; not calibrated classifications; not proof of runtime use |
-| Compatibility candidates from legacy headers, PE runtime and graphics imports | beta.1, beta.2 | 🚧 | Static candidates with evidence/confidence/limitations; OS-version API availability tables and execution confirmation are not implemented |
+| Compatibility candidates from legacy headers, PE runtime and graphics imports | beta.1, beta.2 | ✅ | Findings cite sourced table entry ids (G-01); execution confirmation still required where marked |
+| Sourced Windows runtime/API tables (VB6, MFC, DirectX, Glide, Win16, LE/LX, DEP/ASLR) | step 4 | ✅ | Documentary tables only; host runtime presence is not probed; missing rows never invent availability |
+| PE hardening flags (ASLR, DEP, CFG, SEH) from DllCharacteristics | step 3 | ✅ | Link-time flags only; host policy not evaluated |
+| Delay-load import libraries | step 3 | ✅ | Bound imports and out-of-window tables still limited |
+| Packer/protector heuristics (stubs + high-entropy sections) | step 3 | ✅ | Not a substitute for diec/yara-x/capa |
+| Opt-in detect-only providers `diec`, `yara-x`, `capa` | step 3 | 🚧 | Registered; report `unsupported` when absent — never simulated |
+| Target Profile envelope (per-field evidence/confidence/coverage) | step 1 | ✅ | Installer field null until detectors land; confidence uncalibrated |
+| Calibration harness (crafted fixtures + operator hash manifests) | step 2 | ✅ | Operator corpus optional; nothing uploaded |
 | Legacy authorization declaration on research sessions; gate on `analyze_legacy_windows`; declaration embedded in the result | beta.1, beta.2 | ✅ | Operator declaration is recorded; legal status and the referenced license/consent are not verified |
 
-`analyze_legacy_windows` refuses unless the supplied research session has a `declare_legacy_authorization` record. It reads at most 8 MiB for signatures and PE import tables and hashes the complete file. Its result embeds the declared basis, reference, declarant and timestamp. The detector does not execute the target or access a similarity corpus. This is initial progress inside product patch M, not completion of the Windows product outcome; the open items are the [Patch M working checklist](ROADMAP.md#patch-m-working-checklist).
+### Target-platform and era support matrix (G-09)
+
+| Format / era detector | Registered | Capability check |
+|---|---|---|
+| DOS MZ | yes (`analyze_legacy_windows`) | must recognize MZ without PE/NE/LE/LX |
+| Windows NE (16-bit) | yes | must report bitness 16 |
+| Windows LE / LX | yes | must report format LE or LX |
+| Windows PE 32/64 | yes | must report bitness from optional header |
+| Delphi / VB6 / MFC markers | yes | structural detectors or toolchain markers |
+| PE imports / delay imports | yes | libraries list when table in window |
+| PE hardening flags | yes | DllCharacteristics mapped |
+| diec / yara-x / capa | registered adapters | available only when binary on PATH |
+
+`analyze_legacy_windows` refuses unless the supplied research session has a `declare_legacy_authorization` record (or an explicit authorization object on the library path). It reads at most 8 MiB for signatures and PE import tables and hashes the complete file. Compatibility findings cite sourced table entries. The detector does not execute the target or upload samples. Open items remain in the [Patch M working checklist](ROADMAP.md#patch-m-working-checklist).
 
 ## Hypotheses, similarity and authorization
 

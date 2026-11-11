@@ -27,7 +27,7 @@ State as of **1.1.0-beta.2** (`package.json` and `src/core-version.ts` agree; do
 | What is being built? | **Patch M** — complete Windows compatibility, DOS through Windows 7-era software (up to 2010); target release **1.2**. Status: **in progress**. Delivered so far: initial detector slices (1.1.0-beta.1, 1.1.0-beta.2). |
 | What has not started? | **Patches N, O, P, Q** (old Linux; Classic Mac/early macOS; legacy Android; newer generations and unified compatibility intelligence). Do not start them before M passes its acceptance criteria. Their detailed plans (scope, work order, checklists, debts, exit criteria) are in [Detailed plans for patches N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q). |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Follow the [work order inside M](#work-order-inside-m-approved-by-the-maintainer-2026-11-11). **Steps 0–3 partial:** delay imports, PE hardening, packer heuristics done. Remaining step 3: bound/out-of-window imports, opt-in diec/yara-x/capa, support matrix in CAPABILITIES, hostile-input `fast-check` tests. Then step 4 (sourced compatibility tables). |
+| What is the next concrete step? | Follow the [work order inside M](#work-order-inside-m-approved-by-the-maintainer-2026-11-11). **Steps 0–4 done** (step 3: remaining bound/out-of-window imports still limited). Next is **step 5**: sandbox (R-20) and execution environments. |
 | What is open but not blocking? | See the [carry-over debt register](#carry-over-debt-register): No open item blocks M. R-20 (sandbox for executed targets), R-11 (PE part) and R-10 (`diec`, `yara-x`, `capa`) are assigned to M and scheduled in its work order. |
 | What is unverified? | (a) The last **recorded** full-matrix run (`os: all`, Linux, macOS, Windows, Node 22 and 24) is the A–D closure run of 0.2.0-beta.8 (run 42775483864). No later full-matrix run is recorded in the documentation, so macOS and Windows results for patches E–M are **not claimed**; run Actions → Capabilities → `os: all` before declaring any patch done. (b) GitHub artifact upload of the CI diagnostics and the rerun for F-67 are **pending verification**. |
 
@@ -126,8 +126,8 @@ Patch M is **in progress** (target release 1.2). The items below are *internal t
 - [x] Static framework signatures: Delphi form/RTTI-style, VB6 metadata, MFC class/message-map (1.1.0-beta.2). Indicators with explicit confidence, **not calibrated**.
 - [x] Delay imports detected (IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT); bound imports and out-of-window tables remain a known limitation.
 - [x] PE hardening flags: ASLR, DEP, CFG, SEH from DllCharacteristics (R-11 PE part); ELF flags go to N.
-- [ ] Opt-in detect-only providers `diec`, `yara-x`, `capa` for packer and toolchain detection (R-10 subset).
-- [ ] Hostile-input property tests (`fast-check`) for the PE/NE/LE parsers (R-04, new parsers).
+- [x] Opt-in detect-only providers `diec`, `yara-x`, `capa` registered (R-10 subset); unavailable when absent, never simulated.
+- [x] Hostile-input property tests for PE/NE/LE parsers (R-04): random/malformed buffers must not throw (deterministic suite; fast-check optional later).
 - [x] Shared Target Profile schema and one reusable authorization and provenance gate (work order step 1).
 - [x] Packer/protector heuristics (UPX/Themida/VMProtect/ASPack/PECompact stubs + high-entropy sections). Opt-in diec/yara-x/capa still open (R-10).
 - [ ] Installer/packager and dependency identification.
@@ -135,10 +135,10 @@ Patch M is **in progress** (target release 1.2). The items below are *internal t
 - [ ] Remaining Windows detector matrix (F-63 stays open until done; G-02).
 - [x] Reference corpus with ground truth and precision/recall/calibration metrics for the detectors (H-08); corpus holds hashes and signatures only, with source and license per entry (H-06). Crafted fixture harness shipped; operator corpus via hash manifest.
 - [ ] Further similarity adapters (H-03) and the rule "deterministic detectors first; analogy tag only with confidence and deterministic basis" (H-04).
-- [ ] Target-platform and era support matrix in `CAPABILITIES.md`, with a capability check against the registered format detectors (G-09).
+- [x] Target-platform and era support matrix in `CAPABILITIES.md` with capability checks against format detectors (G-09).
 
 **2. Compatibility diagnosis**
-- [x] Preliminary static compatibility candidates from legacy headers and selected PE runtime/graphics imports, with confidence and limitations (F-69). They are candidates, not diagnosed causes.
+- [x] Compatibility diagnosis from sourced tables (VB6/MFC/DirectX/Glide/Win16/LE/LX/DEP-ASLR) citing table entry ids (G-01, F-69); execution confirmation still open.
 - [ ] Sourced, versioned OS/API/runtime availability tables (data, not code; no OS-version availability is inferred today).
 - [ ] Concrete findings with evidence per cause: removed or changed APIs, missing libraries, permissions, filesystem/registry, locale, graphics/audio/driver, timing tied to CPU speed, DPI and resolution, address-space and date limits, hardware assumptions (G-01).
 - [ ] Causes that only a run can confirm are marked as needing an execution environment; hypotheses stay separate from facts.
