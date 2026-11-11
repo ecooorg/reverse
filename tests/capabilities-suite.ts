@@ -1863,6 +1863,7 @@ const DOCUMENTED_TOOLS = [
     'run_validation_fixtures',
     'declare_legacy_authorization',
     'analyze_legacy_windows',
+    'analyze_legacy_linux',
     'create_change_workspace',
     'apply_change',
     'rollback_change',
