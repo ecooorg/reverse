@@ -11,7 +11,7 @@ import { result } from './core-types.js';
 import { profileField, type LegacyAuthorization, type TargetProfile } from './legacy-types.js';
 import { requireLegacyGate } from './legacy-gate.js';
 import { diagnoseLinuxFromTables, type LinuxCompatDiagnosis } from './legacy-linux-tables.js';
-import { extractSymbolVersionHints, summarizeVerneed, type SymbolVersionHint, type VerneedSummary } from './legacy-linux-symver.js';
+import { summarizeVerneed, type SymbolVersionHint, type VerneedSummary } from './legacy-linux-symver.js';
 import { inspectPackageBuffer, type PackageMetadata } from './legacy-linux-packages.js';
 export interface LegacyLinuxFinding {
     format: 'a.out' | 'ELF' | 'unknown';
