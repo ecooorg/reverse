@@ -3,7 +3,6 @@
  * Every Target Profile field carries source evidence, confidence and coverage.
  * Sourced data tables hold only hashes/signatures with provenance; no binaries.
  */
-
 /** One profile field: value + how we know it. */
 export interface ProfileField<T> {
     value: T;
@@ -18,31 +17,35 @@ export interface ProfileField<T> {
         notes: string[];
     };
 }
-
-export function profileField<T>(
-    value: T,
-    evidence: string[],
-    confidence: number,
-    coverageNotes: string[] = [],
-    complete = true
-): ProfileField<T> {
+export interface ProfileFieldInput<T> {
+    value: T;
+    evidence: string[];
+    confidence: number;
+    coverageNotes?: string[];
+    complete?: boolean;
+}
+export function profileField<T>(input: ProfileFieldInput<T>): ProfileField<T> {
+    const notes = input.coverageNotes ?? [];
+    const isComplete = input.complete ?? true;
     return {
-        value,
-        evidence: evidence.slice(),
-        confidence: Math.max(0, Math.min(1, confidence)),
+        value: input.value,
+        evidence: input.evidence.slice(),
+        confidence: Math.max(0, Math.min(1, input.confidence)),
         coverage: {
             examined: true,
-            complete,
-            notes: coverageNotes.slice()
+            complete: isComplete,
+            notes: notes.slice()
         }
     };
 }
-
 /** Shared Target Profile envelope used by all legacy families (Windows first, then N–Q). */
 export interface TargetProfile {
     schemaVersion: '1.0';
     /** OS family and era guess (e.g. "Windows", "Win9x/NT through Windows 7 candidate"). */
-    osAndEra: ProfileField<{ family: string; era: string | null }>;
+    osAndEra: ProfileField<{
+        family: string;
+        era: string | null;
+    }>;
     cpu: ProfileField<string>;
     bitness: ProfileField<number | null>;
     /** ABI / subsystem / calling-convention hints when known. */
@@ -54,9 +57,11 @@ export interface TargetProfile {
     /** Named dependencies (imported libraries, sonames, …). */
     dependencies: ProfileField<string[]>;
     /** Optional analogy tag — never a bare label; always with confidence and deterministic basis (H-04). */
-    analogyTag?: ProfileField<{ tag: string; basis: string[] }>;
+    analogyTag?: ProfileField<{
+        tag: string;
+        basis: string[];
+    }>;
 }
-
 /** Operator-declared legal basis for legacy analysis (not legal verification). */
 export interface LegacyAuthorization {
     basis: 'open_source' | 'written_consent';
@@ -64,7 +69,6 @@ export interface LegacyAuthorization {
     declaredBy: string;
     declaredAt: string;
 }
-
 /**
  * One fact in a sourced, versioned compatibility / detection table.
  * Only hashes and signatures; no third-party binaries (H-06).
@@ -87,7 +91,6 @@ export interface SourcedTableEntry {
     /** Optional structured payload for machines (version ranges, symbol lists, …). */
     data?: Record<string, unknown>;
 }
-
 export interface SourcedDataTable {
     schemaVersion: '1.0';
     /** Table name (e.g. "windows-vb6-runtime", "pe-subsystem-era"). */
@@ -98,7 +101,6 @@ export interface SourcedDataTable {
     tableVersion: string;
     entries: SourcedTableEntry[];
 }
-
 /** Result of validating a SourcedDataTable. */
 export interface TableValidationResult {
     ok: boolean;

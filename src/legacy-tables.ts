@@ -2,24 +2,18 @@
  * Sourced, versioned data tables for compatibility and detection facts (Patch M step 1).
  * Format: one entry per fact with source, license, retrieval date; hashes and signatures only.
  */
-
 import type { SourcedDataTable, SourcedTableEntry, TableValidationResult } from './legacy-types.js';
-
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const ID_RE = /^[a-z0-9][a-z0-9_.-]{0,127}$/i;
-
 /**
  * Validate a sourced data table. Returns structured errors; never throws for bad input.
  * A failing fixture must produce ok: false (capability check requirement).
  */
 export function validateSourcedDataTable(table: unknown): TableValidationResult {
     const errors: string[] = [];
-
     if (!table || typeof table !== 'object')
         return { ok: false, errors: ['table must be an object'] };
-
     const t = table as Record<string, unknown>;
-
     if (t.schemaVersion !== '1.0')
         errors.push('schemaVersion must be "1.0"');
     if (typeof t.name !== 'string' || !t.name.trim())
@@ -61,10 +55,8 @@ export function validateSourcedDataTable(table: unknown): TableValidationResult 
                 errors.push(`${prefix}.data must be a plain object when present`);
         });
     }
-
     return { ok: errors.length === 0, errors };
 }
-
 /** Build a minimal valid table (for tests and as a template). */
 export function exampleSourcedTable(): SourcedDataTable {
     return {
@@ -84,7 +76,6 @@ export function exampleSourcedTable(): SourcedDataTable {
         ]
     };
 }
-
 /** Intentionally invalid table used as a failing fixture in capability checks. */
 export function invalidSourcedTableFixture(): Record<string, unknown> {
     return {

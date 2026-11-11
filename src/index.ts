@@ -38,15 +38,8 @@ export { setupAgent } from './cli-setup.js';
 export { evaluateAgentPrompts } from './agent-eval.js';
 export { analyzeLegacyWindows, type LegacyAuthorization, type LegacyWindowsFinding, type TargetProfile } from './legacy-windows.js';
 export { requireLegacyGate, assertAuthorizationPresent, LegacyAuthorizationError } from './legacy-gate.js';
-export {
-    profileField,
-    type ProfileField,
-    type SourcedTableEntry,
-    type SourcedDataTable,
-    type TableValidationResult
-} from './legacy-types.js';
-export {
-    validateSourcedDataTable,
-    exampleSourcedTable,
-    invalidSourcedTableFixture
-} from './legacy-tables.js';
+export { profileField } from './legacy-types.js';
+export type { ProfileField, SourcedTableEntry, SourcedDataTable, TableValidationResult } from './legacy-types.js';
+export { validateSourcedDataTable, exampleSourcedTable, invalidSourcedTableFixture } from './legacy-tables.js';
+export { loadCalibrationManifest, runCalibration, writeCraftedCalibrationFixtures } from './legacy-calibration.js';
+export type { CalibrationManifest, CalibrationExpectation, CalibrationReport, DetectorScore } from './legacy-calibration.js';
