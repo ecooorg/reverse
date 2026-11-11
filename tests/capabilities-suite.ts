@@ -25,7 +25,6 @@ import { analyzeLegacyWindows } from '../dist/legacy-windows.js';
 import { analyzeSource } from '../dist/analysis-source.js';
 import { analyzeDependencies } from '../dist/analysis-dependencies.js';
 import { listProcesses, inspectProcess } from '../dist/process-inspector.js';
-import { closeWindowsHelper } from '../dist/process-windows-helper.js';
 import { profileProcess } from '../dist/profiling-profiler.js';
 import { MAC_PS_FIELDS, parseEtime, parseMacPs, parseWindowsCim } from '../dist/process-parse.js';
 import { getProcessIdentity, verifyProcessIdentity, verifyProcessOwnership } from '../dist/process-inspector.js';
@@ -86,8 +85,6 @@ function check(area: string, name: string, fn: (c: Ctx) => Promise<void> | void)
     });
 }
 after(async () => {
-    closeWindowsHelper();
-
     const totals: Record<Status, number> = { verified: 0, limitation: 0, drift: 0, failed: 0 };
     for (const r of records)
         totals[r.status]++;
