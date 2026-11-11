@@ -8,8 +8,8 @@ This file is the single source of truth for **what is done, what is not done and
 
 1. [Status at a glance](#status-at-a-glance): the current version, the active patch and the next concrete step.
 2. [Delivery plan](#delivery-plan-foundation-al-and-product-patches-mq): the one ordered table of all patches A–Q, how progress is measured and what "done" means.
-3. [Active work: product patches M–Q](#active-work-product-patches-mq): the scope, the working checklist of Patch M and the delivery rules. **Start work here.**
-4. [Carry-over debt register](#carry-over-debt-register): approved tasks that are still open although their patch is closed or that have no recorded closure.
+3. [Active work: product patches M–Q](#active-work-product-patches-mq): the scope and delivery rules, the working checklist and work order of Patch M (**start work here**) and the detailed plans for [N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q), which are written in advance and not started.
+4. [Carry-over debt register](#carry-over-debt-register): approved tasks that are still open although their patch is closed or that have no recorded closure, and the [debt closure schedule](#debt-closure-schedule) that fixes when each one must be closed (none may remain open past Q).
 5. Reference material, in this order: [completed foundation A–L](#completed-foundation-patches-al) (historical records, do not re-open), [approved audit backlog](#approved-audit-backlog-audit-1-approved-2026-11-09) (every finding and recommendation with its status), [coverage table](#coverage-of-the-roadmap), [release history](#release-history) and the original [core readiness criteria](#core-development-order-and-completion-criteria).
 
 **Status vocabulary** used everywhere in this file: **done** (code, automated check and documentation are in place, and the capability gate was run), **in progress** (some items delivered, acceptance criteria still open), **not started**, **open** (an approved task without delivery), **partial** (delivered in part; the remainder is named), **pending verification** (delivered and tested locally, but a run that only GitHub Actions can provide is not recorded). Checkboxes: `[x]` delivered and proven, `[ ]` not delivered. Nothing is marked done without code and a passing check (AGENTS.md section 5).
@@ -25,7 +25,8 @@ State as of **1.1.0-beta.2** (`package.json` and `src/core-version.ts` agree; do
 | What is the product version? | **1.1.0-beta.2** (prerelease of the 1.2 milestone) |
 | What is finished? | The 1.0 foundation, **patches A–L**: process intelligence, benchmark engine, evidence and research sessions, static analysis, providers (Ghidra, Rizin, JADX, Apktool, Frida, GDB, profilers), validation and integrity, controlled optimization loop, JS/.NET/WASM analyzers, agent integration. 60 MCP tools. Own code in `src/`: about 9,300 lines (budget 20,000–30,000). |
 | What is being built? | **Patch M** — complete Windows compatibility, DOS through Windows 7-era software (up to 2010); target release **1.2**. Status: **in progress**. Delivered so far: initial detector slices (1.1.0-beta.1, 1.1.0-beta.2). |
-| What has not started? | **Patches N, O, P, Q** (old Linux; Classic Mac/early macOS; legacy Android; newer generations and unified compatibility intelligence). Do not start them before M passes its acceptance criteria. |
+| What has not started? | **Patches N, O, P, Q** (old Linux; Classic Mac/early macOS; legacy Android; newer generations and unified compatibility intelligence). Do not start them before M passes its acceptance criteria. Their detailed plans (scope, work order, checklists, debts, exit criteria) are in [Detailed plans for patches N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q). |
+| When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
 | What is the next concrete step? | Follow the [work order inside M](#work-order-inside-m-approved-by-the-maintainer-2026-11-11). **Step 0** is the CI fix for F-75 (pin two action references), then **step 1**: shared contracts (Target Profile schema, one authorization and provenance gate for every legacy operation, the format of sourced data tables). |
 | What is open but not blocking? | See the [carry-over debt register](#carry-over-debt-register): No open item blocks M. R-20 (sandbox for executed targets), R-11 (PE part), R-10 (`diec`, `yara-x`, `capa`) and F-75 are assigned to M and scheduled in its work order. |
 | What is unverified? | (a) The last **recorded** full-matrix run (`os: all`, Linux, macOS, Windows, Node 22 and 24) is the A–D closure run of 0.2.0-beta.8 (run 42775483864). No later full-matrix run is recorded in the documentation, so macOS and Windows results for patches E–M are **not claimed**; run Actions → Capabilities → `os: all` before declaring any patch done. (b) GitHub artifact upload of the CI diagnostics and the rerun for F-67 are **pending verification**. (c) One known open defect: F-75, two unpinned action references (the R-03 check shows 🚧). |
@@ -77,7 +78,7 @@ B and C can proceed in parallel after A; E can start at the same time. G and H c
 
 ## Active work: product patches M–Q
 
-Patches A–L are the completed 1.0 foundation and remain historical release records. All remaining product work is delivered as **five sequential product patches: M, N, O, P and Q**. These letters are the only active planning units. Do not create parallel tracks, platform-wave sub-patches, M1-style release plans, or separate cross-cutting patch families. A patch may have internal implementation tasks, but it is released and accepted as one product outcome.
+Patches A–L are the completed 1.0 foundation and remain historical release records. All remaining product work is delivered as **five sequential product patches: M, N, O, P and Q**. These letters are the only active planning units. Detailed plans for N, O, P and Q follow the Patch M checklist below. Do not create parallel tracks, platform-wave sub-patches, M1-style release plans, or separate cross-cutting patch families. A patch may have internal implementation tasks, but it is released and accepted as one product outcome.
 
 Each patch is a vertical product slice: detection and Target Profile, compatibility diagnosis, required execution environment, behavior capture/replay, validation/equivalence where an oracle exists, MCP/CLI surface, documentation, and end-to-end reference trials are delivered together to the extent relevant to that target family. Reuse shared interfaces; do not defer a capability to a later patch if it is necessary to make the current platform slice useful. Q consolidates and generalizes the completed platform work rather than introducing a second planning taxonomy.
 
@@ -167,6 +168,13 @@ Patch M is **in progress** (target release 1.2). The items below are *internal t
 - [ ] Scenario 2: compare a changed, repackaged or reimplemented version against the original.
 - Where no lawful fixture, platform oracle or licensed environment exists, record that as an explicit release limitation instead of claiming success.
 
+**8. Debts due in this patch** (one box per debt; a debt whose box already sits in sections 1–7 is only named here, so no task has two boxes)
+- [ ] F-66 and F-67: on the first GitHub Actions run after this roadmap lands, confirm that the CI-diagnostics artifacts upload and that the AI summary classifies a capability-suite failure correctly; record the run ID (before work order step 1).
+- [ ] R-02: every new source of untrusted text introduced in M (executable strings, resources, installer metadata) passes through the existing untrusted-content wrapper, with an adversarial fixture (step 3).
+- [ ] R-15: golden results and a manual CI job for the M reference trials (step 8).
+- [ ] Record a green manual `os: all` run (Linux, macOS, Windows; Node 22 and 24) with its run ID; one run covers the unrecorded E–M release gates (step 8).
+- Tracked by boxes in the sections above: F-75 / R-03 in section 6 (step 0); R-20 in section 3 (step 5); R-11 PE part, R-10 `diec`/`yara-x`/`capa` and R-04 for the PE/NE/LE parsers in section 1 (step 3); F-63, F-64, G-01…G-10, H-03…H-08 and H-10 in sections 1–7.
+
 #### Work order inside M (approved by the maintainer, 2026-11-11)
 
 The order follows the dependencies between the checklist items and puts risk first: shared contracts and measurement before new detectors, a safety layer before anything is executed, execution before capture/replay, and capture/replay before preservation claims. The steps are internal tasks, not patches: they carry no patch letter and no planned version. Each step ends in a tested, documented prerelease of the 1.1.x line (new checks in the capability suite, `docs/MCP.md` and `CAPABILITIES.md` updated, checklist ticked) and does not leave a half-working branch. Do not start a step while the previous one has open exit criteria, except for a documented blocking fix. Two rules apply to **every** step: (a) every new analysis, execution, capture, replay or migration operation goes through the shared authorization and provenance gate from step 1 in the same change that adds it (H-05, F-64, G-07); (b) every new detector, table or adapter ships with a check that can fail and with the limitation it has.
@@ -185,7 +193,360 @@ The order follows the dependencies between the checklist items and puts risk fir
 
 Allowed overlap: step 4 may start once the step 1 Target Profile schema and table format are fixed and step 3 is under way; step 2 may start next to step 1 for the existing detectors. Nothing else runs in parallel. If a later step shows that an earlier contract is wrong, fix the contract first and record it as a finding.
 
-**M is done when** every item above is ticked or recorded as an explicit limitation, the seven acceptance dimensions pass, the capability matrix has no ❌/⚠️ and no 🚧 for an in-scope M capability, the manual `os: all` run is green, backlog rows G-01…G-10, F-63, F-64, H-03…H-08, H-10 assigned to M are closed, and the release is **1.2.0** with its release record below.
+**M is done when** every item above (including section 8, the debts) is ticked or recorded as an explicit limitation, the seven acceptance dimensions pass, the capability matrix has no ❌/⚠️ and no 🚧 for an in-scope M capability, the manual `os: all` run is green, backlog rows G-01…G-10, F-63, F-64, H-03…H-08, H-10 assigned to M are closed, and the release is **1.2.0** with its release record below.
+
+### Detailed plans for patches N, O, P and Q
+
+Patch M has the full working checklist and work order above. Patches N, O, P and Q have the same level of detail below. They are written **now** so that any assistant can see what must be built, in which order and with which exit criteria, but they are **not started**: nothing in them may be begun before the previous patch passes its acceptance criteria (see Delivery rules). Where this section names a file format, tool or platform fact, it defines the **scope to cover**, not a claim that the capability exists; the capability matrix in `CAPABILITIES.md` stays the only statement of what works.
+
+#### Rules shared by N, O, P and Q
+
+**Entry criteria.** A patch may start only when (1) the previous patch is released and its release record, version index row and backlog closures are in this file; (2) the manual `os: all` Capabilities run of the previous release is green and recorded; (3) the debts listed in section 8 of that patch's plan are known (those marked *step 0* are closed before any feature), and (4) the shared contracts from M (Target Profile envelope, authorization and provenance gate, sourced-data table format, calibration harness, sandbox, `ExecutionEnvironment` provider contract, capture/replay scenario format, preservation levels) are reused, not copied. If a shared contract turns out to be wrong, fix the contract first and record a finding.
+
+**Common work order.** Every patch runs the same nine internal steps, in this order, each ending in a tested, documented prerelease of its own version line (for example 1.3.0-beta.x for N); steps are internal tasks, never patch labels:
+
+| Step | Work |
+|---|---|
+| 0 | Debts and hygiene due in this patch (section 8 of the patch plan); no product feature in the same commit |
+| 1 | Extend the shared contracts only where the new family needs a new field, never a parallel schema; add the family's Target Profile fields |
+| 2 | Ground-truth corpus and calibration for the new detectors, before the detectors are added |
+| 3 | Static inventory: formats, ABI/runtime/toolchain/installer detection, hardening flags, dependencies, the family's rows in the support matrix |
+| 4 | Sourced, versioned compatibility tables and concrete diagnosis findings for the family |
+| 5 | Execution environments for the family (providers detected, user-supplied images hashed, sandbox applied, works/fails matrix from real runs) |
+| 6 | Behavior capture and replay for the family |
+| 7 | Preservation reporting (L0–L3), equivalence lab and migration advisor for the family |
+| 8 | Two reference trials, documentation, security review, manual `os: all` run, release record, closure of the backlog rows |
+
+**Rules that hold in every step.** Every new operation passes the shared authorization and provenance gate in the same change that adds it. Every detector, table and adapter ships with a check that can fail and with its stated limitation. External engines, operating-system images, ROMs, installers and proprietary tools are user supplied and never bundled. Absent engines report `unsupported`; results are never simulated. Own source stays inside the 20,000–30,000 line budget; engine-specific logic belongs in thin provider adapters, and a patch that would exceed the budget must propose a split of the work to the maintainer instead of growing the core.
+
+**Definition of done for each patch (the "N/O/P/Q is done when" line below refers to this list):** every checklist item of the patch, **including section 8, its debts**, is ticked or recorded as an explicit limitation in `CAPABILITIES.md`; the seven acceptance dimensions pass; the capability matrix has no ❌ or ⚠️ and no 🚧 for an in-scope capability of the patch; the manual `os: all` run (Linux, macOS, Windows; Node 22 and 24) is green and its run ID is recorded; a debt may be left open only by a signed-off maintainer decision recorded here and in an AUDIT entry; README, `ARCHITECTURE.md`, `CAPABILITIES.md`, `MCP.md`, `SECURITY.md` and this roadmap are updated; an AUDIT entry records what was verified and what was not; the release record and the version index row are added.
+
+### Patch N working plan — Old Linux software (target release 1.3, not started)
+
+**Outcome.** Reverse can take an old Linux program (roughly 1993 through 2010: kernel 1.x to 2.6.3x era, libc5 and glibc 2.x, XFree86 and early X.Org desktops) that fails on a current system and (a) identify exactly what it is, (b) name the concrete causes of the failure with sources, (c) run it in a suitable old-userland environment under a sandbox, (d) capture and replay deterministic scenarios, (e) validate a repaired, repackaged or rebuilt version against the original, and (f) rank migration options. The same seven acceptance dimensions apply as for M.
+
+**Entry criteria.** Patch M released as 1.2.0 (see the shared rules above).
+
+**Target families and era boundaries.**
+
+| Area | In scope |
+|---|---|
+| Executable formats | a.out (OMAGIC, NMAGIC, ZMAGIC, QMAGIC) executables and a.out shared libraries (jump-table `.sa`/`.so.N.M` style); ELF32 for x86 (i386 to i686) as the main case; ELF64 x86-64 from its first releases; ELF for other architectures of the era (PowerPC, ARM, m68k, SPARC, Alpha, MIPS) at detection level, with execution where an emulator and user-supplied rootfs exist |
+| C library and ABI | Linux libc5, glibc 2.0 through 2.x generations, uClibc and early musl at detection level; symbol versioning (`.gnu.version_r`, `GLIBC_x.y`), `DT_NEEDED` sonames, RPATH/RUNPATH, prelink data, executable-stack requirement, TEXTREL |
+| C++ and compiler ABI | libstdc++ generations (`libstdc++-libc6.x-y.so.2.x`, `.so.3`, `.so.5`, `.so.6`), GCC 2.95 → 3.x → 4.x ABI breaks, `GLIBCXX`/`CXXABI` version tags, `egcs`-era binaries |
+| Kernel and threading | Syscall ABI generations; LinuxThreads versus NPTL; vsyscall versus vDSO; 32-bit binaries on a 64-bit kernel (`ia32`, `personality`); removed or changed `/proc`, `/dev`, `sysctl` and devfs paths |
+| Desktop, audio, video, input | X11 and XFree86-specific extensions; Motif/LessTif; GTK 1.x and 2.x; Qt 1 to 3; SDL 1.2; OSS (`/dev/dsp`, `/dev/mixer`), ESD, aRts, ALSA; svgalib and the framebuffer console; GLX/Mesa and 3dfx Glide |
+| Packaging and installers | `.tar.gz`/`.tgz`, `.rpm`, `.deb`, Slackware packages, Loki-style `.run` and makeself self-extractors, `.bin` installers, RPM/DEB metadata and scriptlets read statically (never executed) |
+
+**Work order inside N.**
+
+| Step | Work | Closes | Exit criteria |
+|---|---|---|---|
+| 0 | Debts due: R-05 (linter, `knip`, `jscpd`, line-size gate kept), R-07 (MCP docs generated from one tool definition, so the growing tool surface cannot drift), R-19 Windows part (persistent helpers instead of a PowerShell fork per sample), R-01 (mutation testing with Stryker on the pure modules: normalization, scoring, parser helpers) | R-01, R-05, R-07, R-19 (Windows), F-33 remainder | Each tool installed and gated in CI or recorded as a limitation; docs/MCP.md is generated or contract-tested from the same definitions |
+| 1 | Linux fields in the shared Target Profile (libc generation, ABI/GCC generation, thread model, kernel interface expectations, desktop/audio stack, installer type) | Section 1 | The M Target Profile envelope carries them without a second schema |
+| 2 | Linux ground-truth corpus and calibration: crafted a.out/ELF fixtures plus open-source or consented samples, manifest of hashes for operator corpora | H-08 for N | Precision and recall reported per new detector; a regression fails a check |
+| 3 | Static inventory: a.out and ELF parsers (header, program/section headers, dynamic section, symbol versions, needed libraries, interpreter, RPATH/RUNPATH, notes), libc/libstdc++/GCC generation detection, ELF hardening flags (PIE, NX, RELRO, stack canary, FORTIFY), installer and package metadata readers, opt-in providers `readelf`, `objdump` and `lief`/`goblin`, hostile-input property tests for every new parser, Linux rows of the support matrix | G-02 (Linux), G-09 (Linux), R-11 (ELF part), R-10 (`lief`/`goblin`, `objdump`/`readelf`), R-04 (a.out/ELF/archive parsers) | Every field has evidence; absent providers are unavailable, never simulated; fuzz tests exist for each parser |
+| 4 | Sourced compatibility tables (libc symbol-version availability, libstdc++ generations, removed devices and `/proc` entries, OSS/ESD/aRts/ALSA availability by era, X11 extensions, GTK/Qt generations) and diagnosis: missing sonames, `version GLIBC_x.y not found`, wrong ELF class, a.out loader support removed, `ld.so` path, executable-stack and TEXTREL denials, missing `/dev/dsp`, threading and `mmap` assumptions | G-01 (Linux) | Each finding cites a table entry and a target fact; causes that need a run are marked as such |
+| 5 | Environments: user-supplied old root filesystems (chroot, namespaces from the R-20 sandbox), QEMU user-mode for foreign architectures, QEMU system mode with an old kernel and rootfs for kernel-ABI faults, compat-library injection (`LD_LIBRARY_PATH`, `LD_PRELOAD`), OSS emulation shims (`padsp`/`aoss`-class), `Xvfb`/`Xephyr`; each environment fingerprinted (rootfs hash, kernel, libc, shims) | G-03 (Linux) | Real runs produce a works/fails matrix; the limitation "containers share the host kernel, so kernel-ABI faults need a VM" is recorded and enforced by the provider choice |
+| 6 | Capture/replay: `strace`/`ltrace` ingestion (user-supplied tools, detected), clock control (`libfaketime`-class), seeded randomness, controlled `/dev` and `/proc` views, filesystem overlay diffs, X11 event injection and screenshot normalization, captured audio writes, recorded network via namespaces | G-04 (Linux) | A scenario replays with identical normalized results or reports the uncontrolled nondeterminism |
+| 7 | Preservation: original binary in the original-era environment as the oracle; for open-source targets, period-compiler versus modern-compiler rebuild comparison; L0–L3 report; migration advisor (compat libraries, packaged chroot/VM, static relink, source port such as OSS → ALSA/SDL2 or GTK 1 → GTK 2/3, rebuild) | G-05, G-06, G-10 (Linux) | Without an oracle the level stays L0; options cite evidence |
+| 8 | Two reference trials (a lawful old Linux program that fails today and is diagnosed and restored; a changed or repackaged version compared with the original), documentation, security review, `os: all` run, release 1.3.0 | Section 7 | Definition of done holds |
+
+**Detailed checklist.**
+
+*1. Target Profile and static inventory*
+- [ ] a.out magic and format detection (OMAGIC, NMAGIC, ZMAGIC, QMAGIC), a.out shared-library jump tables.
+- [ ] ELF class, endianness, machine, OSABI, type, interpreter, program and section headers, dynamic section, notes.
+- [ ] `DT_NEEDED`, RPATH/RUNPATH, symbol-version requirements and definitions, GNU hash versus SysV hash.
+- [ ] libc5/glibc/uClibc/musl generation detection with confidence and coverage.
+- [ ] libstdc++ and GCC generation detection from needed libraries, symbol versions and `.comment`.
+- [ ] Threading model (LinuxThreads versus NPTL) and kernel-interface expectations from imports and notes.
+- [ ] Executable-stack, TEXTREL, prelink and vDSO/vsyscall dependence indicators.
+- [ ] ELF hardening flags (R-11, ELF part).
+- [ ] Desktop, audio and video stack detection from needed libraries and strings (X11, Motif, GTK, Qt, SDL, OSS, ESD, aRts, ALSA, svgalib, Glide, Mesa).
+- [ ] Package and installer readers: `.rpm`, `.deb`, tar variants, Slackware, Loki-style `.run`, makeself headers; metadata and scriptlets read without execution.
+- [ ] Opt-in providers `readelf`, `objdump`, `lief`/`goblin` (R-10).
+- [ ] Linux rows in the support matrix and its capability check (G-09).
+
+*2. Compatibility diagnosis*
+- [ ] Sourced, versioned tables for libc, libstdc++, kernel interfaces, devices, X11 extensions, audio and toolkit generations.
+- [ ] Findings for each cause with evidence: missing or renamed sonames, symbol versions not found, wrong ELF class or architecture, removed a.out support, interpreter path, executable-stack and TEXTREL denial, removed `/dev` and `/proc` entries, threading and memory-layout assumptions, X11 and toolkit absence, audio device absence, locale and time assumptions.
+- [ ] Causes confirmable only by execution are marked as needing an environment; hypotheses stay separate.
+
+*3. Execution and observation*
+- [ ] Providers: old-rootfs chroot/namespace runner, QEMU user-mode, QEMU system-mode, compat-library injection, audio shims, `Xvfb`/`Xephyr`; all detected, none simulated.
+- [ ] Rootfs and kernel images are user supplied and hashed into the environment fingerprint.
+- [ ] Sandbox (from M) applied to every run; resource limits and tree-wide termination.
+- [ ] First-failure diagnostics and a works/fails matrix across the environments.
+
+*4. Behavior capture and replay*
+- [ ] Syscall and library-call trace ingestion; clock, randomness and device control; filesystem diffs; X11 input injection and screenshot normalization; audio capture; network capture in a namespace.
+- [ ] Replay limitations (uncontrollable nondeterminism, hardware dependence) stated in every result.
+
+*5. Preservation and migration*
+- [ ] Oracle runs of the original in the original-era environment; differential comparison of normalized observations.
+- [ ] Rebuild-versus-original comparison for open-source targets; L0–L3 report with coverage and residual risk.
+- [ ] Migration advisor with ranked options and evidence.
+
+*6. Product integration*
+- [ ] Stable CLI/MCP tools for every new capability; `docs/MCP.md` matches `tools/list`; authorization gate on each; examples; README, `ARCHITECTURE.md`, `CAPABILITIES.md`, `SECURITY.md` updated.
+
+*7. Reference trials*
+- [ ] Scenario 1 and scenario 2 on lawful fixtures; explicit limitation where no oracle or licensed environment exists.
+
+*8. Debts due in this patch* (one box per debt; a debt whose box already sits in sections 1–7 is only named here)
+- [ ] R-05 and the F-33 remainder: linter, `knip` and `jscpd` installed and gated in CI, own-line size gate kept (step 0).
+- [ ] R-07: `docs/MCP.md` and `tools/list` generated or contract-tested from one tool definition (step 0).
+- [ ] R-01: Stryker mutation testing on the pure modules (normalization, scoring, parser helpers) with a recorded baseline score (step 0).
+- [ ] R-19 Windows part: a persistent helper instead of a PowerShell fork per sample (step 0).
+- [ ] R-04: hostile-input property tests (`fast-check`) for the a.out, ELF and archive parsers (step 3).
+- [ ] R-02: every new source of untrusted text (ELF strings, package metadata, scriptlets read statically) passes through the untrusted-content wrapper, with an adversarial fixture (step 3).
+- [ ] R-15: golden results and a manual CI job for the N reference trials (step 8).
+- [ ] Record a green manual `os: all` run with its run ID (step 8).
+- Tracked by boxes in the sections above: R-11 ELF part and R-10 (`readelf`, `objdump`, `lief`/`goblin`) in section 1; the N share of G-01…G-10, H-03…H-08 and H-10 in sections 1–7.
+
+**Debts closed in N (summary of section 8 and of the boxes it names).** R-01, R-05, R-07, R-19 (Windows part), F-33 remainder, R-11 (ELF part), the `lief`/`goblin` and `objdump`/`readelf` part of R-10, R-04 for the a.out/ELF/archive parsers, and the N share of G-01…G-10, H-03…H-08, H-10.
+
+**Out of scope and known limits.** Kernel-mode code, drivers and kernel modules; hardware-specific software without an emulator; copy-protected or encrypted commercial software without rights-holder consent; reconstructing proprietary libraries. Containers cannot reproduce old kernel behavior, so those faults are diagnosed in a VM or reported as unconfirmed.
+
+**N is done when** section 8 (the debts) and the definition of done for N, O, P and Q holds for the Linux family and the release is **1.3.0** with its release record.
+
+### Patch O working plan — Classic Mac and early macOS software (target release 1.4, not started)
+
+**Outcome.** Reverse can take a classic Mac OS or early Mac OS X program (roughly System 1 in 1984 through Mac OS X 10.6 in 2009–2010) and (a) identify its code model, resources and bundle layout, (b) name the concrete causes it fails on a current Mac, (c) run it in a suitable emulator or virtual machine under a sandbox, (d) capture and replay deterministic scenarios, (e) validate a repaired, repackaged or rebuilt version against the original, and (f) rank migration options.
+
+**Entry criteria.** Patch N released as 1.3.0 (see the shared rules above).
+
+**Target families and era boundaries.**
+
+| Area | In scope |
+|---|---|
+| Code models | 68k applications (`CODE` resources, jump table, segment loader, A-line Toolbox traps), PEF/CFM applications and shared libraries (`cfrg` resource, fragments, import/export tables), Mach-O for PowerPC and early Intel, fat/universal binaries (PowerPC, i386, early x86-64), Carbon in both CFM and Mach-O form, early Cocoa/Objective-C |
+| Resources and files | Resource forks and the Resource Manager (`CODE`, `PICT`, `snd `, `vers`, `BNDL`, `FREF`, `ICN#`, `STR `, `DLOG` and similar), creator and type codes, AppleDouble, MacBinary, BinHex, StuffIt and Compact Pro archives, HFS and HFS+ volumes, disk images (`.img`, `.dsk`, `.dmg`, `.sit`) |
+| OS generations | System 1 to 7.x, Mac OS 8 to 9.2, the Classic environment, Mac OS X 10.0 to 10.6, Rosetta (PowerPC on Intel), 32-bit Intel |
+| Bundle and packaging | `.app` bundles (`Contents/Info.plist`, `MacOS`, `Resources`), classic application files, installers (`.pkg`, Installer VISE, Stuffit installers), frameworks and plug-ins (CFM and Mach-O) |
+| Behavior assumptions | Big-endian data, handle-based Memory Manager and 24/32-bit-clean addressing, colon-separated paths and 31-character names, cooperative multitasking, QuickDraw/QuickTime/Sound Manager, AltiVec, display and timing assumptions |
+
+**Work order inside O.**
+
+| Step | Work | Closes | Exit criteria |
+|---|---|---|---|
+| 0 | Debts due: F-08 macOS part (single-PID fast path) and R-19 macOS part (`libproc`-based sampling) | F-08, R-19 (macOS) | macOS inspection and sampling no longer read the full process table; checks prove it |
+| 1 | Classic and early-macOS fields in the shared Target Profile (code model, endianness, OS era, resource inventory, creator/type, bundle layout, Rosetta/32-bit dependence) | Section 1 | No second schema |
+| 2 | Ground-truth corpus and calibration: crafted 68k, PEF and Mach-O fixtures, resource-fork fixtures, open-source or consented samples | H-08 for O | Precision and recall reported per detector |
+| 3 | Static inventory: 68k `CODE`/segment parser, PEF container and `cfrg` parser, Mach-O and fat parser (load commands, dylibs, minimum OS version, code signature presence), resource-fork parser (via AppleDouble, MacBinary, extended attributes, native fork where the host exposes it), BinHex/StuffIt/Compact Pro container recognition, HFS/HFS+ image reading, bundle and `Info.plist` readers, Toolbox trap and Carbon/Cocoa API usage inventory, support-matrix rows, hostile-input property tests | G-02 (Mac), G-09 (Mac), R-04 (Mac parsers), R-11 (Mach-O flags) | Every field has evidence; unsupported compression or encrypted archives are reported, not guessed |
+| 4 | Sourced compatibility tables (Toolbox and Carbon availability by OS version, QuickDraw/QuickTime/Classic/Rosetta/32-bit removal points, Cocoa API deprecations, resource and filesystem behavior) and diagnosis: CFM versus Mach-O, PowerPC on Intel, 32-bit-only, removed Classic, resource-fork loss during copy, creator/type reliance, endianness, handle and addressing assumptions, path-separator and name-length issues, code signing and notarization effects | G-01 (Mac) | Each finding cites a table entry and a target fact |
+| 5 | Environments: 68k emulators (Basilisk II, Mini vMac class), PowerPC Mac OS emulation (SheepShaver, QEMU `mac99` class), early Mac OS X images under QEMU where legally runnable; user-supplied ROMs, system software and installers hashed in the fingerprint; the host-licensing limitation for Apple operating systems is recorded for the operator | G-03 (Mac) | Real runs of a fixture program produce a works/fails matrix; absent emulators are `unsupported` |
+| 6 | Capture/replay: emulator-level input injection, screenshot normalization, disk-image snapshots and diffs (the way to observe file and resource-fork changes), emulator clock control, Toolbox-trap tracing where the emulator exposes hooks (otherwise a recorded limitation) | G-04 (Mac) | A scenario replays with identical normalized results or reports the uncontrolled nondeterminism |
+| 7 | Preservation: original in the original-era emulator as the oracle; differential comparison of disk-image and screen observations; for open-source targets, rebuild comparison with a user-supplied period toolchain; L0–L3 report; migration advisor (keep in an emulator, convert data formats and resource forks, port Carbon to Cocoa, recompile, repackage as a bundle) | G-05, G-06, G-10 (Mac) | Without an oracle the level stays L0 |
+| 8 | Two reference trials, documentation, security review, `os: all` run, release 1.4.0 | Section 7 | Definition of done holds |
+
+**Detailed checklist.**
+
+*1. Target Profile and static inventory*
+- [ ] 68k: `CODE 0` jump table, segment resources, trap usage.
+- [ ] PEF: container header, sections, loader section, `cfrg` fragment descriptions, imported and exported symbols.
+- [ ] Mach-O and fat: architectures, load commands, dylibs, minimum OS version, code signature presence, Objective-C runtime markers.
+- [ ] Resource forks from every source the host can provide; resource type inventory with sizes and hashes.
+- [ ] Container recognition: MacBinary, BinHex, AppleDouble, StuffIt, Compact Pro, disk images; HFS/HFS+ directory reading.
+- [ ] Bundle layout and `Info.plist` keys (minimum OS, executable, architectures, document types).
+- [ ] Toolbox, Carbon and Cocoa API usage inventory.
+- [ ] Rosetta and 32-bit dependence indicators.
+- [ ] Mach-O hardening flags (R-11, Mach-O part).
+- [ ] Mac rows in the support matrix and its capability check (G-09).
+
+*2. Compatibility diagnosis*
+- [ ] Sourced tables for OS-version API availability and the removal points listed above.
+- [ ] Findings per cause with evidence: CFM versus Mach-O, PowerPC on Intel, 32-bit-only, missing Classic, QuickDraw/QuickTime removal, resource-fork loss, creator/type reliance, endianness, handle and addressing assumptions, path and name limits, signing and notarization.
+- [ ] Causes needing an emulator are marked; hypotheses stay separate.
+
+*3. Execution and observation*
+- [ ] Providers: Basilisk II, SheepShaver, Mini vMac, QEMU PowerPC/early-OS-X class; detected, never simulated.
+- [ ] ROMs, system software and installers are user supplied and hashed; licensing limitation recorded for the operator.
+- [ ] Sandbox applied; first-failure diagnostics; works/fails matrix.
+
+*4. Behavior capture and replay*
+- [ ] Input injection, screenshot normalization, disk-image snapshot diffs, clock control, trap tracing where available; limitations stated.
+
+*5. Preservation and migration*
+- [ ] Oracle comparisons, rebuild comparison for open-source targets, L0–L3 report, ranked migration options with evidence.
+
+*6. Product integration*
+- [ ] Stable tools, `docs/MCP.md` match, gates, examples, updated documentation.
+
+*7. Reference trials*
+- [ ] Two scenarios on lawful fixtures; explicit limitation where no oracle or licensed environment exists.
+
+*8. Debts due in this patch* (one box per debt; a debt whose box already sits in sections 1–7 is only named here)
+- [ ] F-08 macOS part: single-PID fast path for inspection and sampling (step 0).
+- [ ] R-19 macOS part: `libproc`-based sampling instead of reading the full process table (step 0).
+- [ ] R-04: hostile-input property tests (`fast-check`) for the 68k, PEF, Mach-O/fat, resource-fork, container and HFS parsers (step 3).
+- [ ] R-02: every new source of untrusted text (resource strings, `Info.plist`, installer metadata) passes through the untrusted-content wrapper, with an adversarial fixture (step 3).
+- [ ] R-15: golden results and a manual CI job for the O reference trials (step 8).
+- [ ] Record a green manual `os: all` run with its run ID (step 8).
+- Tracked by boxes in the sections above: R-11 Mach-O part in section 1; the O share of G-01…G-10, H-03…H-08 and H-10 in sections 1–7.
+
+**Debts closed in O (summary of section 8 and of the boxes it names).** F-08 (macOS part), R-19 (macOS part), R-11 (Mach-O part), R-04 for the Mac parsers, and the O share of G-01…G-10, H-03…H-08, H-10.
+
+**Out of scope and known limits.** Bundling ROMs, system software or proprietary tools; defeating copy protection; hardware-bound software (specific expansion cards, dongles) without an emulator path; running current Apple operating systems on non-Apple hardware.
+
+**O is done when** section 8 (the debts) and the definition of done for N, O, P and Q holds for the Mac family and the release is **1.4.0** with its release record.
+
+### Patch P working plan — Legacy Android software (target release 1.5, not started)
+
+**Outcome.** Reverse can take an old Android application (roughly Android 1.0 to 5.1, API levels 1 to 22, Dalvik and early ART, 2008 to about 2015) and (a) identify its build, runtime and native components, (b) name the concrete causes it fails on a current device, (c) run it on an emulator or device of a suitable API level under controlled conditions, (d) capture and replay deterministic scenarios, (e) validate a repaired, retargeted or rebuilt version against the original, and (f) rank migration options. The Android foundations from E, F, G, H and J are reused, not rewritten.
+
+**Entry criteria.** Patch O released as 1.4.0 (see the shared rules above).
+
+**Target families and era boundaries.**
+
+| Area | In scope |
+|---|---|
+| Package formats | APK (v1 JAR signatures, and v2/v3 where present), split and expansion files, `resources.arsc`, binary `AndroidManifest.xml` (AXML), `classes.dex` versions of the era, ODEX/OAT/VDEX/ART images at detection level, Ant, Eclipse/ADT and early Gradle layouts |
+| Runtimes | Dalvik (to Android 4.4) and early ART (5.x); multidex; Java 6/7 language level; support library and Google Play services dependencies of the era |
+| Native code | `armeabi`, `armeabi-v7a`, `x86`, `mips` (and `arm64-v8a` for the boundary), bionic and linker behavior by API level, TEXTREL and hash-style, 32-bit-only components |
+| Framework behavior | API-level-dependent behavior changes: runtime permissions, background execution and implicit broadcasts, cleartext traffic, storage access, `org.apache.http` removal, WebView and TLS changes, notification and service rules, activity/fragment lifecycle changes |
+| Devices and tools | Android emulator images of old API levels, ARM-to-x86 translation limits, real devices over `adb`, `logcat`, `dumpsys`, `uiautomator`, `monkey`/`input`, Frida, `simpleperf`, Perfetto where the API level supports it |
+
+**Work order inside P.**
+
+| Step | Work | Closes | Exit criteria |
+|---|---|---|---|
+| 0 | Debts due: nothing blocking; decide with the maintainer whether any of the Android-related Audit 8 non-claims (see the register) is promoted into P scope before step 3 | none | Decision recorded |
+| 1 | Legacy-Android fields in the shared Target Profile (API levels, runtime, ABIs, build system, signing scheme, framework-behavior flags, services dependencies) | Section 1 | No second schema |
+| 2 | Ground-truth corpus and calibration: crafted AXML/DEX/ARSC fixtures, open-source or consented APKs | H-08 for P | Precision and recall reported per detector |
+| 3 | Static inventory: binary AXML decoder, `resources.arsc` reader, DEX class and method listing, signature scheme detection, ABI and native-library inventory, build-system and dependency identification (Ant, ADT, Gradle files where present), Play-services dependency detection, hostile-input property tests, Android rows of the support matrix | G-02 (Android), G-09 (Android), R-04 (AXML/DEX/ARSC parsers) | Every field has evidence; the manifest and class listing no longer depend on JADX or Apktool being present |
+| 4 | Sourced compatibility tables (framework behavior changes by API level, removed libraries, permission model, ABI availability by device generation) and diagnosis: `targetSdkVersion`/`minSdkVersion` effects, runtime permissions, background limits, cleartext, storage, removed HTTP stack, missing ABIs on current devices, Play-services and push-service dependency, WebView and TLS issues | G-01 (Android) | Each finding cites a table entry and a target fact |
+| 5 | Environments: emulator images by API level and ABI (user-installed through the operator's SDK, licenses accepted by the operator), device runs, snapshots (`adb_emu_snapshot_load`, existing), install and clear (`adb_install`, `adb_pm_clear`, existing), translation-layer limits recorded; sandbox policy for the host side | G-03 (Android) | Real runs on at least two API levels produce a works/fails matrix |
+| 6 | Capture/replay: `logcat` and `dumpsys` collection, UI hierarchy and screenshot normalization, deterministic `input`/`monkey` scenarios with fixed seeds, Frida `Java.perform` session scripts and continuous call-frequency profiles, network capture through a proxy, file and database diffs, `simpleperf` and Perfetto ingestion for performance scenarios | G-04 (Android), R-12 (Android formats) | A scenario replays with identical normalized observations or reports the uncontrolled nondeterminism |
+| 7 | Preservation: original APK on the original-API-level environment as the oracle; differential comparison of UI hierarchy, logs and persisted state; retarget and repackage options built on the existing apktool rebuild path; L0–L3 report; migration advisor (retarget SDK, compatibility shims, rewrite permission and storage flows, replace removed libraries, rebuild from source) | G-05, G-06, G-10 (Android) | Without an oracle the level stays L0 |
+| 8 | Two reference trials, documentation, security review, `os: all` run, release 1.5.0 | Section 7 | Definition of done holds |
+
+**Detailed checklist.**
+
+*1. Target Profile and static inventory*
+- [ ] Binary AXML decoding (permissions, components, SDK levels, features, intent filters) without external tools.
+- [ ] `resources.arsc` reading (configurations, string and resource tables).
+- [ ] DEX header, class and method listing, multidex, obfuscation indicators.
+- [ ] Signature scheme detection (v1, v2, v3) and certificate metadata.
+- [ ] ABI inventory per native library; TEXTREL, hash style, bionic dependencies.
+- [ ] Build-system and dependency identification (Ant, ADT, Gradle files, bundled libraries, Play-services components).
+- [ ] Android rows in the support matrix and its capability check (G-09).
+
+*2. Compatibility diagnosis*
+- [ ] Sourced tables for behavior changes by API level and for ABI and library availability.
+- [ ] Findings per cause with evidence: SDK-level effects, permissions, background and broadcast limits, cleartext traffic, storage, removed HTTP stack, missing ABIs, services dependencies, WebView and TLS.
+- [ ] Causes needing an emulator or device are marked; hypotheses stay separate.
+
+*3. Execution and observation*
+- [ ] Providers: Android emulator by API level and ABI, real device via `adb`; detected, never simulated; images and licenses are the operator's.
+- [ ] Snapshot, install and clear helpers reused with their existing gates.
+- [ ] First-failure diagnostics and a works/fails matrix across at least two API levels.
+
+*4. Behavior capture and replay*
+- [ ] `logcat`, `dumpsys`, UI hierarchy, screenshots, seeded `monkey`/`input` scenarios, Frida session scripts and call-frequency profiles, proxy network capture, file and database diffs, `simpleperf` and Perfetto ingestion.
+
+*5. Preservation and migration*
+- [ ] Oracle comparisons on the original API level, retarget and repackage workflow, L0–L3 report, ranked migration options with evidence.
+
+*6. Product integration*
+- [ ] Stable tools, `docs/MCP.md` match, gates, examples, updated documentation.
+
+*7. Reference trials*
+- [ ] Two scenarios on lawful fixtures (open-source or consented APKs); explicit limitation where no oracle or licensed image exists.
+
+*8. Debts due in this patch* (one box per debt; a debt whose box already sits in sections 1–7 is only named here)
+- [ ] R-04: hostile-input property tests (`fast-check`) for the AXML, DEX and `resources.arsc` parsers (step 3).
+- [ ] R-02: every new source of untrusted text (manifest strings, resources, class and method names) passes through the untrusted-content wrapper, with an adversarial fixture (step 3).
+- [ ] R-15: golden results and a manual CI job for the P reference trials (step 8).
+- [ ] Record a green manual `os: all` run with its run ID (step 8).
+- Tracked by boxes in the sections above: the Android Audit 8 items (binary AXML decoding, DEX class listing, Gradle/build dependencies, `Java.perform` scripts and call-frequency profiles, Perfetto and `dumpsys`) and the Android part of R-12 (`simpleperf`, Perfetto) in sections 1 and 4; the P share of G-01…G-10, H-03…H-08 and H-10 in sections 1–7.
+
+**Debts closed in P (summary of section 8 and of the boxes it names).** The Android items of the Audit 8 non-claims (binary AXML decoding, DEX class listing, Gradle and build-system dependency analysis, Frida call-frequency profiles and `Java.perform` session scripts, Perfetto and `dumpsys` collection), the Android part of R-12, R-04 for the AXML/DEX/ARSC parsers, and the P share of G-01…G-10, H-03…H-08, H-10.
+
+**Out of scope and known limits.** Bundling system images or Google components; defeating licensing or DRM; apps that depend on a vendor ROM or proprietary hardware without an emulator path; ARM-translation results are labeled as translated.
+
+**P is done when** section 8 (the debts) and the definition of done for N, O, P and Q holds for the legacy Android family and the release is **1.5.0** with its release record.
+
+### Patch Q working plan — Newer generations and unified compatibility intelligence (target release 2.0, not started)
+
+**Outcome.** The workflow proven for Windows, Linux, Classic Mac/early macOS and legacy Android is extended to newer generations (post-2010 Windows, newer Linux, macOS from 10.7 to current, Android 6.0 to current) **and** unified: one Target Profile, one compatibility knowledge base, one evidence and confidence model, one environment matrix and one preservation/migration report across every supported platform. Q is not a fifth platform wave: it generalizes M–P and finishes the product. Release 2.0 is the first release that may claim the whole product outcome (analyze, reverse-engineer, find resource-use causes, optimize and prove, diagnose and restore old software) across all supported families.
+
+**Entry criteria.** Patch P released as 1.5.0 (see the shared rules above), and the maintainer has reviewed the unified schema proposal from step 1 before step 3 starts.
+
+**Newer generations in scope.**
+
+| Family | In scope |
+|---|---|
+| Windows after Windows 7 | Windows 8, 8.1, 10 and 11 on x86, x64 and ARM64/ARM64EC; WoW64 and emulation behavior; MSIX/AppX/UWP packaging; .NET Core and .NET 5+; CFG, CET and other mitigations; driver-signing and SmartScreen effects on legacy and newer software |
+| Linux, newer | Current glibc and musl, symbol-version compatibility of older binaries on new systems, containers and portable packages (Flatpak, Snap, AppImage), systemd, Wayland, PipeWire/PulseAudio, current sandboxing facilities |
+| macOS, modern and transition | macOS 10.7 and later to current: 64-bit only, hardened runtime, code signing and notarization, Gatekeeper and SIP, Apple Silicon (arm64, arm64e), Rosetta 2, universal binaries, Mac Catalyst |
+| Android, newer | API 23 to current: runtime permissions, scoped storage, background and foreground-service limits, 64-bit requirements, App Bundles and split APKs, current WebView and TLS behavior |
+
+**Work order inside Q.**
+
+| Step | Work | Closes | Exit criteria |
+|---|---|---|---|
+| 0 | Debts due: F-06 (re-check the current MCP specification first; implement the stateless protocol era if it is final, otherwise record the decision), R-15 golden results as manual CI jobs for every earlier reference trial, plus a full review of every row still open in the debt register | F-06, R-15 | Decision or implementation recorded; golden-result jobs exist for M–P trials |
+| 1 | **Unified schema proposal:** one Target Profile, one evidence and confidence model, one environment registry and one report format covering M–P and the new families; compatibility with every released field; written proposal reviewed by the maintainer before implementation | Section 1 (all families) | Maintainer approval recorded; migration of existing results defined |
+| 2 | **Compatibility knowledge base:** one versioned, sourced store for all families (entry = fact, source, license, retrieval date, scope, confidence), query by family, era and API or library, staleness flags, validator and a consistency check that finds contradictions across families; M–P tables are imported without loss | G-01, G-09 (unified) | One query answers "is this API/library available in this OS or runtime version" for every supported family with its source |
+| 3 | **Calibration across platforms:** ground-truth corpora of M–P merged into one calibration report; confidence meaning made comparable; contradictions between detectors surfaced, never hidden | H-08 (unified) | One calibration report per release; a regression fails a check |
+| 4 | **Newer-generation static inventory:** Windows 8+ packaging and mitigations, ARM64/ARM64EC, .NET Core/5+ detection, modern ELF and package formats, macOS signing, notarization and arm64e, Android bundles and split APKs; hardening flags for every family | G-02, G-09 for the new families, R-10 remainder (`syft`, `osv-scanner`, `cargo-auditable`, Go build info) | Every field has evidence; every family has its support-matrix rows |
+| 5 | **Newer-generation diagnosis and environments:** sourced tables and findings for post-2010 behavior (including mitigations, signing, sandboxes, background limits); environment providers for current Windows, Linux, macOS (on Apple hardware only where licensing allows) and Android; one environment matrix across all platforms and versions | G-01, G-03 for the new families | Real runs produce one cross-platform works/fails matrix |
+| 6 | **Unified capture, replay and profiling:** one scenario format across platforms; profile ingestion in standard formats (`perf`, pprof, `.cpuprofile`, Speedscope, Firefox Profiler, bpftrace; Windows ETW sessions; per-process network I/O); continuous Frida profiles for newer targets | G-04, R-12 (remainder) | A scenario recorded on one platform replays under the same contract on every platform that supports it |
+| 7 | **Unified preservation and migration:** one L0–L3 report across platforms, one ranked migration advisor that may recommend a cross-platform path (for example emulate, port, rebuild), differential validation reused for every family | G-05, G-06, G-10 (unified), H-07 | The same report structure for every family; no level above L0 without an oracle and provenance |
+| 8 | **Third-party-verifiable evidence:** per-session Merkle root, Ed25519 detached signatures, `reverse export` and `reverse verify` | R-14 | An exported bundle verifies with the public key on a machine without Reverse's state |
+| 9 | **Distribution and agent-evaluation completion:** the full live-agent evaluation corpus harness and the optional single-file binary | R-08, R-18, H-09 | The harness runs against the corpus and records pass rates; the binary starts the MCP server on the supported platforms or the limitation is recorded |
+| 10 | **Cross-platform reference trials, 2.0 stabilization and release:** two reference scenarios for each platform family on lawful fixtures; the run-all manual CI job with golden results on Linux, macOS and Windows; documentation freeze and an API/tool-stability and deprecation policy; a full security review; a final support matrix by platform, era and capability; an audit of every row of the debt register and the Audit 8 non-claims (each delivered, or recorded as an explicit limitation with the maintainer's sign-off); release record | Section 7; the "Q is done when" conditions | Definition of done holds and **no open debt remains** (see the debt closure schedule); the release is **2.0.0** |
+
+**Detailed checklist.**
+
+*1. Unified Target Profile and static inventory*
+- [ ] One Target Profile schema for every family; every field with evidence, confidence and coverage; backward compatibility with M–P results defined.
+- [ ] Newer Windows, Linux, macOS and Android inventory items listed in step 4.
+- [ ] Hardening and mitigation flags for every family in one report.
+- [ ] Remaining opt-in providers of R-10 (`syft`, `osv-scanner`, `cargo-auditable`, Go build info) or an explicit won't-do with sign-off.
+- [ ] Final platform × era × capability support matrix in `CAPABILITIES.md` with its capability check.
+
+*2. Unified compatibility intelligence*
+- [ ] Compatibility knowledge base with sources, licenses, retrieval dates, staleness flags and a contradiction check.
+- [ ] Diagnosis findings for newer generations; findings reference the knowledge base only.
+- [ ] CVE and dependency-vulnerability queries and the dependency-size and replacement recommendations of the Audit 8 non-claims, or an explicit limitation.
+
+*3. Unified execution and environment matrix*
+- [ ] One environment registry (provider, image hash, fingerprint) and one works/fails matrix across every platform and version.
+- [ ] Providers for newer generations detected and never simulated; operator licensing limits recorded.
+
+*4. Unified capture and replay*
+- [ ] One scenario format; profile ingestion formats listed in step 6; per-process network I/O; Windows ETW automatic hotspot sessions; continuous Frida call-frequency profiles.
+- [ ] Test-framework discovery (jest, pytest) and build verification, or an explicit limitation.
+
+*5. Unified preservation and migration*
+- [ ] One L0–L3 report and one migration advisor across families; cross-platform recommendations cite evidence.
+
+*6. Product integration and release*
+- [ ] Stateless MCP protocol decision or implementation (F-06).
+- [ ] Merkle roots, Ed25519 signatures, `reverse export` and `reverse verify` (R-14).
+- [ ] Full live-agent evaluation harness and single-file binary (R-08, R-18, H-09).
+- [ ] API/tool-stability and deprecation policy; documentation freeze; full security review.
+
+*7. Reference trials*
+- [ ] Two scenarios for every platform family; run-all manual CI job with golden results (R-15) on all three operating systems; explicit limitations where no oracle or licensed environment exists.
+
+*8. Debts due in this patch* (one box per debt; a debt whose box already sits in sections 1–7 is only named here)
+- [ ] R-11: the hardening and mitigation flag report covers every supported family in one report (step 4).
+- [ ] R-04: hostile-input property tests for the parsers of the newer generations (step 4).
+- [ ] R-02: every new source of untrusted text passes through the untrusted-content wrapper, with an adversarial fixture (step 4).
+- [ ] R-15: golden-result jobs exist for every reference trial of M–P (step 0) and for the Q trials (step 10).
+- [ ] Debt register audit: every row of the carry-over debt register and every Audit 8 non-claim is closed, or is an explicit limitation in `CAPABILITIES.md` signed off by the maintainer; the register is empty (step 10).
+- [ ] Record a green manual `os: all` run with its run ID (step 10).
+- Tracked by boxes in the sections above: F-06, R-14, R-08, R-18 and H-09 in section 6; R-10 remainder in section 1; R-12 remainder, per-process network I/O, ETW sessions, continuous Frida profiles and test-framework discovery in section 4; CVE and dependency queries in section 2; the Q share of G-01…G-10, H-03…H-08 and H-10 in sections 1–7.
+
+**Debts closed in Q (summary of section 8 and of the boxes it names).** F-06, R-14, R-15 (remainder), R-12 (remainder), R-10 (remainder), R-08, R-18, H-09, the Audit 8 non-claims not delivered earlier (each delivered or an explicit limitation), the Q share of G-01…G-10, H-03…H-08, H-10, and every other row still open in the debt register.
+
+**Out of scope and known limits.** Reverse remains an observational and analysis tool for open-source software or software with full rights-holder consent; it does not bundle operating systems, ROMs, images or proprietary tools, and it does not defeat protection or licensing. Platforms that cannot be run lawfully or at all in the operator's environment are reported as `unsupported`, never simulated.
+
+**Q is done when** section 8 (the debts) and the definition of done for N, O, P and Q holds for every supported family, the debt register is empty or every remaining row is an explicit, signed-off limitation, and the release is **2.0.0** with its release record.
 
 ### Patch M history: delivered increments
 
@@ -220,7 +581,7 @@ This record was previously headed "CI diagnostics mini-patch". It is maintenance
 
 ## Carry-over debt register
 
-Approved tasks that are **not** closed, collected from the backlog, the patch records and the audits, so that nothing hides inside a patch marked done. None of them is recorded as blocking Patch M. "State" says what was verified at 1.1.0-beta.2; "No implementation found" means a search of `src/` for the feature found nothing. Handling marked *approved* was confirmed by the maintainer on 2026-11-11 and is part of the plan; handling marked *proposal* still needs the maintainer's approval before it becomes plan (AGENTS.md section 1, point 3).
+Approved tasks that are **not** closed, collected from the backlog, the patch records and the audits, so that nothing hides inside a patch marked done. None of them is recorded as blocking Patch M. "State" says what was verified at 1.1.0-beta.2; "No implementation found" means a search of `src/` for the feature found nothing. Every assignment below was approved by the maintainer on 2026-11-11 and is part of the plan. The task itself lives as a checkbox inside the plan of the patch that owns it (Patch M checklist section 8; section 8 of the N, O, P and Q plans), so a patch can be worked from its own description alone; this register and the debt closure schedule are indexes.
 
 ### Approved tasks without delivery or without recorded closure
 
@@ -228,19 +589,19 @@ Approved tasks that are **not** closed, collected from the backlog, the patch re
 |---|---|---|---|---|
 | F-75 / R-03 | Pin the two remaining tag references in `.github/workflows/supply-chain.yml` to full commit SHAs | 1.0.1 (R-03 recorded closed) | Open defect: the capability check shows 🚧 (2 of 25 references are tags; 23 pinned) | *Approved:* work order step 0, the first change of M (pin to `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a`, v7.0.1, as in the other workflows), then re-run the check |
 | R-20 | Sandbox for executed targets under `CONTROLLED_EXECUTION` (bwrap/unshare, sandbox-exec, Job Objects/AppContainer or a container provider; no network by default; scratch directory; rlimits) | G (done) | No implementation found. Only the cgroup v2 limiter exists; SECURITY.md lists the gap | *Approved:* inside M, work order step 5, before any execution environment is added, because M is the first patch that runs legacy targets |
-| R-14 | Merkle root, Ed25519 detached signature, `reverse export` / `reverse verify` | I (done) | Hash chain and optional HMAC-SHA256 are done; Merkle, public-key signatures and the two commands: no implementation found | *Proposal:* schedule with Q (unified evidence) or earlier if a consumer needs third-party verification |
-| R-11 | Hardening-flag report (PIE, NX, RELRO, canary, CFG, ASLR) | E (done) | No implementation found | *Approved:* PE flags in M (work order step 3); ELF flags in N |
-| R-10 | Opt-in providers: lief/goblin, objdump/readelf, capa, yara-x, diec, syft, osv-scanner, cargo-auditable, Go build info | E, F, H (done) | Only rz-bin/Rizin, Ghidra, JADX, Apktool and profilers exist; the others: no implementation found | *Approved:* `diec`, `yara-x` and `capa` in M (work order step 3); the rest only when a real need appears |
-| R-12 | Profile ingestion in standard formats (perf, pprof, `.cpuprofile`, Speedscope, Firefox Profiler); eBPF via bpftrace | H (done) | Export shape closed in 0.2.0-beta.6; ingestion: no implementation found | Open; schedule only when a task needs it |
-| R-15 | Golden results and the three reference trials as manual CI jobs | J (done) | Fixture trials run in the suite; golden results and dedicated manual CI jobs: no implementation found | Open; reuse for the M reference trials |
-| R-01 | Mutation testing (Stryker) on pure modules | D (done) | No mutation runner configured | Open, non-blocking |
-| R-04 | Fuzz and property tests (`fast-check`) for parsers | D (done) | Partial: deterministic hostile process-parser corpus; `fast-check` and binary-parser fuzzing open | Open; approved for the new PE/NE/LE parsers of M (work order step 3) |
-| R-05 | Linter, `knip`, `jscpd`, own-line size gate | C (done) | Partial: strict TypeScript, format gate, size gate, `quality:static`; `knip`, `jscpd` and a dedicated linter not installed | Open, non-blocking |
-| R-07 | Contract-first MCP (docs generated from one definition) | D (done) | Partial: schemas, profiles, errors, pagination, size budget exist; docs are contract-tested, not generated | Open, non-blocking |
-| R-19 | Windows/macOS metric parity: persistent helpers instead of a fork per sample; `typeperf`/ETW and `libproc` | D/H (done) | Open: PowerShell helper forks per sample | Open, non-blocking |
-| F-08 | Single-PID fast path for inspection and sampling | B (done) | Linux and Windows done; macOS reads the full table | Open (macOS part), non-blocking |
-| F-06 | MCP protocol: stateless 2026 protocol era | D (done) | Stateful revisions through 2025-11-25 only | Open |
-| R-08 / R-18 / H-09 | Full live-agent evaluation corpus harness; optional single-file binary | L | Core shipped in 1.0.0; lite evaluation (`evaluateAgentPrompts`) in 1.0.1; full harness and single binary open | Open (patch L checklist) |
+| R-14 | Merkle root, Ed25519 detached signature, `reverse export` / `reverse verify` | I (done) | Hash chain and optional HMAC-SHA256 are done; Merkle, public-key signatures and the two commands: no implementation found | *Approved:* Patch Q step 8 (box in the Q plan, section 6) |
+| R-11 | Hardening-flag report (PIE, NX, RELRO, canary, CFG, ASLR) | E (done) | No implementation found | *Approved:* PE flags in M step 3; ELF flags in N step 3; Mach-O flags in O step 3; all families in Q step 4 (boxes in those plans) |
+| R-10 | Opt-in providers: lief/goblin, objdump/readelf, capa, yara-x, diec, syft, osv-scanner, cargo-auditable, Go build info | E, F, H (done) | Only rz-bin/Rizin, Ghidra, JADX, Apktool and profilers exist; the others: no implementation found | *Approved:* `diec`, `yara-x`, `capa` in M step 3; `lief`/`goblin`, `objdump`/`readelf` in N step 3; `syft`, `osv-scanner`, `cargo-auditable`, Go build info in Q step 4 or an explicit won't-do with sign-off |
+| R-12 | Profile ingestion in standard formats (perf, pprof, `.cpuprofile`, Speedscope, Firefox Profiler); eBPF via bpftrace | H (done) | Export shape closed in 0.2.0-beta.6; ingestion: no implementation found | *Approved:* Android formats in P step 6; the other formats, ETW and network I/O in Q step 6 |
+| R-15 | Golden results and the three reference trials as manual CI jobs | J (done) | Fixture trials run in the suite; golden results and dedicated manual CI jobs: no implementation found | *Approved:* M step 8, then each later patch step 8; completed in Q steps 0 and 10 |
+| R-01 | Mutation testing (Stryker) on pure modules | D (done) | No mutation runner configured | *Approved:* N step 0 (box in the N plan, section 8) |
+| R-04 | Fuzz and property tests (`fast-check`) for parsers | D (done) | Partial: deterministic hostile process-parser corpus; `fast-check` and binary-parser fuzzing open | *Approved:* step 3 of M, N, O and P for the parsers each patch adds (boxes in sections 1 or 8 of those plans); newer-generation parsers in Q step 4 |
+| R-05 | Linter, `knip`, `jscpd`, own-line size gate | C (done) | Partial: strict TypeScript, format gate, size gate, `quality:static`; `knip`, `jscpd` and a dedicated linter not installed | *Approved:* N step 0 (box in the N plan, section 8) |
+| R-07 | Contract-first MCP (docs generated from one definition) | D (done) | Partial: schemas, profiles, errors, pagination, size budget exist; docs are contract-tested, not generated | *Approved:* N step 0 (box in the N plan, section 8) |
+| R-19 | Windows/macOS metric parity: persistent helpers instead of a fork per sample; `typeperf`/ETW and `libproc` | D/H (done) | Open: PowerShell helper forks per sample | *Approved:* Windows part in N step 0; macOS part in O step 0 (boxes in those plans, section 8) |
+| F-08 | Single-PID fast path for inspection and sampling | B (done) | Linux and Windows done; macOS reads the full table | *Approved:* O step 0 (box in the O plan, section 8) |
+| F-06 | MCP protocol: stateless 2026 protocol era | D (done) | Stateful revisions through 2025-11-25 only | *Approved:* Q step 0 (box in the Q plan, section 6) |
+| R-08 / R-18 / H-09 | Full live-agent evaluation corpus harness; optional single-file binary | L | Core shipped in 1.0.0; lite evaluation (`evaluateAgentPrompts`) in 1.0.1; full harness and single binary open | *Approved:* Q step 9 (box in the Q plan, section 6) |
 | H-03 / H-04 / H-05 / H-06 / H-07 / H-08 / H-10 | Similarity adapters, deterministic-first rule, authorization enforcement, corpus policy, oracle rule, calibrated reference corpus, authorization record in reports | M (introduced) | Partial or open; tracked in the [Patch M working checklist](#patch-m-working-checklist) | Closed by M, extended in N–Q |
 | G-01…G-10 | Compatibility diagnosis, legacy formats, execution environments, capture/replay, equivalence lab, migration advisor, legal policy, platform order, support matrix, preservation report | M (introduced), extended in N–Q | Open except the documentation part of G-07 and the platform order (G-08, closed by F-71) | Closed by M, extended in N–Q |
 
@@ -259,6 +620,35 @@ These capabilities are **not** implemented and must not be described as availabl
 
 - Full-matrix `os: all` Capabilities run for patches E–M (last recorded: A–D closure run 42775483864 on 0.2.0-beta.8).
 - GitHub artifact upload and summary content of the CI diagnostics workflows (F-66) and the rerun for F-67.
+
+### Debt closure schedule
+
+**This table is an index.** Each debt below is also a checkbox inside the plan of the patch that owns it (section 8 *Debts due in this patch*, or the section named there); the checkbox in the patch plan is the one to tick, and the patch is not done while it is open. **Rule.** Every open debt has exactly one due point: a patch and a step. A debt scheduled as *step 0* of a patch is closed before any feature of that patch starts. **No debt may stay open past the exit of patch Q:** release 2.0.0 requires the [carry-over debt register](#carry-over-debt-register) to be empty or every remaining row to be an explicit limitation in `CAPABILITIES.md` signed off by the maintainer. A due date moves only by a maintainer decision recorded in the roadmap and in an AUDIT entry. All assignments in this table were approved by the maintainer on 2026-11-11.
+
+| Debt | Due | Status of the assignment |
+|---|---|---|
+| F-66 artifact upload and F-67 rerun (pending verification on GitHub) | The first GitHub Actions run after this roadmap lands, before M step 1 | approved |
+| `os: all` runs for E–M (not recorded) | M step 8 (one run covers E–M); then at the exit of every later patch | approved |
+| F-75 / R-03 (two unpinned action references) | M step 0 | approved |
+| R-20 sandbox for executed targets | M step 5 | approved |
+| R-11 hardening flags | PE: M step 3; ELF: N step 3; Mach-O: O step 3; every family again in Q step 4 | approved |
+| R-10 providers | `diec`, `yara-x`, `capa`: M step 3; `lief`/`goblin`, `objdump`/`readelf`: N step 3; `syft`, `osv-scanner`, `cargo-auditable`, Go build info: Q step 4, or an explicit won't-do with sign-off | approved |
+| R-04 fuzz and property tests | New parsers of each patch in step 3 of that patch (M, N, O, P); existing binary parsers (ZIP, WASM, .NET, ELF) are covered when touched in N step 3 | approved |
+| R-05 linter, `knip`, `jscpd`; F-33 remainder | N step 0 | approved |
+| R-07 contract-first MCP (docs from one definition) | N step 0 | approved |
+| R-01 mutation testing on the pure modules | N step 0 | approved |
+| R-19 metric parity | Windows part: N step 0; macOS part together with F-08: O step 0 | approved |
+| F-08 macOS single-PID fast path | O step 0 | approved |
+| R-12 profile ingestion | Android formats (`simpleperf`, Perfetto): P step 6; `perf`, pprof, `.cpuprofile`, Speedscope, Firefox Profiler, bpftrace, ETW, per-process network I/O: Q step 6 | approved |
+| Android items of the Audit 8 non-claims (AXML, DEX class listing, Gradle/build dependencies, Frida call-frequency and `Java.perform` scripts, Perfetto, `dumpsys`) | P steps 3 and 6 | approved |
+| Other Audit 8 non-claims (CVE and registry queries, dependency-size recommendations, test-framework discovery, continuous Frida profiles for non-Android targets, ETW hotspots, network I/O, full CFG/decompilation/xrefs/BSim without a corpus) | Q step 6 or an explicit limitation at Q step 10; full CFG, decompilation and BSim stay provider-backed and are never claimed as built in | approved |
+| F-06 stateless MCP protocol | Q step 0 | approved |
+| R-14 Merkle, Ed25519, export, verify | Q step 8 | approved |
+| R-15 golden results and manual CI jobs | Fixture-based jobs for M trials at M step 8; each later patch adds its own at step 8; completed in Q step 0 and step 10 | approved |
+| R-08, R-18, H-09 full harness and single-file binary | Q step 9 | approved |
+| G-01…G-10, F-63, F-64, H-03…H-08, H-10 | M (introduced); the family share is closed in step 8 of each of N, O, P; unified in Q | approved |
+| R-02 untrusted-content hardening (closed in basic form in 0.2.0-beta.5) | Every new source of untrusted text (strings, resources, manifests, package metadata, installer scripts read statically) goes through the existing untrusted-content wrapper with an adversarial fixture, in step 3 of each patch M–Q | approved |
+| Any other row of the backlog or the audits that is open and not listed above | Reviewed at the exit of every patch; any row still open at Q step 10 is closed or becomes a signed-off limitation | approved |
 
 ## Completed foundation: patches A–L
 
