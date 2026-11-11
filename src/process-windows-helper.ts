@@ -52,11 +52,16 @@ const SCRIPT = [
     '    @{ error = $_.Exception.Message } | ConvertTo-Json -Compress;',
     '  }',
     '}',
-].join('\\n');
+].join('\n');
+/** Build PowerShell arguments without passing multiline source through -Command quoting. */
+export function windowsHelperLaunchArguments(): string[] {
+    const encoded = Buffer.from(SCRIPT, 'utf16le').toString('base64');
+    return ['-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', encoded];
+}
 function startHelper(): ChildProcessWithoutNullStreams {
     if (child && child.exitCode === null && !child.killed)
         return child;
-    const proc = spawn('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', SCRIPT], {
+    const proc = spawn('powershell.exe', windowsHelperLaunchArguments(), {
         stdio: ['pipe', 'pipe', 'pipe'],
         windowsHide: true
     });
@@ -79,9 +84,9 @@ function startHelper(): ChildProcessWithoutNullStreams {
                 child = undefined;
             return;
         }
-        let newline = stdoutBuffer.indexOf('\\n');
+        let newline = stdoutBuffer.indexOf('\n');
         while (newline >= 0) {
-            const line = stdoutBuffer.slice(0, newline).replace(/\\r$/, '');
+            const line = stdoutBuffer.slice(0, newline).replace(/\r$/, '');
             stdoutBuffer = stdoutBuffer.slice(newline + 1);
             const active = pending;
             if (active) {
@@ -101,7 +106,7 @@ function startHelper(): ChildProcessWithoutNullStreams {
                         child = undefined;
                 }
             }
-            newline = stdoutBuffer.indexOf('\\n');
+            newline = stdoutBuffer.indexOf('\n');
         }
     });
     proc.stderr.on('data', chunk => {
