@@ -1,21 +1,3 @@
-## Audit 24 — 2026-11-11 — Windows PowerShell 5.1 pipeline continuation correction (1.3.10)
-
-**Scope.** Inspect Capabilities run [43092950336](https://github.com/ecooorg/reverse/actions/runs/43092950336), which ran on `main` after PR #8 reverted PR #7. Re-propose the minimal source correction and add a platform-independent regression assertion. No test is weakened and no Patch O work is included.
-
-**Finding.**
-
-- **F-84 — Reverted PowerShell 5.1 pipeline correction.** Both Windows Node 22 and Node 24 jobs execute the old helper source. The `tree` operation puts `| Select-Object $treeProps` at the beginning of a continued line, which Windows PowerShell 5.1 rejects with `An empty pipe element is not allowed`. The failure is shared across process inventory, process inspection, profiling, benchmark tree termination and MCP profiling because they depend on the same helper.
-
-**Change.** Move the pipeline operator to the end of the `Get-CimInstance` line. Add a decoded-script contract assertion that verifies the valid form and rejects a leading pipeline operator.
-
-**Verification.** The linked run confirms the pre-fix source still fails. This follow-up has not yet run CI; Windows runtime verification remains pending. F-83, the separate Linux Node 22 timeout, remains open and unchanged.
-
-| ID | Sev | Area | Finding | Status |
-|---|---|---|---|---|
-| F-84 | High | Windows process helper | Reverted PowerShell 5.1 pipeline continuation causes `An empty pipe element is not allowed` | Status: correction re-proposed in 1.3.10; Windows CI verification pending |
-
----
-
 ## Audit 23 — 2026-11-11 — Windows helper protocol recovery and Linux Node 22 timeout (1.3.9)
 
 **Scope.** Diagnose Capabilities run [43084133732](https://github.com/ecooorg/reverse/actions/runs/43084133732). Fix the confirmed Windows persistent PowerShell helper source/framing defect without weakening process, profiling, benchmark or MCP checks. Record the separate Linux Node 22 timeout as unresolved because the available failure brief does not identify a failing capability check. No Patch O work is included.
