@@ -11,6 +11,8 @@
  * Generated-code provenance (H-07) is recorded when the advisor proposes code.
  */
 import type { ReplayComparison } from './behavior-capture.js';
+import { assertAuthorizationPresent } from './legacy-gate.js';
+import type { LegacyAuthorization } from './legacy-types.js';
 export type PreservationLevel = 'L0' | 'L1' | 'L2' | 'L3';
 export interface OracleSpec {
     /** Human-readable description of the oracle. */
@@ -38,6 +40,7 @@ export interface MigrationOption {
     generatedCode?: GeneratedCodeProvenance;
 }
 export interface PreservationReport {
+    authorization: LegacyAuthorization;
     level: PreservationLevel;
     coverage: {
         scenarioCount: number;
@@ -55,6 +58,7 @@ export interface PreservationReport {
     limitations: string[];
 }
 export interface MigrationAdvice {
+    authorization: LegacyAuthorization;
     targetSummary: string;
     options: MigrationOption[];
     limitations: string[];
@@ -67,7 +71,9 @@ export function computePreservationLevel(input: {
     oracle: OracleSpec | null;
     comparisons: ReplayComparison[];
     environments?: string[];
+    authorization: LegacyAuthorization;
 }): PreservationReport {
+    assertAuthorizationPresent(input.authorization, 'compute_preservation_report');
     const comparisons = input.comparisons.map(c => ({
         scenarioId: c.scenarioId,
         equal: c.equal,
@@ -82,6 +88,7 @@ export function computePreservationLevel(input: {
     if (!input.oracle || !input.oracle.available) {
         limitations.push('No available oracle: preservation level is L0 and cannot be raised (H-07 / G-05).');
         return {
+            authorization: input.authorization,
             level: 'L0',
             coverage: {
                 scenarioCount,
@@ -113,6 +120,7 @@ export function computePreservationLevel(input: {
     if (scenariosEqual < scenarioCount)
         residual.push(`${scenarioCount - scenariosEqual} scenario(s) differed on replay.`);
     return {
+        authorization: input.authorization,
         level,
         coverage: {
             scenarioCount,
@@ -141,7 +149,9 @@ export function adviseMigration(input: {
         needsExecutionEnvironment?: boolean;
     }>;
     preservation?: PreservationReport;
+    authorization: LegacyAuthorization;
 }): MigrationAdvice {
+    assertAuthorizationPresent(input.authorization, 'advise_legacy_migration');
     const options: MigrationOption[] = [];
     const limitations: string[] = [];
     let rank = 1;
@@ -188,6 +198,7 @@ export function adviseMigration(input: {
         limitations.push('No ranked option could be built: diagnosis produced no actionable evidence rows.');
     }
     return {
+        authorization: input.authorization,
         targetSummary: input.targetSummary,
         options,
         limitations

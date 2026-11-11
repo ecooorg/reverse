@@ -26,6 +26,7 @@ export interface ReferenceTrialResult {
     evidence: string[];
 }
 export interface ReferenceTrialReport {
+    authorization: LegacyAuthorization;
     ranAt: string;
     trials: ReferenceTrialResult[];
     preservation: PreservationReport;
@@ -118,9 +119,10 @@ export async function runLegacyReferenceTrials(): Promise<ReferenceTrialReport> 
                 });
             }
             migration = adviseMigration({
+                authorization: AUTH,
                 targetSummary: 'crafted VB6 fixture (lawful)',
                 findings: mapped,
-                preservation: computePreservationLevel({ oracle: null, comparisons: [] })
+                preservation: computePreservationLevel({ oracle: null, comparisons: [], authorization: AUTH })
             });
             const hasFinding = compat.some(f => /Visual Basic|VB6|runtime/i.test(f.cause)) ||
                 markers.some(m => /Visual Basic|VB6|MSVBVM/i.test(m)) ||
@@ -191,10 +193,12 @@ export async function runLegacyReferenceTrials(): Promise<ReferenceTrialReport> 
     const preservation = computePreservationLevel({
         oracle: null,
         comparisons: [],
-        environments: []
+        environments: [],
+        authorization: AUTH
     });
     const ok = trials.length === 2 && trials.every(t => t.status !== 'failed');
     return {
+        authorization: AUTH,
         ranAt: new Date().toISOString(),
         trials,
         preservation,

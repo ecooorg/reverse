@@ -4,7 +4,7 @@ import { mkdtemp, rm, writeFile, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { result } from './core-types.js';
-import type { AnalyzerProvider, ProviderRunOptions, SimilarityProvider, SimilarityHit } from './providers-registry.js';
+import type { AnalyzerProvider, ProviderRunOptions, SimilarityProvider } from './providers-registry.js';
 import { findExecutable, GHIDRA_DIRS } from './providers-discover.js';
 const execFileAsync = promisify(execFile);
 let cached: {
@@ -184,18 +184,17 @@ export function createGhidraSimilarityProvider(): SimilarityProvider {
                     coverage: { examined: false, complete: false, notes: [] }
                 });
             }
-            return result(`${a}|${b}`, 'similarity_compare', [{
-                    score: 0,
-                    confidence: 0,
-                    method: 'ghidra-bsim',
-                    notes: [
-                        'BSim/Function ID database is not auto-configured by Reverse.',
-                        'Configure your own corpus to obtain real scores.'
-                    ]
-                } satisfies SimilarityHit], {
+            return result(`${a}|${b}`, 'similarity_compare', [], {
                 status: 'partial',
-                limitations: ['No BSim database configured; score is not computed.'],
-                coverage: { examined: true, complete: false, notes: [] }
+                limitations: [
+                    'Ghidra is installed, but no BSim/Function ID database is configured.',
+                    'No similarity score is computed or fabricated; configure a lawful local corpus to enable comparison.'
+                ],
+                coverage: {
+                    examined: false,
+                    complete: false,
+                    notes: ['SimilarityProvider extension point is available; comparison data is absent.']
+                }
             });
         }
     };

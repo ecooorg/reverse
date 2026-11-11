@@ -7,14 +7,11 @@ import { readFile, writeFile, mkdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { analyzeLegacyLinux } from './legacy-linux.js';
+import { requireLegacyGate } from './legacy-gate.js';
+import { loadCalibrationManifest } from './legacy-calibration.js';
 import type { LegacyAuthorization } from './legacy-types.js';
 import type { CalibrationExpectation, CalibrationManifest, CalibrationReport, DetectorScore } from './legacy-calibration.js';
-const AUTH: LegacyAuthorization = {
-    basis: 'open_source',
-    licenseOrConsentReference: 'linux-calibration-harness',
-    declaredBy: 'legacy-linux-calibration',
-    declaredAt: new Date().toISOString()
-};
+
 export async function writeCraftedLinuxCalibrationFixtures(dir: string): Promise<CalibrationManifest> {
     await mkdir(dir, { recursive: true });
     // a.out ZMAGIC
@@ -71,23 +68,35 @@ export async function writeCraftedLinuxCalibrationFixtures(dir: string): Promise
         reviewedAt: new Date().toISOString().slice(0, 10),
         expectations: [
             {
-                id: 'aout-zmagic',
+                id: 'crafted-aout-zmagic',
                 file: 'crafted-aout-zmagic',
+                sha256: createHash('sha256').update(aout).digest('hex'),
+                source: 'Reverse crafted fixture',
+                license: 'CC0-1.0',
                 mustDetect: ['a.out']
             },
             {
-                id: 'elf64-pie',
+                id: 'crafted-elf64-pie',
                 file: 'crafted-elf64-pie',
+                sha256: createHash('sha256').update(elf64).digest('hex'),
+                source: 'Reverse crafted fixture',
+                license: 'CC0-1.0',
                 mustDetect: ['ELF', 'ld-linux']
             },
             {
-                id: 'elf32-glibc',
+                id: 'crafted-elf32-glibc',
                 file: 'crafted-elf32-glibc-markers',
+                sha256: createHash('sha256').update(elf32).digest('hex'),
+                source: 'Reverse crafted fixture',
+                license: 'CC0-1.0',
                 mustDetect: ['ELF', 'glibc', 'libstdc']
             },
             {
-                id: 'elf32-libc5',
+                id: 'crafted-elf32-libc5',
                 file: 'crafted-elf32-libc5-markers',
+                sha256: createHash('sha256').update(libc5).digest('hex'),
+                source: 'Reverse crafted fixture',
+                license: 'CC0-1.0',
                 mustDetect: ['ELF', 'libc5']
             }
         ]
@@ -98,14 +107,20 @@ export async function writeCraftedLinuxCalibrationFixtures(dir: string): Promise
  * mustDetect strings match against format + markers + interpreter + tools.
  */
 export async function runLinuxCalibration(manifestPath: string, options: {
-    authorization?: LegacyAuthorization;
-} = {}): Promise<CalibrationReport> {
-    const raw = JSON.parse(await readFile(manifestPath, 'utf8')) as CalibrationManifest;
+    authorization?: LegacyAuthorization | null;
+    sessionId?: string;
+}): Promise<CalibrationReport> {
+    const auth = await requireLegacyGate({
+        authorization: options.authorization,
+        sessionId: options.sessionId,
+        operation: 'run_linux_calibration'
+    });
+    const raw = await loadCalibrationManifest(manifestPath);
     const baseDir = path.dirname(path.resolve(manifestPath));
-    const auth = options.authorization ?? AUTH;
     const failures: string[] = [];
     const limitations: string[] = [
         'Linux calibration uses crafted fixtures; operator corpora are hash-manifest only.',
+        'Brier score and five-bin expected calibration error are descriptive on this small corpus, not proof of calibrated confidence.',
         'Detector match is substring-based on format/markers/interpreter labels.'
     ];
     type Event = {
@@ -202,6 +217,23 @@ export async function runLinuxCalibration(manifestPath: string, options: {
             else if (!e.expected && e.fired)
                 fp++;
         }
+        const brierScore = list.length
+            ? list.reduce((sum, e) => sum + (e.confidence - (e.expected ? 1 : 0)) ** 2, 0) / list.length
+            : null;
+        const bins = Array.from({ length: 5 }, (_, index) => {
+            const members = list.filter(e => Math.min(4, Math.floor(e.confidence * 5)) === index);
+            if (!members.length)
+                return null;
+            return {
+                count: members.length,
+                meanConfidence: members.reduce((sum, e) => sum + e.confidence, 0) / members.length,
+                observedPositiveRate: members.filter(e => e.fired).length / members.length
+            };
+        }).filter((bin): bin is NonNullable<typeof bin> => bin !== null);
+        const expectedCalibrationError = list.length
+            ? bins.reduce((sum, bin) => sum + bin.count / list.length *
+                Math.abs(bin.meanConfidence - bin.observedPositiveRate), 0)
+            : null;
         scores.push({
             detector,
             truePositives: tp,
@@ -210,10 +242,14 @@ export async function runLinuxCalibration(manifestPath: string, options: {
             precision: tp + fp > 0 ? tp / (tp + fp) : null,
             recall: tp + fn > 0 ? tp / (tp + fn) : null,
             meanConfidenceOnTp: confN > 0 ? confSum / confN : null,
+            brierScore,
+            expectedCalibrationError,
+            calibrationBins: bins,
             sampleSize: list.length
         });
     }
     return {
+        authorization: auth,
         manifestName: raw.name,
         fixtureCount: raw.expectations.length,
         evaluated,

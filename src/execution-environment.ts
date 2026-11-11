@@ -7,6 +7,8 @@ import { access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { runInSandbox, type SandboxLimits, type SandboxRunResult } from './execution-sandbox.js';
 import { operatingMode } from './benchmark-gate.js';
+import { requireLegacyGate } from './legacy-gate.js';
+import type { LegacyAuthorization } from './legacy-types.js';
 export type EngineKind = 'wine' | 'dosbox' | 'qemu' | 'native' | 'chroot' | 'qemu-user' | 'oss-shim';
 export interface EnvironmentFingerprint {
     engine: EngineKind;
@@ -14,6 +16,9 @@ export interface EnvironmentFingerprint {
     version?: string;
     /** Hashes of operator-supplied images/ROMs (never uploaded). */
     imageHashes?: string[];
+}
+export interface LegacyExecutionResult extends SandboxRunResult {
+    authorization: LegacyAuthorization;
 }
 export interface ExecutionEnvironment {
     name: string;
@@ -31,7 +36,9 @@ export interface ExecutionEnvironment {
         args?: string[];
         limits?: SandboxLimits;
         workDir?: string;
-    }): Promise<SandboxRunResult>;
+        authorization?: LegacyAuthorization | null;
+        sessionId?: string;
+    }): Promise<LegacyExecutionResult>;
 }
 async function which(bin: string): Promise<string | null> {
     const pathEnv = process.env.PATH ?? '';
@@ -90,6 +97,11 @@ function createPathEngine(spec: PathEngineSpec): ExecutionEnvironment {
         },
         async run(target, opts) {
             requireControlled(opts.confirm);
+            const authorization = await requireLegacyGate({
+                authorization: opts.authorization,
+                sessionId: opts.sessionId,
+                operation: `run_${kind}`
+            });
             if (!(await this.available()) || !resolved) {
                 // Represent absence as a structured sandbox-like result.
                 return {
@@ -109,15 +121,17 @@ function createPathEngine(spec: PathEngineSpec): ExecutionEnvironment {
                         `${name} is not installed; install it and ensure it is on PATH.`,
                         'Reverse never simulates emulator output.'
                     ],
-                    timedOut: false
+                    timedOut: false,
+                    authorization
                 };
             }
-            return runInSandbox({
+            const result = await runInSandbox({
                 command: resolved,
                 args: buildArgs(target, opts.args ?? []),
                 confirm: true,
                 limits: opts.limits
             });
+            return { ...result, authorization };
         }
     };
 }
@@ -196,6 +210,11 @@ export function createChrootEnvironment(): ExecutionEnvironment {
         },
         async run(target, opts) {
             requireControlled(opts.confirm);
+            const authorization = await requireLegacyGate({
+                authorization: opts.authorization,
+                sessionId: opts.sessionId,
+                operation: 'run_chroot'
+            });
             if (!(await this.available()) || !resolved || !rootfs) {
                 return {
                     exitCode: null,
@@ -209,10 +228,11 @@ export function createChrootEnvironment(): ExecutionEnvironment {
                         'Set REVERSE_LINUX_ROOTFS to an operator-supplied old userland.',
                         'chroot binary must be on PATH. Reverse never bundles a rootfs.'
                     ],
-                    scratchDir: ''
+                    scratchDir: '',
+                    authorization
                 };
             }
-            return runInSandbox({
+            const result = await runInSandbox({
                 command: resolved,
                 args: [rootfs, target, ...(opts.args ?? [])],
                 confirm: opts.confirm,
@@ -221,6 +241,7 @@ export function createChrootEnvironment(): ExecutionEnvironment {
                     REVERSE_LINUX_ROOTFS: rootfs
                 }
             });
+            return { ...result, authorization };
         }
     };
 }
@@ -259,6 +280,7 @@ export interface WorksFailsCell {
     exitCode: number | null;
     evidence: string;
     limitations: string[];
+    authorization: LegacyAuthorization;
 }
 /**
  * Run one fixture under each available environment; absent engines → unsupported.
@@ -266,8 +288,15 @@ export interface WorksFailsCell {
 export async function runWorksFailsMatrix(targets: string[], opts: {
     confirm: boolean;
     limits?: SandboxLimits;
+    authorization?: LegacyAuthorization | null;
+    sessionId?: string;
 }): Promise<WorksFailsCell[]> {
     requireControlled(opts.confirm);
+    const authorization = await requireLegacyGate({
+        authorization: opts.authorization,
+        sessionId: opts.sessionId,
+        operation: 'run_works_fails_matrix'
+    });
     if (!registry.length)
         bootstrapExecutionEnvironments();
     const cells: WorksFailsCell[] = [];
@@ -281,14 +310,16 @@ export async function runWorksFailsMatrix(targets: string[], opts: {
                     outcome: 'unsupported',
                     exitCode: null,
                     evidence: await env.detail(),
-                    limitations: [`${env.name} not installed`]
+                    limitations: [`${env.name} not installed`],
+                    authorization
                 });
                 continue;
             }
             try {
                 const r = await env.run(target, {
                     confirm: true,
-                    limits: opts.limits ?? { timeoutMs: 10000 }
+                    limits: opts.limits ?? { timeoutMs: 10000 },
+                    authorization
                 });
                 let outcome: WorksFailsCell['outcome'] = 'fails';
                 if (r.timedOut)
@@ -303,7 +334,8 @@ export async function runWorksFailsMatrix(targets: string[], opts: {
                     outcome,
                     exitCode: r.exitCode,
                     evidence: (r.stdout || r.stderr).slice(0, 500),
-                    limitations: r.limitations
+                    limitations: r.limitations,
+                    authorization
                 });
             }
             catch (err) {
@@ -313,7 +345,8 @@ export async function runWorksFailsMatrix(targets: string[], opts: {
                     outcome: 'error',
                     exitCode: null,
                     evidence: String(err).slice(0, 500),
-                    limitations: []
+                    limitations: [],
+                    authorization
                 });
             }
         }

@@ -8,6 +8,7 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { analyzeLegacyWindows } from './legacy-windows.js';
+import { requireLegacyGate } from './legacy-gate.js';
 import type { LegacyAuthorization } from './legacy-types.js';
 /** Expected labels for one fixture (ground truth). */
 export interface CalibrationExpectation {
@@ -23,11 +24,12 @@ export interface CalibrationExpectation {
     mustDetect?: string[];
     /** Detector names that must not fire. */
     mustNotDetect?: string[];
-    /** Optional SHA-256 of the fixture; when present the harness verifies it. */
-    sha256?: string;
-    /** Source / license note for the fixture (required for operator samples). */
-    source?: string;
-    license?: string;
+    /** Required SHA-256 of the referenced fixture; the harness verifies it before analysis. */
+    sha256: string;
+    /** Required source/origin note (including for project-generated fixtures). */
+    source: string;
+    /** Required license or consent basis for the referenced fixture. */
+    license: string;
 }
 export interface CalibrationManifest {
     schemaVersion: '1.0';
@@ -46,9 +48,17 @@ export interface DetectorScore {
     recall: number | null;
     /** Mean confidence on true positives; null if none. */
     meanConfidenceOnTp: number | null;
+    brierScore: number | null;
+    expectedCalibrationError: number | null;
+    calibrationBins: Array<{
+        count: number;
+        meanConfidence: number;
+        observedPositiveRate: number;
+    }>;
     sampleSize: number;
 }
 export interface CalibrationReport {
+    authorization: LegacyAuthorization;
     manifestName: string;
     fixtureCount: number;
     evaluated: number;
@@ -57,19 +67,58 @@ export interface CalibrationReport {
     failures: string[];
     limitations: string[];
 }
-const AUTH: LegacyAuthorization = {
-    basis: 'open_source',
-    licenseOrConsentReference: 'calibration-harness',
-    declaredBy: 'legacy-calibration',
-    declaredAt: new Date().toISOString()
-};
+
 /** Load and lightly validate a calibration manifest. */
 export async function loadCalibrationManifest(manifestPath: string): Promise<CalibrationManifest> {
     const raw = JSON.parse(await readFile(manifestPath, 'utf8')) as CalibrationManifest;
     if (raw.schemaVersion !== '1.0')
         throw new Error('calibration manifest schemaVersion must be "1.0"');
-    if (!raw.name?.trim() || !Array.isArray(raw.expectations))
-        throw new Error('calibration manifest requires name and expectations[]');
+    if (typeof raw.name !== 'string' || !raw.name.trim() ||
+        typeof raw.description !== 'string' || !raw.description.trim() ||
+        typeof raw.reviewedAt !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(raw.reviewedAt) ||
+        !Array.isArray(raw.expectations)) {
+        throw new Error('calibration manifest requires name, description, reviewedAt and expectations[]');
+    }
+    const baseDir = path.dirname(path.resolve(manifestPath));
+    const ids = new Set<string>();
+    const allowed = new Set([
+        'id', 'file', 'format', 'bitness', 'mustDetect', 'mustNotDetect',
+        'sha256', 'source', 'license'
+    ]);
+    for (const exp of raw.expectations) {
+        if (!exp || typeof exp !== 'object' || Array.isArray(exp) ||
+            typeof exp.id !== 'string' || !exp.id.trim() ||
+            typeof exp.file !== 'string' || !exp.file.trim()) {
+            throw new Error('calibration expectations require non-empty string id and file');
+        }
+        if (ids.has(exp.id))
+            throw new Error(`duplicate calibration expectation id: ${exp.id}`);
+        ids.add(exp.id);
+        for (const key of Object.keys(exp)) {
+            if (!allowed.has(key))
+                throw new Error(
+                    `calibration expectation "${exp.id}" contains unsupported field "${key}"; ` +
+                    'manifests reference files and never embed binaries'
+                );
+        }
+        if (typeof exp.sha256 !== 'string' || !/^[a-f0-9]{64}$/i.test(exp.sha256))
+            throw new Error(`calibration expectation "${exp.id}" requires a valid SHA-256`);
+        if (typeof exp.source !== 'string' || !exp.source.trim() ||
+            typeof exp.license !== 'string' || !exp.license.trim()) {
+            throw new Error(`calibration entry "${exp.id}" requires source and license`);
+        }
+        if (!path.isAbsolute(exp.file)) {
+            const resolved = path.resolve(baseDir, exp.file);
+            if (resolved !== baseDir && !resolved.startsWith(`${baseDir}${path.sep}`))
+                throw new Error(`calibration expectation "${exp.id}" escapes the manifest directory`);
+        }
+        for (const field of ['mustDetect', 'mustNotDetect'] as const) {
+            const values = exp[field];
+            if (values !== undefined && (!Array.isArray(values) || values.some(v => typeof v !== 'string'))) {
+                throw new Error(`calibration expectation "${exp.id}" ${field} must be a string array`);
+            }
+        }
+    }
     return raw;
 }
 /**
@@ -77,14 +126,19 @@ export async function loadCalibrationManifest(manifestPath: string): Promise<Cal
  * Operator corpus entries are resolved relative to the manifest directory.
  */
 export async function runCalibration(manifestPath: string, options: {
-    authorization?: LegacyAuthorization;
-} = {}): Promise<CalibrationReport> {
+    authorization?: LegacyAuthorization | null;
+    sessionId?: string;
+}): Promise<CalibrationReport> {
+    const auth = await requireLegacyGate({
+        authorization: options.authorization,
+        sessionId: options.sessionId,
+        operation: 'run_windows_calibration'
+    });
     const manifest = await loadCalibrationManifest(manifestPath);
     const baseDir = path.dirname(path.resolve(manifestPath));
-    const auth = options.authorization ?? AUTH;
     const failures: string[] = [];
     const limitations: string[] = [
-        'Confidence values are uncalibrated until this harness has a stable corpus;',
+        'Confidence values and calibration errors are descriptive only; tiny crafted corpora are not statistically representative;',
         'precision/recall are reported per detector name match (substring).',
         'No third-party binaries are bundled; operator samples use hash manifests only.'
     ];
@@ -140,7 +194,7 @@ export async function runCalibration(manifestPath: string, options: {
                 detector: name,
                 expected: true,
                 fired: hit,
-                confidence: confByName.get(firedNames.find(n => n.includes(name) || name.includes(n)) ?? '') ?? 0.5
+                confidence: hit ? (confByName.get(firedNames.find(n => n.includes(name) || name.includes(n)) ?? '') ?? 0.5) : 0
             });
             if (!hit)
                 failures.push(`${exp.id}: expected detector "${name}" did not fire`);
@@ -151,7 +205,7 @@ export async function runCalibration(manifestPath: string, options: {
                 detector: name,
                 expected: false,
                 fired: hit,
-                confidence: confByName.get(firedNames.find(n => n.includes(name) || name.includes(n)) ?? '') ?? 0
+                confidence: hit ? (confByName.get(firedNames.find(n => n.includes(name) || name.includes(n)) ?? '') ?? 0.5) : 0
             });
             if (hit)
                 failures.push(`${exp.id}: detector "${name}" fired unexpectedly`);
@@ -179,6 +233,23 @@ export async function runCalibration(manifestPath: string, options: {
         }
         const precision = tp + fp > 0 ? tp / (tp + fp) : null;
         const recall = tp + fn > 0 ? tp / (tp + fn) : null;
+        const brierScore = list.length
+            ? list.reduce((sum, e) => sum + (e.confidence - (e.expected ? 1 : 0)) ** 2, 0) / list.length
+            : null;
+        const bins = Array.from({ length: 5 }, (_, index) => {
+            const members = list.filter(e => Math.min(4, Math.floor(e.confidence * 5)) === index);
+            if (!members.length)
+                return null;
+            return {
+                count: members.length,
+                meanConfidence: members.reduce((sum, e) => sum + e.confidence, 0) / members.length,
+                observedPositiveRate: members.filter(e => e.fired).length / members.length
+            };
+        }).filter((bin): bin is NonNullable<typeof bin> => bin !== null);
+        const expectedCalibrationError = list.length
+            ? bins.reduce((sum, bin) => sum + bin.count / list.length *
+                Math.abs(bin.meanConfidence - bin.observedPositiveRate), 0)
+            : null;
         scores.push({
             detector,
             truePositives: tp,
@@ -189,10 +260,14 @@ export async function runCalibration(manifestPath: string, options: {
             meanConfidenceOnTp: tpConf.length
                 ? tpConf.reduce((a, b) => a + b, 0) / tpConf.length
                 : null,
+            brierScore,
+            expectedCalibrationError,
+            calibrationBins: bins,
             sampleSize: list.length
         });
     }
     return {
+        authorization: auth,
         manifestName: manifest.name,
         fixtureCount: manifest.expectations.length,
         evaluated,
@@ -243,26 +318,38 @@ export async function writeCraftedCalibrationFixtures(dir: string): Promise<Cali
         reviewedAt: new Date().toISOString().slice(0, 10),
         expectations: [
             {
-                id: 'ne-16',
+                id: 'crafted-ne-16',
                 file: 'crafted-ne.exe',
+                source: 'Reverse crafted fixture',
+                license: 'CC0-1.0',
+                sha256: createHash('sha256').update(ne).digest('hex'),
                 format: 'Windows NE',
                 bitness: 16
             },
             {
-                id: 'pe-console',
+                id: 'crafted-pe-console',
                 file: 'crafted-pe-console.exe',
+                source: 'Reverse crafted fixture',
+                license: 'CC0-1.0',
+                sha256: createHash('sha256').update(pe).digest('hex'),
                 format: 'Windows PE',
                 bitness: 32
             },
             {
-                id: 'delphi-markers',
+                id: 'crafted-delphi-markers',
                 file: 'crafted-delphi.exe',
+                source: 'Reverse crafted fixture',
+                license: 'CC0-1.0',
+                sha256: createHash('sha256').update(delphi).digest('hex'),
                 format: 'DOS MZ',
                 mustDetect: ['form stream', 'RTTI-style']
             },
             {
-                id: 'vb6-markers',
+                id: 'crafted-vb6-markers',
                 file: 'crafted-vb6.exe',
+                source: 'Reverse crafted fixture',
+                license: 'CC0-1.0',
+                sha256: createHash('sha256').update(vb).digest('hex'),
                 format: 'DOS MZ',
                 mustDetect: ['Visual Basic']
             }

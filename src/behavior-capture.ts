@@ -9,6 +9,8 @@ import { readFile, writeFile, mkdir, readdir, stat } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 import { runInSandbox, type SandboxLimits } from './execution-sandbox.js';
 import { operatingMode } from './benchmark-gate.js';
+import { assertAuthorizationPresent, requireLegacyGate } from './legacy-gate.js';
+import type { LegacyAuthorization } from './legacy-types.js';
 export interface ScenarioInputFile {
     relativePath: string;
     /** UTF-8 text or base64 for binary. */
@@ -43,12 +45,15 @@ export interface NormalizedObservation {
 }
 export interface CaptureRecord {
     scenarioId: string;
+    authorization: LegacyAuthorization;
     capturedAt: string;
     observation: NormalizedObservation;
     environmentDetail: string;
 }
 export interface ReplayComparison {
     scenarioId: string;
+    captureAuthorization: LegacyAuthorization;
+    replayAuthorization: LegacyAuthorization;
     equal: boolean;
     differences: string[];
     limitations: string[];
@@ -122,8 +127,15 @@ export async function observeScenario(scenario: BehaviorScenario, opts: {
     confirm: boolean;
     limits?: SandboxLimits;
     keepScratch?: boolean;
+    authorization?: LegacyAuthorization | null;
+    sessionId?: string;
 }): Promise<NormalizedObservation> {
     requireControlled(opts.confirm);
+    await requireLegacyGate({
+        authorization: opts.authorization,
+        sessionId: opts.sessionId,
+        operation: 'observe_legacy_scenario'
+    });
     const volatile = scenario.volatileFields ?? ['timestamps', 'scratch-paths'];
     const prevKeep = process.env.REVERSE_KEEP_SCRATCH;
     if (opts.keepScratch)
@@ -177,13 +189,23 @@ export async function captureScenario(scenario: BehaviorScenario, opts: {
     confirm: boolean;
     outPath?: string;
     environmentDetail?: string;
+    authorization?: LegacyAuthorization | null;
+    sessionId?: string;
 }): Promise<CaptureRecord> {
+    requireControlled(opts.confirm);
+    const authorization = await requireLegacyGate({
+        authorization: opts.authorization,
+        sessionId: opts.sessionId,
+        operation: 'capture_legacy_scenario'
+    });
     const observation = await observeScenario(scenario, {
-        confirm: opts.confirm,
-        keepScratch: true
+        confirm: true,
+        keepScratch: true,
+        authorization
     });
     const record: CaptureRecord = {
         scenarioId: scenario.id,
+        authorization,
         capturedAt: new Date().toISOString(),
         observation,
         environmentDetail: opts.environmentDetail ?? `platform=${process.platform}`
@@ -194,7 +216,13 @@ export async function captureScenario(scenario: BehaviorScenario, opts: {
     }
     return record;
 }
-export function compareObservations(expected: NormalizedObservation, actual: NormalizedObservation, scenarioId: string): ReplayComparison {
+export function compareObservations(
+    expected: NormalizedObservation,
+    actual: NormalizedObservation,
+    scenarioId: string,
+    captureAuthorization: LegacyAuthorization,
+    replayAuthorization: LegacyAuthorization
+): ReplayComparison {
     const differences: string[] = [];
     if (expected.exitCode !== actual.exitCode)
         differences.push(`exitCode: expected ${expected.exitCode}, got ${actual.exitCode}`);
@@ -219,6 +247,8 @@ export function compareObservations(expected: NormalizedObservation, actual: Nor
     ];
     return {
         scenarioId,
+        captureAuthorization,
+        replayAuthorization,
         equal: differences.length === 0,
         differences,
         limitations,
@@ -231,16 +261,33 @@ export function compareObservations(expected: NormalizedObservation, actual: Nor
  */
 export async function replayScenario(scenario: BehaviorScenario, prior: CaptureRecord, opts: {
     confirm: boolean;
+    authorization?: LegacyAuthorization | null;
+    sessionId?: string;
 }): Promise<ReplayComparison> {
-    const actual = await observeScenario(scenario, {
-        confirm: opts.confirm,
-        keepScratch: true
+    requireControlled(opts.confirm);
+    assertAuthorizationPresent(prior.authorization, 'replay_prior_capture');
+    const authorization = await requireLegacyGate({
+        authorization: opts.authorization,
+        sessionId: opts.sessionId,
+        operation: 'replay_legacy_scenario'
     });
-    return compareObservations(prior.observation, actual, scenario.id);
+    const actual = await observeScenario(scenario, {
+        confirm: true,
+        keepScratch: true,
+        authorization
+    });
+    return compareObservations(
+        prior.observation,
+        actual,
+        scenario.id,
+        prior.authorization,
+        authorization
+    );
 }
 export async function loadCaptureRecord(path: string): Promise<CaptureRecord> {
     const raw = JSON.parse(await readFile(path, 'utf8')) as CaptureRecord;
     if (!raw?.scenarioId || !raw.observation)
         throw new Error(`invalid capture record: ${path}`);
+    assertAuthorizationPresent(raw.authorization, 'load_capture_record');
     return raw;
 }

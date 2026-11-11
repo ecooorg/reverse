@@ -112,9 +112,10 @@ export async function runLegacyLinuxReferenceTrials(): Promise<ReferenceTrialRep
                 });
             }
             migration = adviseMigration({
+                authorization: AUTH,
                 targetSummary: 'crafted Linux libc5 fixture (lawful)',
                 findings: mapped,
-                preservation: computePreservationLevel({ oracle: null, comparisons: [] })
+                preservation: computePreservationLevel({ oracle: null, comparisons: [], authorization: AUTH })
             });
             const hasFinding = compat.some(c => /libc\.so\.5|libc5|a\.out/i.test(c.cause)) ||
                 finding.libcMarkers.some(m => /libc5/i.test(m)) ||
@@ -179,10 +180,12 @@ export async function runLegacyLinuxReferenceTrials(): Promise<ReferenceTrialRep
     const preservation = computePreservationLevel({
         oracle: null,
         comparisons: [],
-        environments: []
+        environments: [],
+        authorization: AUTH
     });
     const ok = trials.length === 2 && trials.every(t => t.status !== 'failed');
     return {
+        authorization: AUTH,
         ranAt: new Date().toISOString(),
         trials,
         preservation,
