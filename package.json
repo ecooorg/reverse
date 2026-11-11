@@ -1,8 +1,8 @@
 {
   "name": "reverse-compact",
-  "version": "1.3.5",
+  "version": "1.3.6",
   "private": false,
-  "description": "A compact local analysis, profiling, benchmarking and evidence core with CLI, MCP, and Windows legacy compatibility diagnosis (Patch M / 1.2).",
+  "description": "A compact local analysis, profiling, benchmarking and evidence core with CLI, MCP, Windows and legacy Linux compatibility diagnosis (patches M/N).",
   "type": "module",
   "bin": {
     "reverse": "dist/cli-main.js"
@@ -25,14 +25,16 @@
     "start:mcp": "node dist/mcp-server.js",
     "dev": "tsx src/cli-main.ts",
     "prepare": "npm run build",
-    "verify": "npm run build && tsc -p tsconfig.tests.json && node --test --test-concurrency=1 --test-reporter=spec --test-timeout=90000 dist-tests/capabilities.check.js && node tests/capability-report.mjs dist-tests/capability-report.json",
+    "verify": "npm run build && npm run docs:mcp:check && npm run quality:static && tsc -p tsconfig.tests.json && node --test --test-concurrency=1 --test-reporter=spec --test-timeout=90000 dist-tests/capabilities.check.js && node tests/capability-report.mjs dist-tests/capability-report.json",
     "test:coverage": "npm run build && tsc -p tsconfig.tests.json && node --experimental-test-coverage --test dist-tests/*.test.js",
     "format:check": "node tests/format-check.mjs",
     "size:check": "node tests/size-gate.mjs",
     "quality:static": "node tests/quality-static.mjs",
-    "quality": "npm run build && npm run format:check && npm run size:check && tsc -p tsconfig.tests.json",
+    "quality": "npm run build && npm run format:check && npm run size:check && npm run quality:static && tsc -p tsconfig.tests.json",
     "ci:summary": "node tests/ci-ai-summary.mjs",
-    "ci:summary:test": "node --test tests/ci-ai-summary.test.mjs"
+    "ci:summary:test": "node --test tests/ci-ai-summary.test.mjs",
+    "docs:mcp:write": "npm run build && node tests/mcp-docs.mjs --write",
+    "docs:mcp:check": "node tests/mcp-docs.mjs"
   },
   "engines": {
     "node": ">=22"
