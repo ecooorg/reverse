@@ -114,26 +114,27 @@ function buildCommand(mechanism: SandboxMechanism, scratch: string, command: str
     args: string[];
 } {
     if (mechanism.id === 'bwrap') {
-        return {
-            cmd: 'bwrap',
-            args: [
-                '--unshare-net',
-                '--die-with-parent',
-                '--tmpfs', '/tmp',
-                '--bind', scratch, scratch,
-                '--chdir', scratch,
-                '--ro-bind', '/usr', '/usr',
-                '--ro-bind', '/bin', '/bin',
-                '--ro-bind', '/lib', '/lib',
-                '--ro-bind-try', '/lib64', '/lib64',
-                '--ro-bind-try', '/etc/resolv.conf', '/etc/resolv.conf',
-                '--proc', '/proc',
-                '--dev', '/dev',
-                '--',
-                command,
-                ...args
-            ]
-        };
+        // Bind the command binary path so absolute paths (e.g. Node) stay visible.
+        const cmdDir = resolve(command, '..');
+        const bwrapArgs = [
+            '--unshare-net',
+            '--die-with-parent',
+            '--tmpfs', '/tmp',
+            '--bind', scratch, scratch,
+            '--chdir', scratch,
+            '--ro-bind', '/usr', '/usr',
+            '--ro-bind', '/bin', '/bin',
+            '--ro-bind', '/lib', '/lib',
+            '--ro-bind-try', '/lib64', '/lib64',
+            '--ro-bind-try', '/etc/resolv.conf', '/etc/resolv.conf',
+            '--ro-bind-try', cmdDir, cmdDir,
+            '--proc', '/proc',
+            '--dev', '/dev',
+            '--',
+            command,
+            ...args
+        ];
+        return { cmd: 'bwrap', args: bwrapArgs };
     }
     if (mechanism.id === 'unshare') {
         return {
@@ -172,14 +173,14 @@ export async function runInSandbox(req: SandboxRequest): Promise<SandboxRunResul
         const child = spawn(built.cmd, built.args, {
             cwd: scratch,
             env: {
-                PATH: process.env.PATH ?? '',
+                PATH: `${resolve(req.command, '..')}${process.platform === 'win32' ? ';' : ':'}${process.env.PATH ?? ''}`,
                 HOME: scratch,
                 TMPDIR: scratch,
                 REVERSE_SCRATCH: scratch,
                 ...(req.env ?? {})
             },
             stdio: ['ignore', 'pipe', 'pipe'],
-            detached: true
+            detached: false
         });
         let stdout = '';
         let stderr = '';
@@ -197,14 +198,16 @@ export async function runInSandbox(req: SandboxRequest): Promise<SandboxRunResul
         const timer = setTimeout(() => {
             timedOut = true;
             try {
-                if (child.pid)
-                    process.kill(-child.pid, 'SIGKILL');
+                if (child.pid) {
+                    try {
+                        process.kill(-child.pid, 'SIGKILL');
+                    }
+                    catch {
+                        child.kill('SIGKILL');
+                    }
+                }
             }
             catch { /* already dead */ }
-            try {
-                child.kill('SIGKILL');
-            }
-            catch { /* ignore */ }
         }, timeoutMs);
         const exit = await new Promise<{
             code: number | null;
