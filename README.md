@@ -65,7 +65,7 @@ All GitHub Actions workflows publish a ZIP artifact with detailed logs and a sep
 
 ## MCP connection
 
-Reverse implements the MCP JSON-RPC stdio transport and exposes 60 tools, including process inspection, interleaved benchmark suites, stored baselines, typed evidence, hash-chained research sessions, hypothesis promotion and artifact linking, static analysis and provider tools, the controlled optimization loop, runtime analyzers and the initial legacy Windows analysis (the exact list is in [MCP.md](docs/MCP.md)). MCP prompts and resources are served too, and an optional token-gated HTTP transport exists (see MCP.md). Command-running tools require `REVERSE_MODE=CONTROLLED_EXECUTION` and a command allowlist. Process inventory supports offset pagination; tool results are capped at 1 MiB.
+Reverse implements the MCP JSON-RPC stdio transport and exposes 61 tools, including process inspection, interleaved benchmark suites, stored baselines, typed evidence, hash-chained research sessions, hypothesis promotion and artifact linking, static analysis and provider tools, the controlled optimization loop, runtime analyzers and the initial legacy Windows analysis (the exact list is in [MCP.md](docs/MCP.md)). MCP prompts and resources are served too, and an optional token-gated HTTP transport exists (see MCP.md). Command-running tools require `REVERSE_MODE=CONTROLLED_EXECUTION` and a command allowlist. Process inventory supports offset pagination; tool results are capped at 1 MiB.
 
 Example client configuration:
 
