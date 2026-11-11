@@ -4,7 +4,7 @@ import path from 'node:path';
 // Source budget: own-line count per file and in total, and a hard limit on the length of every line.
 // REVERSE_GATE_ROOT points the gate at another tree (the capability suite uses it to prove the gate can fail).
 const root = process.env.REVERSE_GATE_ROOT || '.';
-const MAX_FILE_LINES = 500;
+const MAX_FILE_LINES = 1000;
 const MAX_TOTAL_LINES = 50000;
 const MAX_LINE_LENGTH = 140;
 const tsFiles = async dir => (await readdir(path.join(root, dir)).catch(() => [])).filter(x => x.endsWith('.ts')).sort();

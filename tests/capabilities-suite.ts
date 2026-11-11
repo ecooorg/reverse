@@ -1845,13 +1845,15 @@ check('MCP', 'initialize negotiates the protocol version and reports the product
         await s.close();
     }
 });
-check('Package', 'one version everywhere: package.json, VERSION, CLI banner, MCP serverInfo', async () => {
+check('Package', 'one version everywhere: package.json, VERSION, CLI banner, MCP serverInfo, server.json', async () => {
     const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
     const { VERSION } = await import(pathToFileURL(path.join(DIST, 'core-version.js')).href);
     assert.equal(VERSION, pkg.version);
     assert.match(runCli(['--help']).stdout, new RegExp(`^Reverse ${pkg.version.replace(/\./g, '\\.')}\n`));
     assert.equal(pkg.name, 'reverse-compact');
     assert.ok(pkg.bin.reverse);
+    const server = JSON.parse(readFileSync(path.join(ROOT, 'server.json'), 'utf8'));
+    assert.equal(server.version, pkg.version, 'server.json version must match package.json');
 });
 check('Docs', 'the tool table in docs/MCP.md matches tools/list', async (c) => {
     const doc = path.join(ROOT, 'docs', 'MCP.md');
