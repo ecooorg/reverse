@@ -387,6 +387,7 @@ jobs:
           path: reports
           merge-multiple: true
       - name: Merge reports, annotate drift, fail on broken capabilities
+        if: needs.capabilities.result == 'success'
         run: |
           mkdir -p ci-logs
           export GITHUB_STEP_SUMMARY=ci-logs/01-merge-reports-annotate-drift-fail-on-bro.summary.md
@@ -394,6 +395,17 @@ jobs:
           {
           node tests/capability-report.mjs reports/*.json
           } > ci-logs/01-merge-reports-annotate-drift-fail-on-bro.log 2>&1
+      - name: Explain why capability reports are unavailable
+        if: always() && needs.capabilities.result != 'success'
+        run: |
+          mkdir -p ci-logs
+          {
+            echo "## Capability report aggregation skipped"
+            echo
+            echo "The capability matrix prerequisite finished with result: ${{ needs.capabilities.result }}."
+            echo "At least one capability job stopped before the capability suite wrote its JSON report."
+            echo "Inspect the individual capability job logs for the primary failure; this summary job does not add a derivative missing-report failure."
+          } | tee ci-logs/01-capability-report-unavailable.log >> "$GITHUB_STEP_SUMMARY"
 
       - name: Test AI debugging summary generator
         if: always()
