@@ -234,7 +234,14 @@ jobs:
           } > ci-logs/10-test-ci-ai-summary-generator.log 2>&1
       - name: Generate AI debugging summary
         if: always()
-        run: npm run ci:summary
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          npm run ci:summary
+          # Re-emit annotation marker to the runner log if the script wrote one
+          if [ -f AI-DEBUG-SUMMARY.md ]; then
+            echo "::notice title=AI-DEBUG-SUMMARY written::See Annotations for the full Reverse CI failure brief when the job failed."
+          fi
 
       - name: Upload job logs (merged later, ci-quiet)
         if: always()
@@ -345,7 +352,14 @@ jobs:
           } > ci-logs/07-test-ci-ai-summary-generator.log 2>&1
       - name: Generate AI debugging summary
         if: always()
-        run: npm run ci:summary
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          npm run ci:summary
+          # Re-emit annotation marker to the runner log if the script wrote one
+          if [ -f AI-DEBUG-SUMMARY.md ]; then
+            echo "::notice title=AI-DEBUG-SUMMARY written::See Annotations for the full Reverse CI failure brief when the job failed."
+          fi
 
       - name: Upload job logs (merged later, ci-quiet)
         if: always()
@@ -389,7 +403,14 @@ jobs:
           } > ci-logs/02-test-ci-ai-summary-generator.log 2>&1
       - name: Generate AI debugging summary
         if: always()
-        run: npm run ci:summary
+        env:
+          GITHUB_ACTIONS: "true"
+        run: |
+          npm run ci:summary
+          # Re-emit annotation marker to the runner log if the script wrote one
+          if [ -f AI-DEBUG-SUMMARY.md ]; then
+            echo "::notice title=AI-DEBUG-SUMMARY written::See Annotations for the full Reverse CI failure brief when the job failed."
+          fi
 
       - name: Upload job logs (merged later, ci-quiet)
         if: always()

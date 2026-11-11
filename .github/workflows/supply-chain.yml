@@ -90,13 +90,15 @@ jobs:
           } > ci-logs/06-test-ci-ai-summary-generator.log 2>&1
       - name: Generate AI debugging summary
         if: always()
+        env:
+          GITHUB_ACTIONS: "true"
         run: |
+          # Must NOT redirect stdout/stderr: workflow commands (::error) only work on the runner log.
           mkdir -p ci-logs
-          export GITHUB_STEP_SUMMARY=ci-logs/07-generate-ai-debugging-summary.summary.md
-          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/07-generate-ai-debugging-summary.exit' EXIT
-          {
           npm run ci:summary
-          } > ci-logs/07-generate-ai-debugging-summary.log 2>&1
+          if [ -f AI-DEBUG-SUMMARY.md ]; then
+            echo "::notice title=AI-DEBUG-SUMMARY written::See Annotations for the full Reverse CI failure brief when the job failed."
+          fi
 
       - name: Upload job logs (merged later, ci-quiet)
         if: always()
