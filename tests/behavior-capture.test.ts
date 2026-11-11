@@ -29,10 +29,7 @@ test('capture refuses without a legal authorization declaration', async () => {
         command: process.execPath,
         args: ['-e', 'process.exit(0)']
     };
-    await assert.rejects(
-        () => captureScenario(scenario, { confirm: true }),
-        /authorization/i
-    );
+    await assert.rejects(() => captureScenario(scenario, { confirm: true }), /authorization/i);
 });
 test('capture then replay of a deterministic node script matches', async () => {
     process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';

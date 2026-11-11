@@ -39,9 +39,7 @@ test('calibration fixtures score a.out and ELF detectors', async () => {
         assert.deepEqual(report.authorization, auth);
         assert.equal(report.evaluated, 4);
         assert.ok(report.scores.length > 0);
-        assert.ok(report.scores.every(score =>
-            score.brierScore !== null && score.expectedCalibrationError !== null
-        ));
+        assert.ok(report.scores.every(score => score.brierScore !== null && score.expectedCalibrationError !== null));
         const failedDet = report.failures.filter(f => /expected detector/.test(f));
         assert.equal(failedDet.length, 0, failedDet.join('; '));
     }

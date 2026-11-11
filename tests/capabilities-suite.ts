@@ -411,9 +411,7 @@ check('Legacy Linux', 'linux calibration fixtures evaluate without detector miss
         const report = await runLinuxCalibration(manPath, { authorization: step1Auth });
         assert.equal(report.evaluated, 4);
         assert.deepEqual(report.authorization, step1Auth);
-        assert.ok(report.scores.every((score: any) =>
-            score.brierScore !== null && score.expectedCalibrationError !== null
-        ));
+        assert.ok(report.scores.every((score: any) => score.brierScore !== null && score.expectedCalibrationError !== null));
         const miss = report.failures.filter((f: string) => /expected detector/.test(f));
         assert.equal(miss.length, 0, miss.join('; '));
     }
@@ -2441,7 +2439,6 @@ check('Agent', 'prompt evaluation harness scores default H-09 lite cases', async
     assert.equal(r.status, 'completed');
     assert.ok(r.findings.every((f: any) => f.passed));
 });
-
 check('Legacy governance', 'capture/replay requires and preserves declared authorization', async () => {
     const { captureScenario, replayScenario } = await import(pathToFileURL(path.join(DIST, 'behavior-capture.js')).href);
     const auth = {
@@ -2459,10 +2456,7 @@ check('Legacy governance', 'capture/replay requires and preserves declared autho
         args: ['-e', 'process.stdout.write("authorized-roundtrip")']
     };
     try {
-        await assert.rejects(
-            () => captureScenario(scenario, { confirm: true }),
-            /authorization/i
-        );
+        await assert.rejects(() => captureScenario(scenario, { confirm: true }), /authorization/i);
         const record = await captureScenario(scenario, { confirm: true, authorization: auth });
         assert.deepEqual(record.authorization, auth);
         const replay = await replayScenario(scenario, record, { confirm: true, authorization: auth });
@@ -2478,8 +2472,8 @@ check('Legacy governance', 'capture/replay requires and preserves declared autho
     }
 });
 check('Legacy governance', 'preservation reports and migration advice retain authorization and enforce L0 without oracle', async () => {
-    const { computePreservationLevel, adviseMigration, assertLevelRespectsOracle } =
-        await import(pathToFileURL(path.join(DIST, 'preservation-migration.js')).href);
+    const preservationModule = await import(pathToFileURL(path.join(DIST, 'preservation-migration.js')).href);
+    const { computePreservationLevel, adviseMigration, assertLevelRespectsOracle } = preservationModule;
     const auth = {
         basis: 'open_source',
         licenseOrConsentReference: 'capability-fixture',
@@ -2498,10 +2492,10 @@ check('Legacy governance', 'preservation reports and migration advice retain aut
         authorization: auth,
         targetSummary: 'capability fixture',
         findings: [{
-            cause: 'Requires an old runtime',
-            evidence: 'fixture evidence',
-            needsExecutionEnvironment: true
-        }],
+                cause: 'Requires an old runtime',
+                evidence: 'fixture evidence',
+                needsExecutionEnvironment: true
+            }],
         preservation: report
     });
     assert.deepEqual(advice.authorization, auth);
@@ -2518,9 +2512,9 @@ check('Legacy governance', 'calibration corpus manifest rejects embedded data an
             description: 'local only',
             reviewedAt: '2026-11-11',
             expectations: [{
-                id: 'operator-entry',
-                file: '/operator/local/sample.bin'
-            }]
+                    id: 'operator-entry',
+                    file: '/operator/local/sample.bin'
+                }]
         }));
         await assert.rejects(() => loadCalibrationManifest(manifestPath), /requires a valid SHA-256/);
         await writeFile(manifestPath, JSON.stringify({
@@ -2529,10 +2523,10 @@ check('Legacy governance', 'calibration corpus manifest rejects embedded data an
             description: 'local only',
             reviewedAt: '2026-11-11',
             expectations: [{
-                id: 'crafted-payload',
-                file: 'fixture.bin',
-                bytes: 'AA=='
-            }]
+                    id: 'crafted-payload',
+                    file: 'fixture.bin',
+                    bytes: 'AA=='
+                }]
         }));
         await assert.rejects(() => loadCalibrationManifest(manifestPath), /never embed binaries/);
     }
@@ -2549,14 +2543,13 @@ check('Roadmap', 'M and N status, version and O entry criteria are internally co
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const architecture = readFileSync(path.join(ROOT, 'docs/ARCHITECTURE.md'), 'utf8');
     const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
-    assert.equal(pkg.version, '1.3.7');
+    assert.equal(pkg.version, '1.3.8');
     assert.match(roadmap, /State as of \*\*1\.3\.7\*\*/);
     assert.match(roadmap, /Patch M.*\*\*done\*\*/s);
     assert.match(roadmap, /Patch N.*\*\*done\*\*/s);
     assert.match(roadmap, /Patch O.*not started/i);
     assert.doesNotMatch(architecture, /M remains open until its complete end-to-end acceptance criteria pass/);
 });
-
 check('Legacy governance', 'legacy profiles never emit analogy labels without a deterministic basis', async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), 'cap-analogy-'));
     try {

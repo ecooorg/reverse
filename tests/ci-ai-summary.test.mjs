@@ -177,3 +177,13 @@ test('lists actionable capability report records and JUnit failures even when st
   assert.match(markdown, /Expected 60 tools, got 58/);
   assert.match(markdown, /tool names differ/);
 });
+
+
+test('capability summary does not merge reports when prerequisite jobs failed', async () => {
+  const workflow = await readFile(new URL('../.github/workflows/capabilities.yml', import.meta.url), 'utf8');
+  const mergeStep = workflow.match(/- name: Merge reports, annotate drift, fail on broken capabilities\n([\s\S]*?)(?=\n      - name:)/)?.[1] ?? '';
+  const unavailableStep = workflow.match(/- name: Explain why capability reports are unavailable\n([\s\S]*?)(?=\n      - name:)/)?.[1] ?? '';
+  assert.match(mergeStep, /if: needs\.capabilities\.result == 'success'/);
+  assert.match(unavailableStep, /if: always\(\) && needs\.capabilities\.result != 'success'/);
+  assert.match(unavailableStep, /does not add a derivative missing-report failure/);
+});

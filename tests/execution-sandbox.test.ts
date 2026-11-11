@@ -88,10 +88,7 @@ test('wine/dosbox/qemu adapters report unsupported when binary is absent', async
 });
 test('legacy execution matrix refuses without authorization', async () => {
     process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
-    await assert.rejects(
-        () => runWorksFailsMatrix(['/tmp/fixture.exe'], { confirm: true }),
-        /authorization/i
-    );
+    await assert.rejects(() => runWorksFailsMatrix(['/tmp/fixture.exe'], { confirm: true }), /authorization/i);
 });
 test('works/fails matrix marks missing engines as unsupported', async () => {
     process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';

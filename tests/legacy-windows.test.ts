@@ -212,20 +212,20 @@ test('calibration manifests require provenance and hashes for operator corpus an
             description: 'Local operator corpus',
             reviewedAt: '2026-11-11',
             expectations: [{
-                id: 'crafted-user-sample',
-                file: 'sample.bin',
-                format: 'Windows PE'
-            }]
+                    id: 'crafted-user-sample',
+                    file: 'sample.bin',
+                    format: 'Windows PE'
+                }]
         };
         await writeFile(manifestPath, JSON.stringify(base));
         await assert.rejects(() => loadCalibrationManifest(manifestPath), /requires a valid SHA-256/);
         const embedded = {
             ...base,
             expectations: [{
-                ...base.expectations[0],
-                id: 'crafted-embedded',
-                bytes: 'TVqQ'
-            }]
+                    ...base.expectations[0],
+                    id: 'crafted-embedded',
+                    bytes: 'TVqQ'
+                }]
         };
         await writeFile(manifestPath, JSON.stringify(embedded));
         await assert.rejects(() => loadCalibrationManifest(manifestPath), /never embed binaries/);
@@ -241,10 +241,7 @@ test('calibration harness scores crafted fixtures and reports precision/recall',
         const manifest = await writeCraftedCalibrationFixtures(dir);
         const manifestPath = path.join(dir, 'manifest.json');
         await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
-        await assert.rejects(
-            () => runCalibration(manifestPath, { authorization: null }),
-            /authorization/i
-        );
+        await assert.rejects(() => runCalibration(manifestPath, { authorization: null }), /authorization/i);
         const report = await runCalibration(manifestPath, { authorization: testAuth });
         assert.equal(report.evaluated, 4);
         assert.equal(report.skipped, 0);

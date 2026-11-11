@@ -68,18 +68,12 @@ test('available oracle with matching scenarios can reach L2/L3', () => {
     assert.equal(many.level, 'L3');
 });
 test('preservation report and migration advisor require authorization', () => {
-    assert.throws(
-        () => computePreservationLevel({ oracle: null, comparisons: [] } as never),
-        /authorization/i
-    );
-    assert.throws(
-        () => adviseMigration({
-            targetSummary: 'unauthorized',
-            findings: [],
-            authorization: null as never
-        }),
-        /authorization/i
-    );
+    assert.throws(() => computePreservationLevel({ oracle: null, comparisons: [] } as never), /authorization/i);
+    assert.throws(() => adviseMigration({
+        targetSummary: 'unauthorized',
+        findings: [],
+        authorization: null as never
+    }), /authorization/i);
 });
 test('migration advisor only emits options with evidence', () => {
     const advice = adviseMigration({
