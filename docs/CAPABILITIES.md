@@ -6,7 +6,7 @@ Patch **M** closed at **1.2.0** and Patch **N** closed at **1.3.5** (2026-11-11)
 
 This file states what really works and what does not. Planned work is only in the last section and in [ROADMAP.md](ROADMAP.md). The first table covers the core areas; the sections below cover the capabilities added by later patches, newest area last.
 
-| Area | Implemented (cumulative through 1.1.0-beta.2; the patch that added a part is named in brackets) | Explicit limitations |
+| Area | Implemented (cumulative through 1.3.7; the patch that added a part is named in brackets) | Explicit limitations |
 |---|---|---|
 | ELF / PE / Mach-O / Java class | Header magic (Java `.class` is told apart from universal Mach-O), architecture/bitness, file size, hash evidence; **sections, symbols, imports/exports and load commands** where the format tables are present in the read window (Patch E) | No disassembly, decompilation, call graph, or malware verdict (provider engines in F) |
 | Android APK/AAB | ZIP inventory: entries, `classes*.dex`, `lib/<abi>/*.so`, ABI list, AndroidManifest/resources.arsc presence, R8/ProGuard path indicators, sibling Gradle lock notes (Patch E) | Binary AXML not decoded; no DEX class listing; no full Gradle resolution |
@@ -101,8 +101,8 @@ Process sampling remains read-only. It captures an OS start-time identity token 
 | Reference trials: diagnose-and-advise + compare-versions on crafted fixtures | step 8 | ✅ | No licensed oracle — L0 limitations always recorded; not a claim of full M/1.2.0 closure |
 
 | Target Profile envelope (per-field evidence/confidence/coverage) | step 1 | ✅ | Installer field null until detectors land; confidence uncalibrated |
-| Calibration harness (crafted fixtures + operator hash manifests) | step 2 | ✅ | Operator corpus optional; nothing uploaded |
-| Legacy authorization declaration on research sessions; gate on `analyze_legacy_windows`; declaration embedded in the result | beta.1, beta.2 | ✅ | Operator declaration is recorded; legal status and the referenced license/consent are not verified |
+| Calibration harness (crafted fixtures + operator hash manifests) | step 2 | ✅ | Precision/recall, Brier score and five-bin ECE; crafted corpus is small and descriptive, not statistically representative; operator samples require SHA-256, source and license |
+| Legacy authorization and provenance across analyzers, calibration, execution, capture/replay, preservation and migration | 1.3.7 | ✅ | Explicit authorization or authorized session is required; reports carry the declaration; legal status and referenced license/consent are not verified |
 
 ### Target-platform and era support matrix (G-09)
 
@@ -116,8 +116,14 @@ Process sampling remains read-only. It captures an OS start-time identity token 
 | PE imports / delay imports | yes | libraries list when table in window |
 | PE hardening flags | yes | DllCharacteristics mapped |
 | diec / yara-x / capa | registered adapters | available only when binary on PATH |
+| Linux a.out (OMAGIC/NMAGIC/ZMAGIC/QMAGIC) | yes (`analyze_legacy_linux`) | must report a.out and architecture/bitness where header permits |
+| Linux ELF32 / ELF64 | yes (`analyze_legacy_linux`) | must report class, endianness, machine and type where header permits |
+| ELF PT_INTERP / DT_NEEDED / RPATH / RUNPATH | yes | bounded parser; incomplete or malformed tables remain partial |
+| Linux libc5 / glibc / libstdc++ markers | yes | static string/soname indicators; not calibrated to production corpora |
+| RPM / DEB / makeself / tar markers | yes | bounded static metadata inspection; scriptlets/payloads are never executed |
+| readelf / objdump / lief | registered detect-only adapters | available only when executable is detected; `goblin` remains open |
 
-`analyze_legacy_windows` refuses unless the supplied research session has a `declare_legacy_authorization` record (or an explicit authorization object on the library path). It reads at most 8 MiB for signatures and PE import tables and hashes the complete file. Compatibility findings cite sourced table entries. The detector does not execute the target or upload samples. Open items remain in the [Patch M working checklist](ROADMAP.md#patch-m-working-checklist).
+`analyze_legacy_windows` and `analyze_legacy_linux` refuse without a declared authorization (stored in the research session or passed explicitly). The same gate now protects calibration, execution-environment runs, works/fails matrices, behavior observation/capture/replay, preservation reports and migration advice. Their result records carry the declaration as provenance; it is an operator assertion, not legal verification. Static analyzers do not execute targets or upload samples. Open detector and end-to-end items remain in the [Patch M and N plans](ROADMAP.md#active-work-product-patches-mq).
 
 ## Hypotheses, similarity and authorization
 
@@ -149,6 +155,37 @@ The remaining work is one ordered sequence, not parallel capability tracks: M co
 | Opt-in lief detect-only provider | ✅ | Unavailable when missing; never simulated |
 | Full SHT_GNU_verneed structure walk, goblin | 🚧 | Residual; string summary covers practical diagnosis |
 
+
+## Cross-cutting M/N requirements (G-01…G-10, H-03…H-10)
+
+| Requirement | Current M/N implementation | Residual limitation |
+|---|---|---|
+| G-01 compatibility diagnosis | Windows and Linux sourced tables; findings include table IDs and target evidence | Tables cover selected runtime/format indicators, not complete OS/API/device availability |
+| G-02 legacy formats | Bounded DOS/Windows and a.out/ELF inventory | Remaining installer, package, architecture and era families stay as listed in the M/N plans |
+| G-03 execution environments | Detected Wine/DOSBox/QEMU/chroot/QEMU-user/OSS-shim adapters, sandboxed runs and works/fails matrix | No general prepare/snapshot/restore/trace lifecycle; unavailable engines remain unsupported; kernel faults need VM |
+| G-04 behavior capture/replay | Normalized stdout/stderr, exit/signal and output-file hashes; controlled execution; capture/replay comparison | No registry/preferences, network, UI/audio event capture, clock/random control or original-code coverage |
+| G-05 equivalence lab | Oracle-aware preservation report consumes replay comparisons | No function-level equivalence harness or broad property/fuzz corpus |
+| G-06 migration advisor | Evidence-backed ranked runtime/environment/hardening options | Not a complete strategy search over wrappers, source ports, rebuilds and rewrites |
+| G-07 legal policy | Policy documented; shared authorization gate enforced on M/N legacy APIs | Operator declarations are not legal verification |
+| G-08 platform order | M → N → O → P → Q is the only product sequence | O remains not started |
+| G-09 support matrix | Windows and Linux format rows are checked against detector/table tests | Coverage is limited to the rows listed; not every format in the plans is implemented |
+| G-10 preservation | L0–L3 report; no available oracle forces L0 | No L2/L3 claim for the current bundled M/N reference fixtures |
+| H-03 similarity | SimilarityProvider contract and Ghidra BSim extension point | No configured BSim corpus or computed similarity score; further adapters remain open |
+| H-04 deterministic-first | Static detections are emitted as facts; analogy tags require confidence and deterministic basis | No legacy analogy tag is currently emitted |
+| H-05 authorization | Shared gate required for static analysis, calibration, execution, capture/replay, preservation and migration APIs | Declaration content is not independently verified |
+| H-06 corpus policy | Calibration manifests reference files; operator entries require hash, source and license; embedded payload fields are rejected | Operator samples remain local and are not included in the repository |
+| H-07 oracle rule | Preservation report enforces L0 without an available oracle | Oracle quality and declared scope remain operator responsibilities |
+| H-08 calibration | Precision/recall, Brier score and five-bin ECE reported per detector | Crafted corpus is too small for production calibration; larger operator corpus remains optional |
+| H-10 provenance | Authorization included in analysis, calibration, execution, capture/replay, preservation and migration results | Legal basis is self-declared, not verified |
+
+## M/N cross-cutting governance and calibration (1.3.7)
+
+| Capability | Status | Notes |
+|---|---|---|
+| Shared authorization gate on M/N analyzers, calibration, execution, capture/replay, preservation and migration | ✅ | Requires explicit authorization or a session declaration; outputs retain provenance; declaration is not legal verification |
+| Calibration manifest provenance | ✅ | Every entry references a file and requires SHA-256, source and license; relative paths cannot escape manifest directory; embedded payload fields rejected |
+| Calibration error metrics | ✅ | Precision/recall, Brier score and five-bin expected calibration error; small crafted corpora are descriptive, not production calibration |
+| G-01…G-10 / H-03…H-10 status audit | ✅ | `ROADMAP.md` and this file distinguish current M/N subsets from residual/open scope |
 
 ## Patch N carry-over debt closure (1.3.6)
 

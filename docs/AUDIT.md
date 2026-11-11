@@ -1,3 +1,29 @@
+## Audit 21 — 2026-11-11 — M/N cross-cutting governance and roadmap verification (1.3.7)
+
+**Scope.** Close the remaining M/N governance gap identified while reviewing G-01…G-10 and H-03…H-10, enforce corpus provenance in calibration manifests, add meaningful calibration error metrics, and reconcile the Roadmap/Architecture/CAPABILITIES statements. No Patch O work is included.
+
+**Delivered.**
+
+- **H-05 / H-10:** the shared authorization gate now protects Windows/Linux calibration, execution-environment runs, works/fails matrices, behavior observation/capture/replay, preservation reports and migration advice. Analysis, calibration, execution, capture/replay, preservation and migration outputs carry the operator declaration. This is not legal verification. The internal M/N reference-trial helpers use the declaration only for their own generated fixtures.
+- **H-06:** calibration manifests now reference files only, reject embedded payload fields, constrain relative paths to the manifest directory, and require a valid SHA-256, source and license for every entry. The hash is checked before analysis. Crafted fixtures also carry hashes and provenance.
+- **H-08:** calibration reports add Brier score and five-bin expected calibration error alongside precision/recall. The small crafted corpora are explicitly described as descriptive, not production calibration.
+- **H-03:** `ghidra-similarity` no longer emits a fabricated zero/zero-confidence hit when Ghidra exists but no BSim database is configured; it returns no findings and a clear limitation.
+- **G-01…G-10 / H-03…H-10 audit:** a per-requirement M/N status matrix now distinguishes implemented subsets from open function-level equivalence, full lifecycle execution, full capture coverage, unconfigured BSim, and non-representative calibration.
+- **Roadmap coherence:** ARCHITECTURE no longer says M is open; the N summary no longer claims R-04/R-10/R-11 or all G/H work is closed; the status dashboard, release index, debt register and CAPABILITIES use the same 1.3.7 state.
+
+**Not delivered / not claimed.** No function-level equivalence lab; no full environment prepare/snapshot/restore/trace lifecycle; no registry/network/UI/audio/time/randomness capture or original-code coverage; no complete migration strategy search; no configured BSim corpus or computed score; no production-calibrated confidence; no complete OS/API availability database. G/H statuses remain partial/open as listed in `ROADMAP.md` and `CAPABILITIES.md`. R-01, R-04 (`fast-check`), R-05, R-19 Windows verification and R-19 macOS remain open. No Patch O feature was started.
+
+**Verification.** Local Linux build and test compilation passed; all 123 unit tests passed. `npm run docs:mcp:check`, `npm run quality:static`, source size gate and source/built structure checks passed. `npm run format:check` could not run because `typescript-api` was absent after `npm ci` timed out. `npm run verify` ran the capability suite but did not complete within the execution window; it is not claimed green. The capability checks specifically covering authorization, corpus policy, the Ghidra similarity fallback, the Linux support matrix and M/N Roadmap status passed. Full manual `os: all` and Windows helper lifecycle verification remain pending. Build used the global TypeScript 5.8.3 compiler and an available system `@types/node` path after the locked install timed out; this is not a successful `npm ci` claim.
+
+| ID | Sev | Area | Finding | Status |
+|---|---|---|---|---|
+| F-76 | High | Legacy authorization | M/N execution, capture/replay, preservation, migration and calibration library APIs could be called without the shared legal authorization declaration; some calibration helpers supplied an internal default authorization | Status: closed in 1.3.7 for current M/N APIs; all such operations require an explicit authorization/session and report it as provenance |
+| F-77 | Medium | Calibration corpus policy | Calibration manifests did not enforce hash/source/license provenance for operator samples and could accept unexpected embedded payload fields | Status: closed in 1.3.7; every manifest entry requires SHA-256/source/license, relative paths are bounded, embedded payload fields are rejected |
+| F-78 | Medium | Roadmap/documentation drift | Architecture still said M was open; N's debt summary implied R-04/R-10/R-11 and all G/H portions were closed despite explicit residuals; no M/N G/H status matrix existed | Status: closed in 1.3.7 documentation reconciliation; residual capabilities remain partial/open, not claimed complete |
+| F-79 | Medium | Similarity evidence | `ghidra-similarity` returned a zero score with zero confidence when no BSim database was configured, which could be mistaken for a measured dissimilarity | Status: closed in 1.3.7; no score/findings are returned until a lawful local BSim corpus is configured |
+
+---
+
 ## Audit 20 — 2026-11-11 — Patch N carry-over debt increment (1.3.6)
 
 **Scope.** Close the N/Linux portions and deliver the Windows implementation of approved carry-over work without starting Patch O or adding the unavailable quality-tool dependencies.

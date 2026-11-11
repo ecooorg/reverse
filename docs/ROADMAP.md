@@ -18,18 +18,18 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.3.6** (Patch N post-closure debt increment; 2026-11-11).
+State as of **1.3.7** (M/N cross-cutting authorization, corpus and roadmap audit; 2026-11-11).
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.3.6** (Patch N post-closure debt increment; N remains closed at 1.3.5) |
+| What is the product version? | **1.3.7** (M/N cross-cutting audit increment; N remains closed at 1.3.5) |
 | What is finished? | The 1.0 foundation (**patches A–L**) and **Patch M** (Windows compatibility through 2010, release **1.2.0**) and **Patch N** (old Linux compatibility, closed at **1.3.5**). |
-| What is being built? | No product feature is in progress. Patch N maintenance 1.3.6 closes R-07 and the N/Linux portions of R-02/R-15, and implements R-19 Windows pending CI verification. Next is **Patch O** (Classic Mac and early macOS, target **1.4**); it remains not started until its entry criteria and O step 0 are satisfied. Patch N delivered: Linux Target Profile fields, a.out/ELF inventory, sourced diagnosis, environments, behavior capture/replay, reference trials, verneed-oriented summary, MCP `analyze_legacy_linux` and the detect-only `lief` provider. |
+| What is being built? | No product feature is in progress. Patch N maintenance 1.3.6 closed R-07 and the N/Linux portions of R-02/R-15, and implemented R-19 Windows pending CI verification. Maintenance 1.3.7 extends H-05/H-10 authorization and provenance across M/N legacy workflows, validates calibration corpus provenance (H-06), adds descriptive calibration metrics (H-08), and reconciles M/N G/H status claims. Next is **Patch O** (Classic Mac and early macOS, target **1.4**); it remains not started until its entry criteria and O step 0 are satisfied. Patch N delivered: Linux Target Profile fields, a.out/ELF inventory, sourced diagnosis, environments, behavior capture/replay, reference trials, verneed-oriented summary, MCP `analyze_legacy_linux` and the detect-only `lief` provider. |
 | What has not started? | **Patches O, P, Q** (Classic Mac/early macOS; legacy Android; newer generations and unified compatibility intelligence). Next is **O**. Plans: [Detailed plans for patches N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q). |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Before O, run and record the required manual `os: all` workflow for 1.3.6; then close O step 0 debts F-08 macOS and R-19 macOS. O has not started. |
-| What is open but not blocking? | R-01 (Stryker), R-05 (`knip`, `jscpd`, dedicated linter; dependency-free `quality:static` is now CI-gated), R-04 (`fast-check`), R-19 Windows (implementation delivered; Windows CI verification pending) and R-19 macOS remain open. See the [carry-over debt register](#carry-over-debt-register). |
-| What is unverified? | Residual N limitations (explicit): no bundled old-Linux rootfs or oracle (preservation stays L0); containers share the host kernel, so kernel-ABI faults are not confirmed without a VM; the verneed summary is a string-residue scan, not a full `SHT_GNU_verneed` walk; `goblin` is not wired; libc/compiler generation heuristics are not calibrated beyond the crafted fixtures. Full-matrix green recorded for commit `b5ea3fa` (Capabilities 43059743774, Structure 43059819947, Supply chain 43059851184). Windows/macOS hard sandbox isolation remains a recorded limitation from M. |
+| What is the next concrete step? | Before O, run and record the required manual `os: all` workflow for 1.3.7 (including Windows R-19 lifecycle verification); then close O step 0 debts F-08 macOS and R-19 macOS. O has not started. |
+| What is open but not blocking? | R-01 (Stryker), R-05 (`knip`, `jscpd`, dedicated linter; dependency-free `quality:static` is now CI-gated), R-04 (`fast-check`), R-19 Windows (implementation delivered; Windows CI verification pending) and R-19 macOS remain open. M/N G/H residual scope is itemized below and in `CAPABILITIES.md`. See the [carry-over debt register](#carry-over-debt-register). |
+| What is unverified? | Residual M/N limitations (explicit): no bundled Windows/Linux oracle (preservation stays L0); execution lifecycle lacks snapshot/restore/trace; behavior capture does not cover registry/network/UI/audio/time/randomness or code coverage; no function-level equivalence lab; migration options are limited; similarity BSim is unconfigured; calibration uses small crafted corpora; containers share the host kernel; the verneed summary is a string-residue scan, not a full `SHT_GNU_verneed` walk; `goblin` is nott wired; libc/compiler generation heuristics are not calibrated beyond the crafted fixtures. Full-matrix green recorded for commit `b5ea3fa` (Capabilities 43059743774, Structure 43059819947, Supply chain 43059851184). Windows/macOS hard sandbox isolation remains a recorded limitation from M. |
 
 ## Delivery plan: foundation A–L and product patches M–Q
 
@@ -307,7 +307,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 - [ ] Record a green manual `os: all` run with its run ID (step 8).
 - Tracked by boxes in the sections above: R-11 ELF part and R-10 (`readelf`, `objdump`, `lief`/`goblin`) in section 1; the N share of G-01…G-10, H-03…H-08 and H-10 in sections 1–7.
 
-**Debts closed in N (summary of section 8 and of the boxes it names).** R-07, R-02 (N/Linux portion), R-15 (N/Linux portion), R-11 (ELF part), the `lief`/`goblin` and `objdump`/`readelf` part of R-10, R-04 for the a.out/ELF/archive parsers, and the N share of G-01…G-10, H-03…H-08, H-10.
+**N implementation summary (not a blanket closure of all assigned debts).** The N/Linux portions of R-02 and R-15 were closed in 1.3.6; R-07 was closed in 1.3.6. Linux a.out/ELF analysis, selected sourced diagnosis, detect-only `readelf`/`objdump`/`lief` providers, basic execution adapters, behavior round-trip and L0 preservation reporting exist with the limitations in `CAPABILITIES.md`. R-01, R-04 (`fast-check`), R-05, R-10 (`goblin`), R-11 residual ELF hardening, and Windows R-19 verification are not closed. G/H items are partial by capability, not all closed by the N release.
 
 **Out of scope and known limits.** Kernel-mode code, drivers and kernel modules; hardware-specific software without an emulator; copy-protected or encrypted commercial software without rights-holder consent; reconstructing proprietary libraries. Containers cannot reproduce old kernel behavior, so those faults are diagnosed in a VM or reported as unconfirmed.
 
@@ -604,7 +604,8 @@ Approved tasks that are **not** closed, collected from the backlog, the patch re
 | F-08 | Single-PID fast path for inspection and sampling | B (done) | Linux and Windows done; macOS reads the full table | *Approved:* O step 0 (box in the O plan, section 8) |
 | F-06 | MCP protocol: stateless 2026 protocol era | D (done) | Stateful revisions through 2025-11-25 only | *Approved:* Q step 0 (box in the Q plan, section 6) |
 | R-08 / R-18 / H-09 | Full live-agent evaluation corpus harness; optional single-file binary | L | Core shipped in 1.0.0; lite evaluation (`evaluateAgentPrompts`) in 1.0.1; full harness and single binary open | *Approved:* Q step 9 (box in the Q plan, section 6) |
-| H-03 / H-04 / H-05 / H-06 / H-07 / H-08 / H-10 | Similarity adapters, deterministic-first rule, authorization enforcement, corpus policy, oracle rule, calibrated reference corpus, authorization record in reports | M (introduced) | Partial or open; tracked in the [Patch M working checklist](#patch-m-working-checklist) | Closed by M, extended in N–Q |
+| H-03 / H-04 / H-05 / H-06 / H-07 / H-08 / H-10 | Similarity adapters, deterministic-first rule, authorization enforcement, corpus policy, oracle rule, calibrated reference corpus, authorization record in reports | M (introduced) | H-03 partial (Ghidra BSim extension only, no configured corpus); H-04 partial (no legacy analogy tags emitted); H-05 and H-10 closed for current M/N APIs in 1.3.7; H-06 calibration-manifest policy enforced, similarity corpus remains local/operator supplied; H-07 L0 oracle rule enforced; H-08 partial (metrics implemented, small crafted corpus not representative) | Remaining similarity/calibration scope continues in O–Q |
+| G-01…G-10 | Compatibility diagnosis, legacy formats, execution environments, capture/replay, equivalence, migration, legal policy, platform order, support matrix, preservation report | M (introduced), extended in N–Q | G-01/02/03/04/06/07/09/10 partial for current M/N subsets; G-05 function-level equivalence lab open; G-08 sequence rule closed by F-71. Exact limitations in `CAPABILITIES.md` | Extended by O–Q; no M/N blanket closure claimed |
 | G-01…G-10 | Compatibility diagnosis, legacy formats, execution environments, capture/replay, equivalence lab, migration advisor, legal policy, platform order, support matrix, preservation report | M (introduced), extended in N–Q | Open except the documentation part of G-07 and the platform order (G-08, closed by F-71) | Closed by M, extended in N–Q |
 
 ### Non-claims carried over from the E–K audits (Audit 8 and others)
@@ -655,6 +656,30 @@ These capabilities are **not** implemented and must not be described as availabl
 | G-01…G-10, F-63, F-64, H-03…H-08, H-10 | M (introduced); the family share is closed in step 8 of each of N, O, P; unified in Q | approved |
 | R-02 untrusted-content hardening (basic form closed in 0.2.0-beta.5) | Every new source of untrusted text (strings, resources, manifests, package metadata, installer scripts read statically) goes through the existing untrusted-content wrapper with an adversarial fixture, in step 3 of each patch M–Q | N/Linux portion closed in 1.3.6; M/O/P/Q portions remain assigned |
 | Any other row of the backlog or the audits that is open and not listed above | Reviewed at the exit of every patch; any row still open at Q step 10 is closed or becomes a signed-off limitation | approved |
+
+### M/N cross-cutting status audit (G-01…G-10, H-03…H-10)
+
+This matrix is the authoritative summary of what the current code proves for M/N. It does not close future-platform work and does not imply that the full Audit 2/3 goals are complete.
+
+| ID | M/N status at 1.3.7 | Evidence / remaining scope |
+|---|---|---|
+| G-01 | partial | Windows and Linux diagnosis emits sourced table IDs for selected runtime/format facts; comprehensive OS/API/device availability tables remain open |
+| G-02 | partial | DOS/Windows and a.out/ELF detectors exist; remaining format, installer and toolchain families are listed in each patch plan |
+| G-03 | partial | Wine/DOSBox/QEMU/chroot/QEMU-user/OSS-shim detection and sandboxed runs exist; no complete prepare/snapshot/restore/trace lifecycle |
+| G-04 | partial | Controlled capture/replay compares normalized streams and output-file hashes; no registry/network/UI/audio/time/randomness control or code coverage |
+| G-05 | open | No function-level equivalence lab or broad differential/property/fuzz harness |
+| G-06 | partial | Evidence-backed runtime/environment/hardening options are ranked; full migration strategy search and effort/gain estimates remain open |
+| G-07 | partial | Authorized-use policy and current M/N operation gates exist; operator declaration is not legal verification |
+| G-08 | closed | Strict M → N → O → P → Q sequence is documented and enforced in the roadmap (F-71) |
+| G-09 | partial | Windows and Linux support rows exist with detector/table tests; matrix does not cover every planned family |
+| G-10 | partial | L0–L3 report and no-oracle L0 guard exist; current M/N fixtures have no independent oracle and remain L0 |
+| H-03 | partial | SimilarityProvider contract and Ghidra BSim extension point exist; no configured corpus or computed score |
+| H-04 | partial | Deterministic detections remain facts; schema supports analogy basis, but no M/N analogy tag is emitted |
+| H-05 | closed for current M/N APIs | Shared gate now protects analyzers, calibration, execution, capture/replay, preservation and migration; O–Q must reuse it |
+| H-06 | partial | Calibration manifests require operator SHA-256/source/license and reject embedded payloads; similarity corpora remain operator-supplied/local |
+| H-07 | closed for current M/N reports | Preservation computation forces L0 without an available oracle; future generated-code provenance remains open |
+| H-08 | partial | Precision/recall, Brier and five-bin ECE are reported; crafted corpora are too small for production calibration |
+| H-10 | closed for current M/N reports | Authorization provenance is included in analysis, calibration, execution, capture/replay, preservation and migration outputs |
 
 ## Completed foundation: patches A–L
 
@@ -886,7 +911,7 @@ Closes audit tasks R-08 and R-18 (core) and quality debts R-03 / F-16 / R-05 (pa
 
 Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **approved project task**. Each belongs to exactly one patch (or is already closed). A patch is not done until its rows here are closed and the matching findings in [AUDIT.md](AUDIT.md) carry `Status: closed in <version>`. The capability suite checks that every ID of the audit appears in this table. New audits append their IDs here in the same way. In rows and audits written before the consolidation, the label **M1** is a historical name for the early increments of Patch M (1.1.0-beta.1 and .2); it is not a separate patch.
 
-### Findings (Audit 1, approved 2026-11-09, plus the later findings F-50 to F-71; sorted by ID — F-18 to F-41 follow in the tables of Audits 4 to 6)
+### Findings (Audit 1, approved 2026-11-09, plus the later findings F-50 to F-79; sorted by ID — F-18 to F-41 follow in the tables of Audits 4 to 6)
 
 | ID | Task | Patch / status |
 |---|---|---|
@@ -922,7 +947,7 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-61 | No reverse setup / skill install | closed in **1.0.0 / L** |
 | F-62 | No H-09 prompt evaluation harness | closed in **1.0.1** (lite) |
 | F-63 | No deterministic Windows legacy executable header/marker analyzer | initial slice in **1.1.0-beta.1 / M**; full M1 detector matrix remains open |
-| F-64 | No recorded declared authorization basis for legacy analysis | initial gate in **1.1.0-beta.1 / M**; report provenance closed in **1.1.8 / M1**; future operation gates remain open |
+| F-64 | No recorded declared authorization basis for legacy analysis | initial gate in **1.1.0-beta.1 / M**; report provenance closed in **1.1.8 / M1**; current M/N operation gates closed in **1.3.7**; O–Q must reuse the gate |
 | F-65 | Initial M slice not reflected consistently in package metadata and project documentation | closed in **1.1.0-beta.1 / M** |
 | F-66 | CI AI summary could crash or omit actionable diagnostics | closed in **1.1.0-beta.1 maintenance** |
 | F-67 | CI AI summary could misclassify capability-suite test failures as formatting failures | fix in **1.1.0-beta.1 maintenance**; verified by regression tests; GitHub rerun pending verification |
@@ -930,6 +955,10 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-69 | Legacy compatibility candidates ignored PE import evidence | closed in **1.1.8 / M1** (selected imports; OS API availability tables remain open) |
 | F-70 | Legacy authorization was not embedded in analysis results | closed in **1.1.8 / M1** |
 | F-71 | Future platform and cross-cutting work used overlapping patch classifications | closed in documentation-only planning patch (2026-11-10); no product capability claimed |
+| F-76 | M/N legacy execution, capture/replay, preservation, migration and calibration APIs lacked shared authorization gates and report provenance | closed in 1.3.7 for current M/N APIs; O–Q must reuse the same gate |
+| F-77 | Calibration manifests did not enforce SHA-256/source/license provenance and accepted unexpected embedded payload fields | closed in 1.3.7; every entry is hash-checked and sourced; embedded payload fields are rejected |
+| F-78 | M/N G/H status and architecture statements contradicted actual delivered scope | closed in 1.3.7 documentation reconciliation; residuals remain partial/open |
+| F-79 | `ghidra-similarity` returned a zero score when no BSim database was configured, risking a false measured dissimilarity | closed in 1.3.7; no score/findings are returned until a local corpus is configured |
 
 ### Findings (Audit 4, A–D closure review, 2026-11-10)
 
@@ -1027,16 +1056,22 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | H-02 | Fact category 3 redefined; MCP marks `kind: "hypothesis"`; hypotheses never stored as evidence or mixed into measured or static findings | **D** |
 | H-03 | `SimilarityProvider` contract; Ghidra Function ID and BSim adapters; no embedded corpus | **F** (contract), **M** (further adapters) |
 | H-04 | Deterministic legacy detectors first; analogy tag only with confidence and deterministic basis | **M** |
-| H-05 | Authorized-use policy: open-source software or full consent of developers and rights holders only | partial in 1.0.1, patch M (enforced for `analyze_legacy_windows`; other legacy operations must gate too) |
-| H-06 | Corpus policy: hashes and signatures only, source and license per entry, no third-party binaries, local lookups | **F**, **M** |
+| H-05 | Authorized-use policy: open-source software or full consent of developers and rights holders only | policy plus shared authorization gate for current M/N analyzers, calibration, execution, capture/replay, preservation and migration APIs in 1.3.7; operator declaration is not legal verification; O–Q remain due |
+| H-06 | Corpus policy: hashes and signatures only, source and license per entry, no third-party binaries, local lookups | **F**, **M**; calibration manifest enforcement strengthened in 1.3.7, similarity corpus remains operator-supplied/local |
 | H-07 | Oracle rule: no synthesis or reconstruction above L0 without an oracle; provenance for generated code | **M** (introduced), extended in N–Q |
-| H-08 | Reference corpus with ground truth and matcher precision/recall/calibration metrics | **M** (introduced), extended in N–Q |
+| H-08 | Reference corpus with ground truth and matcher precision/recall/calibration metrics | **M** (introduced), extended in N–Q; 1.3.7 adds Brier/ECE metrics, but small crafted corpora are not production calibration |
 | H-09 | Agent prompts, skill section and evaluation harness for hypothesis discipline | **L** |
 | H-10 | Authorization record stored in research sessions and reports | **M** |
 
 ---
 
 ## Release history
+
+### 1.3.7 — M/N cross-cutting audit increment (no new product patch)
+
+- **Scope.** Extend the shared authorization/provenance gate to M/N calibration, execution-environment runs, works/fails matrices, behavior observation/capture/replay, preservation reports and migration advice; calibration manifests now reject embedded payloads and require hash/source/license for operator corpus entries; reports include authorization provenance; calibration reports include Brier score and five-bin expected calibration error alongside precision/recall.
+- **Roadmap audit.** G-01…G-10 and H-03…H-10 are reconciled against actual M/N implementation. G-08 and the G-07 policy text are complete; H-05/H-10 enforcement is complete for current M/N APIs; the other requirements remain partial or open exactly as stated in the M/N capability matrix. No O functionality is started.
+- **Verification.** Local Linux build and tests are recorded below; full `os: all` for 1.3.7 and Windows R-19 lifecycle verification remain pending.
 
 ### 1.3.6 — Post-N debt increment (no new product patch)
 
@@ -1046,7 +1081,7 @@ Closed the MCP documentation generation contract (R-07), implemented the persist
 
 - **Scope delivered.** Linux fields on the shared Target Profile; a.out and ELF32/64 inventory (PT_INTERP, DT_NEEDED, RPATH/RUNPATH, PIE/NX/RELRO hints); libc5/glibc/libstdc++ generation markers; calibration fixtures with a precision/recall harness; sourced libc, libstdc++, desktop and audio diagnosis tables; package metadata readers (RPM/DEB/makeself/gzip, static only); opt-in `readelf`, `objdump` and `lief` detect-only providers; qemu-user, chroot-rootfs and OSS-shim environments (unavailable when absent); behavior capture/replay helper on the shared sandbox; two reference trials on crafted lawful fixtures; verneed-oriented GLIBC/GLIBCXX summary; MCP `analyze_legacy_linux` behind the session authorization gate (61 tools).
 - **Explicit limitations.** No old-Linux rootfs or licensed oracle bundled, so preservation stays L0 unless the operator supplies one; containers share the host kernel, so kernel-ABI faults need a VM; the verneed summary is a string-residue scan, not a full `SHT_GNU_verneed` structure walk; `goblin` is not wired; generation heuristics are calibrated only on crafted fixtures; Windows/macOS hard sandbox isolation is still not wired.
-- **Carry-over (not delivered in N).** R-01 (Stryker), R-05 (linter, `knip`, `jscpd`), R-07 (MCP docs generated from one definition; they stay contract-tested), R-19 Windows part (persistent helper) and `fast-check` property tests for the a.out/ELF/archive parsers (R-04). They stay open in the debt register; the closure date is unchanged (none may remain open past the exit of Q).
+- **Carry-over as of the 1.3.5 close.** R-01 (Stryker), R-05 (linter, `knip`, `jscpd`), R-07 (MCP docs generated from one definition), R-19 Windows part (persistent helper) and `fast-check` property tests for the a.out/ELF/archive parsers (R-04) were open at 1.3.5. Post-N increments 1.3.6/1.3.7 subsequently close R-07 and implement R-19 Windows pending CI verification; R-01, R-05 and R-04 remain open. The closure date is unchanged (none may remain open past the exit of Q).
 - **Verification.** `os: all` green on commit `b5ea3fa`:
   - Capabilities [43059743774](https://github.com/ecooorg/reverse/actions/runs/43059743774)
   - Structure [43059819947](https://github.com/ecooorg/reverse/actions/runs/43059819947)
@@ -1090,6 +1125,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.2.0 | Patch M closed (Windows through 2010) | 2026-11-11; runs 43037232211 / 43037271948 / 43037302969 |
 | 1.3.5 | Patch N closed (old Linux compatibility) | 2026-11-11; runs 43059743774 / 43059819947 / 43059851184 |
 | 1.3.6 | Post-N debt increment: R-07, R-02 Linux, R-15 Linux, F-33/R-05 partial; R-19 Windows implemented pending CI | 2026-11-11; local Linux build/tests and structure gates; Windows CI and full `os: all` pending |
+| 1.3.7 | M/N cross-cutting authorization, corpus policy, calibration metrics and roadmap audit | 2026-11-11; local Linux build/tests; full `os: all` and Windows R-19 verification pending |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP
