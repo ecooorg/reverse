@@ -169,7 +169,7 @@ Patch M is **done** (release **1.2.0**). The items below are *internal tasks*, g
 - Where no lawful fixture, platform oracle or licensed environment exists, record that as an explicit release limitation instead of claiming success.
 
 **8. Debts due in this patch** (one box per debt; a debt whose box already sits in sections 1–7 is only named here, so no task has two boxes)
-- [ ] F-66 and F-67: on the first GitHub Actions run after this roadmap lands, confirm that the CI-diagnostics artifacts upload and that the AI summary classifies a capability-suite failure correctly; record the run ID (before work order step 1).
+- [x] F-66 and F-67: CI-diagnostics artifacts upload and the AI summary classifies capability-suite failures correctly; verified on runs 43024000265, 43024033261 and 43024423915 (2026-11-11).
 - [ ] R-02: every new source of untrusted text introduced in M (executable strings, resources, installer metadata) passes through the existing untrusted-content wrapper, with an adversarial fixture (step 3).
 - [ ] R-15: golden results and a manual CI job for the M reference trials (step 8).
 - [ ] Record a green manual `os: all` run (Linux, macOS, Windows; Node 22 and 24) with its run ID; one run covers the unrecorded E–M release gates (step 8).
@@ -307,7 +307,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 - [ ] Record a green manual `os: all` run with its run ID (step 8).
 - Tracked by boxes in the sections above: R-11 ELF part and R-10 (`readelf`, `objdump`, `lief`/`goblin`) in section 1; the N share of G-01…G-10, H-03…H-08 and H-10 in sections 1–7.
 
-**Debts closed in N (summary of section 8 and of the boxes it names).** R-01, R-05, R-07, R-19 (Windows part), F-33 remainder, R-11 (ELF part), the `lief`/`goblin` and `objdump`/`readelf` part of R-10, R-04 for the a.out/ELF/archive parsers, and the N share of G-01…G-10, H-03…H-08, H-10.
+**Debts closed or carried over at N exit.** The N-specific delivery boxes in sections 1–7 record the implemented work. R-01, R-05, R-07, R-19 (Windows part), and the `fast-check` part of R-04 were not delivered; they remain open in the carry-over register. The `fast-check`-independent deterministic hostile-input coverage, where present, is not a substitute for the approved property-testing debt. R-11 (ELF part), the delivered `objdump`/`readelf` and `lief` detection portions of R-10, and the N-specific G/H items are described by the N release record and capability matrix; `goblin` remains explicitly unwired.
 
 **Out of scope and known limits.** Kernel-mode code, drivers and kernel modules; hardware-specific software without an emulator; copy-protected or encrypted commercial software without rights-holder consent; reconstructing proprietary libraries. Containers cannot reproduce old kernel behavior, so those faults are diagnosed in a VM or reported as unconfirmed.
 
@@ -625,7 +625,7 @@ These capabilities are **not** implemented and must not be described as availabl
   - Structure run [43024033261](https://github.com/ecooorg/reverse/actions/runs/43024033261) — Success; ubuntu/macOS/windows + single final artifact.
   - Supply chain run [43024423915](https://github.com/ecooorg/reverse/actions/runs/43024423915) — Success; single final artifact.
   - Prior baseline: A–D closure run 42775483864 (0.2.0-beta.8).
-- GitHub artifact layout (one workflow artifact with `AI-DEBUG-SUMMARY.md` + `detailed-logs.zip`) verified on the same runs (F-66). F-67 remains only if a future diagnostics regression needs a dedicated rerun.
+- GitHub artifact layout (one workflow artifact with `AI-DEBUG-SUMMARY.md` + `detailed-logs.zip`) and failure classification verified on the same runs (F-66, F-67). Both debts are closed; a future diagnostics regression may warrant a new rerun.
 
 ### Debt closure schedule
 
@@ -925,7 +925,7 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-64 | No recorded declared authorization basis for legacy analysis | initial gate in **1.1.0-beta.1 / M**; report provenance closed in **1.1.8 / M1**; future operation gates remain open |
 | F-65 | Initial M slice not reflected consistently in package metadata and project documentation | closed in **1.1.0-beta.1 / M** |
 | F-66 | CI AI summary could crash or omit actionable diagnostics | closed in **1.1.0-beta.1 maintenance** |
-| F-67 | CI AI summary could misclassify capability-suite test failures as formatting failures | fix in **1.1.0-beta.1 maintenance**; verified by regression tests; GitHub rerun pending verification |
+| F-67 | CI AI summary could misclassify capability-suite test failures as formatting failures | closed: regression tests and GitHub verification on 2026-11-11 runs 43024000265 / 43024033261 / 43024423915 |
 | F-68 | Windows legacy analyzer lacked PE imports and structural framework signatures | closed in **1.1.8 / M1** (bounded static detectors; corpus calibration remains open) |
 | F-69 | Legacy compatibility candidates ignored PE import evidence | closed in **1.1.8 / M1** (selected imports; OS API availability tables remain open) |
 | F-70 | Legacy authorization was not embedded in analysis results | closed in **1.1.8 / M1** |

@@ -1,6 +1,6 @@
 # Architecture
 
-Sections marked **implemented**, or named after the patch that delivered them, describe what exists today (1.1.0-beta.2). Headings still marked **(0.1.0)** (*Layers*, *Data flow*) describe the original structure that every later patch kept. Sections marked **(planned)** describe the target design and the patch in which it is scheduled; see [ROADMAP.md](ROADMAP.md) (start with its *Status at a glance*). Nothing marked *planned* should be treated as implemented.
+Sections marked **implemented**, or named after the patch that delivered them, describe what exists today (1.3.5). Headings still marked **(0.1.0)** (*Layers*, *Data flow*) describe the original structure that every later patch kept. Sections marked **(planned)** describe the target design and the patch in which it is scheduled; see [ROADMAP.md](ROADMAP.md) (start with its *Status at a glance*). Nothing marked *planned* should be treated as implemented.
 
 ## Purpose and design principles
 
@@ -26,7 +26,7 @@ Development rules:
 
 ## Product goal and sequential product plan (patches M–Q)
 
-**Goal.** Reverse must let an agent fully analyze modern **and old** programs without source, find why they do not work or work badly on modern hardware and in a modern environment, and propose concrete improvements or a full rework with the highest verifiable preservation of functionality. Patches A–L form the completed 1.0 foundation. All remaining product work is delivered in one sequence: M (Windows through 2010), N (old Linux), O (Classic Mac/early macOS), P (legacy Android), and Q (newer generations plus unified compatibility intelligence). Do not plan separate platform waves or cross-cutting patch tracks. The initial Windows slice in 1.1.0-beta.1/.2 is partial progress inside M; M remains open until its complete end-to-end acceptance criteria pass. See [ROADMAP.md](ROADMAP.md).
+**Goal.** Reverse must let an agent fully analyze modern **and old** programs without source, find why they do not work or work badly on modern hardware and in a modern environment, and propose concrete improvements or a full rework with the highest verifiable preservation of functionality. Patches A–L form the completed 1.0 foundation. All remaining product work is delivered in one sequence: M (Windows through 2010), N (old Linux), O (Classic Mac/early macOS), P (legacy Android), and Q (newer generations plus unified compatibility intelligence). Do not plan separate platform waves or cross-cutting patch tracks. The initial Windows slice in 1.1.0-beta.1/.2 was partial progress inside M; Patch M completed at 1.2.0 and Patch N completed at 1.3.5. See [ROADMAP.md](ROADMAP.md).
 
 **Authorized use only.** The legacy track exists to help developers and rights holders restore old programs that no longer work. Reverse therefore works only with (a) open-source software, under its license, or (b) software whose developers and rights holders have given full consent to the analysis and any resulting rework. The basis is declared by the operator and recorded in the research session; Reverse cannot verify legal status and does not claim to. See [SECURITY.md](SECURITY.md).
 

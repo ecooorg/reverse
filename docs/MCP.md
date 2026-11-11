@@ -1,6 +1,6 @@
 # MCP interface
 
-The server exposes **61 tools** (the capability suite checks that the tables below list exactly the tools returned by `tools/list`), plus prompts and resources methods and an optional HTTP gateway. Sections: the core tool table, the optimization-loop tools (patch J), the runtime-analyzer tools (patch K), the optional HTTP transport (patch K), prompts and resources (patch L), the legacy Windows tools (patch M, in progress) and the future plan.
+The server exposes **61 tools** (the capability suite checks that the tables below list exactly the tools returned by `tools/list`), plus prompts and resources methods and an optional HTTP gateway. Sections: the core tool table, the optimization-loop tools (patch J), the runtime-analyzer tools (patch K), the optional HTTP transport (patch K), prompts and resources (patch L), the legacy Windows tools (patch M, closed at 1.2.0), the legacy Linux tool (patch N, closed at 1.3.5) and the future plan.
 
 Transport: newline-delimited JSON-RPC 2.0 over stdin/stdout (MCP stdio). Supported methods: `initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`, `prompts/list`, `prompts/get`, `resources/list`, `resources/read`.
 
@@ -116,7 +116,7 @@ Default bind `127.0.0.1:7331`. Not full MCP Streamable HTTP.
 | `resources/read` | Read local JSON artifact by URI |
 
 
-## Legacy Windows tools (patch M, initial slice; M remains in progress)
+## Legacy Windows tools (patch M, closed at 1.2.0)
 
 1. Call `create_research_session` with the target identifier.
 2. Call `declare_legacy_authorization` with `basis` (`open_source` or `written_consent`), a human-readable `license_or_consent_reference`, and `declared_by`. This records the operator's declaration; Reverse does not validate the legal basis.
@@ -127,4 +127,4 @@ The analyzer recognizes DOS MZ, Windows NE/LE/LX and PE headers, and scans at mo
 
 ## Future product delivery
 
-The next MCP surface changes follow the single product-patch sequence in [ROADMAP.md](ROADMAP.md): M completes Windows through 2010; N adds old Linux; O adds Classic Mac/early macOS; P adds legacy Android; Q extends newer generations and unifies compatibility intelligence. Each patch documents its complete tool contract here; do not create separate MCP roadmaps for platform waves or cross-cutting subsystems.
+The MCP surface follows the single product-patch sequence in [ROADMAP.md](ROADMAP.md): M completed Windows through 2010 at 1.2.0; N added old Linux at 1.3.5; O adds Classic Mac/early macOS; P adds legacy Android; Q extends newer generations and unifies compatibility intelligence. Each patch documents its complete tool contract here; do not create separate MCP roadmaps for platform waves or cross-cutting subsystems.

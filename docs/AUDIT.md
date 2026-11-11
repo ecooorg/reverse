@@ -1,5 +1,19 @@
 # Audit log
 
+## Audit 20 — 2026-11-11 — Post-N status consistency (documentation-only)
+
+**Scope.** Reconcile stale foundation documentation with the recorded 1.3.5 release evidence and make the Patch N step-0 carry-over explicit. No product behavior or dependency set changed.
+
+**Delivered.**
+
+- Mark F-66 and F-67 verified using the recorded 2026-11-11 workflow runs; the Patch M checklist and carry-over register now agree.
+- Align MCP documentation with the completed Patch M (1.2.0) and Patch N (1.3.5) states.
+- Update the architecture document's current-version and Windows-sequence statements.
+- Correct the Patch N exit summary: R-01, R-05, R-07 and Windows R-19 remain open; deterministic tests do not close the `fast-check` portion of R-04.
+
+**Not claimed.** Stryker, knip, jscpd, fast-check, generated MCP documentation and the Windows persistent sampling helper were not added. Their corresponding debts remain open as recorded in the roadmap.
+
+
 This file is permanent. **New audits are added at the top** (newest first); older audits are never edited except to mark a finding as closed (`Status: closed in <version>, <patch>`). Each audit lists findings with an ID, severity, evidence and a recommended fix, then improvement proposals. Findings that are accepted are copied into [ROADMAP.md](ROADMAP.md) under the patch named in the "Patch" column; this file stays the record of *why*.
 
 IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H** hypothesis and authorization gap. Severity: **High** = wrong results or a safety/honesty violation of [AGENTS.md](../AGENTS.md); **Medium** = incorrect or fragile behavior with limited blast radius; **Low** = hygiene, docs, polish.
@@ -65,7 +79,7 @@ IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H*
 
 | ID | Sev | Area | Finding | Status |
 |---|---|---|---|---|
-| F-67 | Medium | CI diagnostics / contract drift | Capability-suite failures could be mislabeled as formatting failures, obscuring the actual assertion failures | Status: fix in 1.1.0-beta.1 maintenance; GitHub rerun pending |
+| F-67 | Medium | CI diagnostics / contract drift | Capability-suite failures could be mislabeled as formatting failures, obscuring the actual assertion failures | Status: closed; regression tests and GitHub verification recorded on 2026-11-11 runs 43024000265 / 43024033261 / 43024423915 |
 
 ---
 
@@ -77,7 +91,7 @@ IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H*
 
 | ID | Sev | Area | Finding | Status |
 |---|---|---|---|---|
-| F-66 | Medium | CI diagnostics | AI summary generator could crash on missing content and did not provide enough structured evidence for diagnosis | Status: closed in 1.1.0-beta.1 maintenance; actual GitHub artifact verification remains pending |
+| F-66 | Medium | CI diagnostics | AI summary generator could crash on missing content and did not provide enough structured evidence for diagnosis | Status: closed; GitHub artifact verification recorded on 2026-11-11 runs 43024000265 / 43024033261 / 43024423915 |
 
 ---
 
