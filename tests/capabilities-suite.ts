@@ -1416,6 +1416,18 @@ check('Docs', 'roadmap, audit and architecture agree with the delivered state of
     for (const id of ['F-18', 'F-24', 'F-29'])
         assert.match(audit, new RegExp(`${id}[^\\n]*closed in 0\\.2\\.0-beta\\.7`), id);
 });
+check('Docs', 'the roadmap has one patch table A-Q and a status dashboard for the current version', async () => {
+    const roadmap = readFileSync(path.join(ROOT, 'docs', 'ROADMAP.md'), 'utf8');
+    const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+    const table = roadmap.slice(roadmap.indexOf('### Order and dependencies'), roadmap.indexOf('## Active work'));
+    const letters = [...table.matchAll(/^\| ([A-Z]) \|/gm)].map(m => m[1]);
+    assert.deepEqual(letters, 'ABCDEFGHIJKLMNOPQ'.split(''), 'one ordered row per patch, A to Q');
+    assert.ok(!/\| N \| Execution environments/.test(roadmap), 'superseded N/O/P classification returned');
+    const glance = roadmap.slice(roadmap.indexOf('## Status at a glance'), roadmap.indexOf('## Delivery plan'));
+    assert.ok(glance.includes(`**${pkg.version}**`), `Status at a glance does not name version ${pkg.version}`);
+    for (const heading of ['## Carry-over debt register', '### Patch M working checklist', '## Release history'])
+        assert.ok(roadmap.includes(heading), `missing section ${heading}`);
+});
 // ---------------------------------------------------------------- 10. providers
 check('Providers', 'built-ins implemented; Ghidra/Rizin/JADX/Apktool registered; others extension points', async (c) => {
     // ensure bootstrap ran
