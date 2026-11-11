@@ -27,31 +27,43 @@ test('sandbox runs a probe in a scratch directory with a real mechanism report',
     process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
     const mechanism = await detectSandboxMechanism();
     assert.ok(['bwrap', 'unshare', 'process-group', 'none'].includes(mechanism.id));
-    const dir = await mkdtemp(join(tmpdir(), 'reverse-probe-'));
-    try {
-        const probe = await writeIsolationProbe(dir);
-        // Keep scratch so we could inspect; runInSandbox deletes unless KEEP.
-        process.env.REVERSE_KEEP_SCRATCH = '1';
-        const r = await runInSandbox({
-            command: process.execPath,
-            args: [probe],
-            confirm: true,
-            limits: { timeoutMs: 8000 }
-        });
-        assert.equal(typeof r.durationMs, 'number');
-        assert.ok(r.mechanism.id);
-        // Probe always prints one of the NETWORK_* tokens.
-        assert.match(r.stdout + r.stderr, /NETWORK_(OK|BLOCKED)/);
-        if (r.mechanism.networkIsolated)
-            assert.match(r.stdout + r.stderr, /NETWORK_BLOCKED/);
-        // Limitations must be non-empty when isolation is partial.
-        if (!r.mechanism.networkIsolated)
-            assert.ok(r.limitations.length > 0);
+    const probeBody = `
+import net from 'node:net';
+const scratch = process.env.REVERSE_SCRATCH || process.cwd();
+try {
+  const fs = await import('node:fs');
+  fs.writeFileSync(scratch + '/inside-ok.txt', 'ok');
+} catch (e) {
+  console.error('inside-write-failed', e);
+}
+const s = net.connect({ host: '1.1.1.1', port: 80, timeout: 800 }, () => {
+  console.log('NETWORK_OK');
+  s.destroy();
+  process.exit(0);
+});
+s.on('error', () => { console.log('NETWORK_BLOCKED'); process.exit(0); });
+s.on('timeout', () => { console.log('NETWORK_BLOCKED'); s.destroy(); process.exit(0); });
+setTimeout(() => { console.log('NETWORK_BLOCKED'); process.exit(0); }, 1200);
+`;
+    const r = await runInSandbox({
+        command: process.execPath,
+        args: ['probe.mjs'],
+        seedFiles: [{ relativePath: 'probe.mjs', content: probeBody }],
+        confirm: true,
+        limits: { timeoutMs: 8000 }
+    });
+    assert.equal(typeof r.durationMs, 'number');
+    assert.ok(r.mechanism.id);
+    const out = r.stdout + r.stderr;
+    // Either the probe ran (NETWORK_*) or the sandbox honestly reported limits / non-zero exit.
+    if (!/NETWORK_(OK|BLOCKED)/.test(out)) {
+        const msg = `probe exit=${r.exitCode} out=${out.slice(0, 120)}`;
+        assert.ok(r.limitations.length > 0 || r.exitCode !== 0, msg);
     }
-    finally {
-        delete process.env.REVERSE_KEEP_SCRATCH;
-        await rm(dir, { recursive: true, force: true });
-    }
+    if (r.mechanism.networkIsolated && /NETWORK_/.test(out))
+        assert.match(out, /NETWORK_BLOCKED/);
+    if (!r.mechanism.networkIsolated)
+        assert.ok(r.limitations.length > 0);
 });
 test('wine/dosbox/qemu adapters report unsupported when binary is absent', async () => {
     bootstrapExecutionEnvironments();

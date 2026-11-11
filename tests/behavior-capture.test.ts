@@ -17,11 +17,14 @@ test('capture refuses without CONTROLLED_EXECUTION', async () => {
 });
 test('capture then replay of a deterministic node script matches', async () => {
     process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
-    const scenario: BehaviorScenario = {
-        schemaVersion: '1.0',
+    const script = 'console.log("hello-capture"); console.error("err"); process.exit(0);;;
+    ';;;
+    const scenario = {
+        schemaVersion: '1.0' as const,
         id: 'det-hello',
         command: process.execPath,
-        args: ['-e', 'console.log("hello-capture"); console.error("err"); process.exit(0);'],
+        args: ['hello.mjs'],
+        inputFiles: [{ relativePath: 'hello.mjs', content: script }],
         volatileFields: ['timestamps', 'scratch-paths'],
         timeoutMs: 8000
     };
@@ -32,7 +35,9 @@ test('capture then replay of a deterministic node script matches', async () => {
             outPath: join(dir, 'record.json'),
             environmentDetail: 'test'
         });
-        assert.equal(record.observation.exitCode, 0);
+        const detail = `stdout=${record.observation.stdout.slice(0, 120)} ` +
+            `stderr=${record.observation.stderr.slice(0, 120)}`;
+        assert.equal(record.observation.exitCode, 0, detail);
         assert.match(record.observation.stdout, /hello-capture/);
         const cmp = await replayScenario(scenario, record, { confirm: true });
         assert.equal(cmp.equal, true, cmp.differences.join('; '));
