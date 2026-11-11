@@ -2,7 +2,7 @@
  * Sourced, versioned data tables for compatibility and detection facts (Patch M step 1).
  * Format: one entry per fact with source, license, retrieval date; hashes and signatures only.
  */
-import type { SourcedDataTable, SourcedTableEntry, TableValidationResult } from './legacy-types.js';
+import type { SourcedDataTable, TableValidationResult } from './legacy-types.js';
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const ID_RE = /^[a-z0-9][a-z0-9_.-]{0,127}$/i;
 /**

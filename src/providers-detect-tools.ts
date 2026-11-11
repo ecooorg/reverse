@@ -136,9 +136,13 @@ export function createDiecProvider(): AnalyzerProvider {
 }
 /** YARA-X CLI — rule-based pattern matching (operator supplies rules). */
 export function createYaraXProvider(): AnalyzerProvider {
-    return detectOnlyProvider('yara-x', ['yr', 'yara-x'], 
     // Without operator rules we only probe; analyze returns partial.
-    target => ['--version'], ['pattern matching', 'rule scan']);
+    return detectOnlyProvider({
+        name: 'yara-x',
+        binaryNames: ['yr', 'yara-x'],
+        buildArgs: (_target: string) => ['--version'],
+        capabilities: ['pattern matching', 'rule scan']
+    });
 }
 /** capa — capability/behavior surface detection. */
 export function createCapaProvider(): AnalyzerProvider {
