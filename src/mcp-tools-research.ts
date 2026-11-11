@@ -381,3 +381,13 @@ researchTools.push({
         required: ['file', 'session_id']
     }
 });
+researchTools.push({
+    name: 'analyze_legacy_linux',
+    description: 'Statically inspect a.out/ELF headers, DT_NEEDED, interpreter, libc/GCC markers '
+        + 'and sourced Linux diagnosis. Requires session authorization; never executes the target.',
+    inputSchema: {
+        type: 'object',
+        properties: { file: { type: 'string' }, session_id: { type: 'string' } },
+        required: ['file', 'session_id']
+    }
+});

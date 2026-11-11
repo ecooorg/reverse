@@ -1,17 +1,32 @@
 /**
- * GNU symbol-version hints for ELF (Patch N step 3).
- * Bounded scan for GLIBC_/GLIBCXX_/CXXABI_ and .gnu.version string markers.
- * Full verneed graph walk is not claimed when section headers are truncated.
+ * GNU symbol-version hints and bounded verneed-oriented scan (Patch N).
+ * Walks dynamic string residues for GLIBC_/GLIBCXX_/CXXABI_ and records
+ * .gnu.version* section name hits. A full SHT_GNU_verneed graph requires
+ * complete section headers; when truncated, limitations are explicit.
  */
 export interface SymbolVersionHint {
     name: string;
     evidence: string;
     confidence: number;
 }
+export interface VerneedSummary {
+    hints: SymbolVersionHint[];
+    /** Highest GLIBC_* version string seen, if any. */
+    maxGlibc: string | null;
+    /** Highest GLIBCXX_* version string seen, if any. */
+    maxGlibcxx: string | null;
+    limitations: string[];
+}
 /**
  * Extract symbol-version style strings from a bounded binary window.
  */
 export function extractSymbolVersionHints(buf: Buffer): SymbolVersionHint[] {
+    return summarizeVerneed(buf).hints;
+}
+/**
+ * Summarize GNU version requirements from string residues in a buffer.
+ */
+export function summarizeVerneed(buf: Buffer): VerneedSummary {
     const text = buf.toString('latin1');
     const found = new Map<string, SymbolVersionHint>();
     const patterns: Array<{
@@ -36,7 +51,7 @@ export function extractSymbolVersionHints(buf: Buffer): SymbolVersionHint[] {
                     confidence: conf
                 });
             }
-            if (found.size > 64)
+            if (found.size > 96)
                 break;
         }
     }
@@ -47,5 +62,34 @@ export function extractSymbolVersionHints(buf: Buffer): SymbolVersionHint[] {
             confidence: 0.75
         });
     }
-    return [...found.values()];
+    const hints = [...found.values()];
+    const glibc = hints
+        .map(h => h.name)
+        .filter(n => n.startsWith('GLIBC_'))
+        .sort(compareVersionTag);
+    const glibcxx = hints
+        .map(h => h.name)
+        .filter(n => n.startsWith('GLIBCXX_'))
+        .sort(compareVersionTag);
+    const limitations: string[] = [
+        'Bounded string scan is not a full SHT_GNU_verneed structure walk.',
+        'When section headers are truncated, only residual version strings are reported.'
+    ];
+    return {
+        hints,
+        maxGlibc: glibc.length ? glibc[glibc.length - 1] : null,
+        maxGlibcxx: glibcxx.length ? glibcxx[glibcxx.length - 1] : null,
+        limitations
+    };
+}
+function compareVersionTag(a: string, b: string): number {
+    const pa = a.replace(/^GLIBC(?:XX)?_/, '').split('.').map(x => parseInt(x, 10) || 0);
+    const pb = b.replace(/^GLIBC(?:XX)?_/, '').split('.').map(x => parseInt(x, 10) || 0);
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+        const da = pa[i] ?? 0;
+        const db = pb[i] ?? 0;
+        if (da !== db)
+            return da - db;
+    }
+    return a.localeCompare(b);
 }

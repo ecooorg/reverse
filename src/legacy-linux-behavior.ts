@@ -4,12 +4,12 @@
  * and never claim an old-rootfs oracle.
  */
 import { captureScenario, replayScenario } from './behavior-capture.js';
-import type { BehaviorScenario, BehaviorRecord, ObservationCompare } from './behavior-capture.js';
+import type { BehaviorScenario, CaptureRecord, ReplayComparison } from './behavior-capture.js';
 export interface LinuxBehaviorTrialResult {
     equal: boolean;
     differences: string[];
     limitations: string[];
-    record: BehaviorRecord;
+    record: CaptureRecord;
 }
 /**
  * Capture and replay a deterministic process under CONTROLLED_EXECUTION.
@@ -29,7 +29,7 @@ export async function runLinuxBehaviorRoundTrip(scenario?: BehaviorScenario): Pr
         confirm: true,
         environmentDetail: 'linux-behavior-round-trip'
     });
-    const cmp: ObservationCompare = await replayScenario(sc, record, { confirm: true });
+    const cmp: ReplayComparison = await replayScenario(sc, record, { confirm: true });
     return {
         equal: cmp.equal,
         differences: cmp.differences,

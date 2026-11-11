@@ -15,6 +15,7 @@ import { analyzeJavascript } from './analysis-javascript.js';
 import { analyzeDotnet } from './analysis-dotnet.js';
 import { analyzeWasm } from './analysis-wasm.js';
 import { analyzeLegacyWindows } from './legacy-windows.js';
+import { analyzeLegacyLinux } from './legacy-linux.js';
 import { listProcesses, inspectProcess, getProcessMetrics, getProcessTree } from './process-inspector.js';
 import { analyzeMemory, analyzeCpu, analyzeIo } from './process-inspector.js';
 import { profileProcess, monitorProcess, detectResourceAnomalies } from './profiling-profiler.js';
@@ -170,6 +171,9 @@ async function call(name: string, a: any, signal?: AbortSignal) {
         case 'analyze_legacy_windows': {
             // Shared gate (Patch M step 1): authorization required and embedded as provenance.
             return analyzeLegacyWindows(a.file, null, { sessionId: a.session_id });
+        }
+        case 'analyze_legacy_linux': {
+            return analyzeLegacyLinux(a.file, null, { sessionId: a.session_id });
         }
         case 'add_research_hypothesis': return new EvidenceEngine().addHypothesis(a.session_id, {
             statement: a.statement, provenance: a.provenance, confidence: a.confidence

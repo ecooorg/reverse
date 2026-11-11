@@ -11,7 +11,7 @@ import { result } from './core-types.js';
 import { profileField, type LegacyAuthorization, type TargetProfile } from './legacy-types.js';
 import { requireLegacyGate } from './legacy-gate.js';
 import { diagnoseLinuxFromTables, type LinuxCompatDiagnosis } from './legacy-linux-tables.js';
-import { extractSymbolVersionHints, type SymbolVersionHint } from './legacy-linux-symver.js';
+import { extractSymbolVersionHints, summarizeVerneed, type SymbolVersionHint, type VerneedSummary } from './legacy-linux-symver.js';
 import { inspectPackageBuffer, type PackageMetadata } from './legacy-linux-packages.js';
 export interface LegacyLinuxFinding {
     format: 'a.out' | 'ELF' | 'unknown';
@@ -32,6 +32,7 @@ export interface LegacyLinuxFinding {
     compilerMarkers: string[];
     compatibilityFindings: LinuxCompatDiagnosis[];
     symbolVersionHints: SymbolVersionHint[];
+    verneedSummary: VerneedSummary;
     packageMetadata: PackageMetadata | null;
     targetProfile: TargetProfile;
     authorization: LegacyAuthorization;
@@ -342,9 +343,11 @@ function guessCompilerAbi(markers: string[]): string | null {
 /**
  * Analyze an old Linux binary under the shared legacy authorization gate.
  */
-export async function analyzeLegacyLinux(filePath: string, authorization?: LegacyAuthorization | null, sessionId?: string) {
+export async function analyzeLegacyLinux(filePath: string, authorization: LegacyAuthorization | null = null, options: {
+    sessionId?: string;
+} = {}) {
     const auth = await requireLegacyGate({
-        sessionId,
+        sessionId: options.sessionId,
         authorization,
         operation: 'analyze_legacy_linux'
     });
@@ -402,7 +405,8 @@ export async function analyzeLegacyLinux(filePath: string, authorization?: Legac
     }
     const libcMarkers = detectLibcMarkers(text, needed);
     const compilerMarkers = detectCompilerMarkers(text, needed);
-    const symbolVersionHints = extractSymbolVersionHints(b);
+    const verneedSummary = summarizeVerneed(b);
+    const symbolVersionHints = verneedSummary.hints;
     // Package containers are a separate path; only annotate when magic matches.
     const pkg = inspectPackageBuffer(b, abs);
     const packageMetadata = pkg.kind === 'unknown' ? null : pkg;
@@ -512,7 +516,9 @@ export async function analyzeLegacyLinux(filePath: string, authorization?: Legac
         neededLibraries: needed,
         interpreter,
         libcMarkers,
-        compilerMarkers
+        compilerMarkers,
+        maxGlibc: verneedSummary.maxGlibc,
+        maxGlibcxx: verneedSummary.maxGlibcxx
     });
     const finding: LegacyLinuxFinding = {
         format,
@@ -528,6 +534,7 @@ export async function analyzeLegacyLinux(filePath: string, authorization?: Legac
         compilerMarkers,
         compatibilityFindings,
         symbolVersionHints,
+        verneedSummary,
         packageMetadata,
         targetProfile,
         authorization: auth,

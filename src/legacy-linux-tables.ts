@@ -174,6 +174,8 @@ export function diagnoseLinuxFromTables(input: {
     interpreter: string | null;
     libcMarkers: string[];
     compilerMarkers: string[];
+    maxGlibc?: string | null;
+    maxGlibcxx?: string | null;
 }): LinuxCompatDiagnosis[] {
     const findings: LinuxCompatDiagnosis[] = [];
     const needed = input.neededLibraries.map(x => x.toLowerCase());
@@ -318,6 +320,24 @@ export function diagnoseLinuxFromTables(input: {
             cause: 'May need OSS /dev/dsp or an OSS→ALSA shim (padsp/aoss).',
             evidence: 'OSS device or audio library marker',
             confidence: 0.7,
+            needsExec: true
+        });
+    }
+    if (input.maxGlibc) {
+        push({
+            id: 'linux-glibc-libc-so-6',
+            cause: `Requires symbol version ${input.maxGlibc}; host glibc must be at least that era.`,
+            evidence: `max version string ${input.maxGlibc}`,
+            confidence: 0.8,
+            needsExec: true
+        });
+    }
+    if (input.maxGlibcxx) {
+        push({
+            id: 'linux-libstdcpp-so-6',
+            cause: `Requires ${input.maxGlibcxx}; host libstdc++ must expose that GLIBCXX version.`,
+            evidence: `max version string ${input.maxGlibcxx}`,
+            confidence: 0.8,
             needsExec: true
         });
     }

@@ -12,7 +12,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { analyzeLegacyLinux } from './legacy-linux.js';
 import type { LegacyAuthorization, TargetProfile } from './legacy-types.js';
-import { adviseMigration, computePreservationLevel, type MigrationAdvice, type PreservationReport } from './preservation-migration.js';
+import { adviseMigration, computePreservationLevel, type MigrationAdvice } from './preservation-migration.js';
 import type { ReferenceTrialResult, ReferenceTrialReport } from './legacy-reference-trials.js';
 const AUTH: LegacyAuthorization = {
     basis: 'open_source',

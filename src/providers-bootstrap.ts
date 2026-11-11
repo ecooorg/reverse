@@ -16,7 +16,7 @@ import { createJavascriptProvider } from './providers-runtime.js';
 import { createDotnetProvider } from './providers-runtime.js';
 import { createWasmProvider } from './providers-runtime.js';
 import { createDiecProvider, createYaraXProvider, createCapaProvider } from './providers-detect-tools.js';
-import { createReadelfProvider, createObjdumpProvider } from './providers-detect-tools.js';
+import { createReadelfProvider, createObjdumpProvider, createLiefProvider } from './providers-detect-tools.js';
 import { bootstrapExecutionEnvironments } from './execution-environment.js';
 let done = false;
 /** Register opt-in external adapters once. Safe to call multiple times. */
@@ -46,7 +46,8 @@ export function bootstrapExternalProviders(): void {
         createYaraXProvider(),
         createCapaProvider(),
         createReadelfProvider(),
-        createObjdumpProvider()
+        createObjdumpProvider(),
+        createLiefProvider()
     ]) {
         try {
             registerProvider(p);

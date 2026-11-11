@@ -185,3 +185,12 @@ export function createObjdumpProvider(): AnalyzerProvider {
         capabilities: ['elf-headers', 'symbols', 'detect-only']
     });
 }
+/** LIEF CLI / Python entry — optional ELF deep parse (detect-only). */
+export function createLiefProvider(): AnalyzerProvider {
+    return detectOnlyProvider({
+        name: 'lief',
+        binaryNames: ['lief-cli', 'lief'],
+        buildArgs: (target) => [target],
+        capabilities: ['elf-deep', 'macho', 'pe', 'detect-only']
+    });
+}
