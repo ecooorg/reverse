@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { closeWindowsHelper, windowsHelperRequest, windowsHelperStartCount } from '../dist/process-windows-helper.js';
+import * as windowsHelper from '../dist/process-windows-helper.js';
+const { closeWindowsHelper, windowsHelperLaunchArguments, windowsHelperRequest, windowsHelperStartCount } = windowsHelper;
 test('persistent Windows helper is platform-gated and returns process JSON on Windows', async () => {
     if (process.platform !== 'win32') {
         await assert.rejects(windowsHelperRequest('list'), /only on Windows/i);
@@ -23,4 +24,12 @@ test('persistent Windows helper is platform-gated and returns process JSON on Wi
     finally {
         closeWindowsHelper();
     }
+});
+test('PowerShell helper uses UTF-16LE EncodedCommand with real script and protocol newlines', () => {
+    const args = windowsHelperLaunchArguments();
+    assert.deepEqual(args.slice(0, 4), ['-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand']);
+    const script = Buffer.from(args[4], 'base64').toString('utf16le');
+    assert.match(script, /ExecutablePath",\n\s+"ThreadCount"/);
+    assert.doesNotMatch(script, /ExecutablePath",\\n/);
+    assert.match(script, /while \(\$line = \[Console\]::In\.ReadLine\(\)\)/);
 });
