@@ -417,6 +417,13 @@ check('Legacy Linux', 'linux calibration fixtures evaluate without detector miss
         await rm(dir, { recursive: true, force: true });
     }
 });
+check('Legacy Linux', 'linux reference trials run both scenarios with L0 limits', async () => {
+    const { runLegacyLinuxReferenceTrials } = await import(pathToFileURL(path.join(DIST, 'legacy-linux-reference-trials.js')).href);
+    const report = await runLegacyLinuxReferenceTrials();
+    assert.equal(report.ok, true);
+    assert.equal(report.trials.length, 2);
+    assert.equal(report.preservation.level, 'L0');
+});
 check('Legacy Linux', 'linux sourced tables validate', async () => {
     const { assertLinuxTablesValid } = await import(pathToFileURL(path.join(DIST, 'legacy-linux-tables.js')).href);
     assert.equal(assertLinuxTablesValid().length, 0);
