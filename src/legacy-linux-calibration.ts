@@ -11,7 +11,6 @@ import { requireLegacyGate } from './legacy-gate.js';
 import { loadCalibrationManifest } from './legacy-calibration.js';
 import type { LegacyAuthorization } from './legacy-types.js';
 import type { CalibrationExpectation, CalibrationManifest, CalibrationReport, DetectorScore } from './legacy-calibration.js';
-
 export async function writeCraftedLinuxCalibrationFixtures(dir: string): Promise<CalibrationManifest> {
     await mkdir(dir, { recursive: true });
     // a.out ZMAGIC

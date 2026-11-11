@@ -11,6 +11,9 @@ import { runInSandbox, type SandboxLimits } from './execution-sandbox.js';
 import { operatingMode } from './benchmark-gate.js';
 import { assertAuthorizationPresent, requireLegacyGate } from './legacy-gate.js';
 import type { LegacyAuthorization } from './legacy-types.js';
+type Obs = NormalizedObservation;
+type Auth = LegacyAuthorization;
+type Replay = ReplayComparison;
 export interface ScenarioInputFile {
     relativePath: string;
     /** UTF-8 text or base64 for binary. */
@@ -216,44 +219,38 @@ export async function captureScenario(scenario: BehaviorScenario, opts: {
     }
     return record;
 }
-export function compareObservations(
-    expected: NormalizedObservation,
-    actual: NormalizedObservation,
-    scenarioId: string,
-    captureAuthorization: LegacyAuthorization,
-    replayAuthorization: LegacyAuthorization
-): ReplayComparison {
+export function compareObservations(e: Obs, a: Obs, id: string, captureAuth: Auth, replayAuth: Auth): Replay {
     const differences: string[] = [];
-    if (expected.exitCode !== actual.exitCode)
-        differences.push(`exitCode: expected ${expected.exitCode}, got ${actual.exitCode}`);
-    if (expected.signal !== actual.signal)
-        differences.push(`signal: expected ${expected.signal}, got ${actual.signal}`);
-    if (expected.stdout !== actual.stdout)
+    if (e.exitCode !== a.exitCode)
+        differences.push(`exitCode: expected ${e.exitCode}, got ${a.exitCode}`);
+    if (e.signal !== a.signal)
+        differences.push(`signal: expected ${e.signal}, got ${a.signal}`);
+    if (e.stdout !== a.stdout)
         differences.push('stdout differs after normalization');
-    if (expected.stderr !== actual.stderr)
+    if (e.stderr !== a.stderr)
         differences.push('stderr differs after normalization');
-    const expKeys = Object.keys(expected.outputFiles).sort();
-    const actKeys = Object.keys(actual.outputFiles).sort();
+    const expKeys = Object.keys(e.outputFiles).sort();
+    const actKeys = Object.keys(a.outputFiles).sort();
     if (expKeys.join('\0') !== actKeys.join('\0'))
         differences.push(`output file set differs: expected [${expKeys}] got [${actKeys}]`);
     else {
         for (const k of expKeys) {
-            if (expected.outputFiles[k] !== actual.outputFiles[k])
+            if (e.outputFiles[k] !== a.outputFiles[k])
                 differences.push(`output file hash differs: ${k}`);
         }
     }
     const limitations = [
-        ...new Set([...expected.limitations, ...actual.limitations])
+        ...new Set([...e.limitations, ...a.limitations])
     ];
     return {
-        scenarioId,
-        captureAuthorization,
-        replayAuthorization,
+        scenarioId: id,
+        captureAuthorization: captureAuth,
+        replayAuthorization: replayAuth,
         equal: differences.length === 0,
         differences,
         limitations,
-        expected,
-        actual
+        expected: e,
+        actual: a
     };
 }
 /**
@@ -276,13 +273,7 @@ export async function replayScenario(scenario: BehaviorScenario, prior: CaptureR
         keepScratch: true,
         authorization
     });
-    return compareObservations(
-        prior.observation,
-        actual,
-        scenario.id,
-        prior.authorization,
-        authorization
-    );
+    return compareObservations(prior.observation, actual, scenario.id, prior.authorization, authorization);
 }
 export async function loadCaptureRecord(path: string): Promise<CaptureRecord> {
     const raw = JSON.parse(await readFile(path, 'utf8')) as CaptureRecord;

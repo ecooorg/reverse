@@ -6,6 +6,9 @@
 import { captureScenario, replayScenario } from './behavior-capture.js';
 import type { BehaviorScenario, CaptureRecord, ReplayComparison } from './behavior-capture.js';
 import type { LegacyAuthorization } from './legacy-types.js';
+type Scenario = BehaviorScenario;
+type Auth = LegacyAuthorization;
+type Trial = LinuxBehaviorTrialResult;
 export interface LinuxBehaviorTrialResult {
     equal: boolean;
     differences: string[];
@@ -17,11 +20,8 @@ export interface LinuxBehaviorTrialResult {
  * Default scenario is a host node one-liner (lawful); operator can pass a
  * custom scenario that points at an old binary + rootfs env.
  */
-export async function runLinuxBehaviorRoundTrip(
-    scenario: BehaviorScenario | undefined,
-    authorization: LegacyAuthorization
-): Promise<LinuxBehaviorTrialResult> {
-    const sc: BehaviorScenario = scenario ?? {
+export async function runLinuxBehaviorRoundTrip(s: Scenario | undefined, auth: Auth): Promise<Trial> {
+    const sc: BehaviorScenario = s ?? {
         schemaVersion: '1.0',
         id: 'linux-det-hello',
         command: process.execPath,
@@ -31,10 +31,10 @@ export async function runLinuxBehaviorRoundTrip(
     };
     const record = await captureScenario(sc, {
         confirm: true,
-        authorization,
+        authorization: auth,
         environmentDetail: 'linux-behavior-round-trip'
     });
-    const cmp: ReplayComparison = await replayScenario(sc, record, { confirm: true, authorization });
+    const cmp: ReplayComparison = await replayScenario(sc, record, { confirm: true, authorization: auth });
     return {
         equal: cmp.equal,
         differences: cmp.differences,

@@ -67,7 +67,6 @@ export interface CalibrationReport {
     failures: string[];
     limitations: string[];
 }
-
 /** Load and lightly validate a calibration manifest. */
 export async function loadCalibrationManifest(manifestPath: string): Promise<CalibrationManifest> {
     const raw = JSON.parse(await readFile(manifestPath, 'utf8')) as CalibrationManifest;
@@ -96,10 +95,8 @@ export async function loadCalibrationManifest(manifestPath: string): Promise<Cal
         ids.add(exp.id);
         for (const key of Object.keys(exp)) {
             if (!allowed.has(key))
-                throw new Error(
-                    `calibration expectation "${exp.id}" contains unsupported field "${key}"; ` +
-                    'manifests reference files and never embed binaries'
-                );
+                throw new Error(`calibration expectation "${exp.id}" contains unsupported field "${key}"; ` +
+                    'manifests reference files and never embed binaries');
         }
         if (typeof exp.sha256 !== 'string' || !/^[a-f0-9]{64}$/i.test(exp.sha256))
             throw new Error(`calibration expectation "${exp.id}" requires a valid SHA-256`);
