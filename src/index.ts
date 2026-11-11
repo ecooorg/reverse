@@ -49,3 +49,4 @@ export { createDiecProvider, createYaraXProvider, createCapaProvider, registerDe
 export * from './execution-sandbox.js';
 export * from './execution-environment.js';
 export * from './behavior-capture.js';
+export * from './preservation-migration.js';
