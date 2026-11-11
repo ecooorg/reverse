@@ -2,7 +2,7 @@
 
 The design behind each item is described in [ARCHITECTURE.md](ARCHITECTURE.md). Rules for assistants are in [AGENTS.md](../AGENTS.md); the reasons behind accepted tasks are in [AUDIT.md](AUDIT.md).
 
-## How to read this file
+## 0. How to read this file
 
 This file is the single source of truth for **what is done, what is not done and what to do next**. Read it in this order:
 
@@ -16,7 +16,7 @@ This file is the single source of truth for **what is done, what is not done and
 
 **When you finish work, update in the same change:** the [status dashboard](#status-at-a-glance), the checklist of the patch, the [version index](#version-index), the affected backlog rows here and in AUDIT.md, the [debt register](#carry-over-debt-register), `ARCHITECTURE.md` (*planned* to *implemented*), `CAPABILITIES.md` and `MCP.md`.
 
-## Status at a glance
+## 1. Status at a glance
 
 State as of **1.1.0-beta.2** (`package.json` and `src/core-version.ts` agree; documentation-only patch of 2026-11-11 on top; no product change).
 
@@ -31,7 +31,7 @@ State as of **1.1.0-beta.2** (`package.json` and `src/core-version.ts` agree; do
 | What is open but not blocking? | See the [carry-over debt register](#carry-over-debt-register): No open item blocks M. R-20 (sandbox for executed targets), R-11 (PE part), R-10 (`diec`, `yara-x`, `capa`) and F-75 are assigned to M and scheduled in its work order. |
 | What is unverified? | (a) The last **recorded** full-matrix run (`os: all`, Linux, macOS, Windows, Node 22 and 24) is the A–D closure run of 0.2.0-beta.8 (run 42775483864). No later full-matrix run is recorded in the documentation, so macOS and Windows results for patches E–M are **not claimed**; run Actions → Capabilities → `os: all` before declaring any patch done. (b) GitHub artifact upload of the CI diagnostics and the rerun for F-67 are **pending verification**. (c) One known open defect: F-75, two unpinned action references (the R-03 check shows 🚧). |
 
-## Delivery plan: foundation A–L and product patches M–Q
+## 2. Delivery plan: foundation A–L and product patches M–Q
 
 This plan closes **every** item listed in the release sections below (0.2, 0.3, 0.4 and Later), so that Reverse can analyze a program, reverse-engineer it, find the cause of excessive resource use, apply an optimization and prove the result, and then diagnose and restore old software. Each patch is a large, independently releasable unit: it ends in a merged, tested change set, not in a partially working branch. The patches are ordered by dependency; the release sections further down describe the same work item by item.
 
@@ -76,7 +76,7 @@ B and C can proceed in parallel after A; E can start at the same time. G and H c
 
 **Superseded classification.** Earlier drafts of this table listed N *Execution environments*, O *Behavior capture and replay* and P *Function equivalence lab and migration advisor* as separate patches, and M as "Compatibility diagnosis and legacy formats", "1.1–1.5 (waves; initial Windows slice in 1.1.0-beta.1)", depending on E, F, G and J (N depended on G and M, O on I and N, P on O and J). Audit 18 (F-71) replaced that with the platform sequence above. The three capability areas were not dropped: they are acceptance dimensions 3 to 5 of **every** product patch M–Q (see [Scope and acceptance for every product patch](#scope-and-acceptance-for-every-product-patch)).
 
-## Active work: product patches M–Q
+## 3. Active work: product patches M–Q
 
 Patches A–L are the completed 1.0 foundation and remain historical release records. All remaining product work is delivered as **five sequential product patches: M, N, O, P and Q**. These letters are the only active planning units. Detailed plans for N, O, P and Q follow the Patch M checklist below. Do not create parallel tracks, platform-wave sub-patches, M1-style release plans, or separate cross-cutting patch families. A patch may have internal implementation tasks, but it is released and accepted as one product outcome.
 
@@ -548,6 +548,8 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 
 **Q is done when** section 8 (the debts) and the definition of done for N, O, P and Q holds for every supported family, the debt register is empty or every remaining row is an explicit, signed-off limitation, and the release is **2.0.0** with its release record.
 
+-------
+
 ### Patch M history: delivered increments
 
 These are historical progress notes inside Patch M, not separate roadmap units. The open work is in the [Patch M working checklist](#patch-m-working-checklist).
@@ -650,7 +652,7 @@ These capabilities are **not** implemented and must not be described as availabl
 | R-02 untrusted-content hardening (closed in basic form in 0.2.0-beta.5) | Every new source of untrusted text (strings, resources, manifests, package metadata, installer scripts read statically) goes through the existing untrusted-content wrapper with an adversarial fixture, in step 3 of each patch M–Q | approved |
 | Any other row of the backlog or the audits that is open and not listed above | Reviewed at the exit of every patch; any row still open at Q step 10 is closed or becomes a signed-off limitation | approved |
 
-## Completed foundation: patches A–L
+## 4. Completed foundation: patches A–L
 
 Historical records of the 1.0 foundation. These patches are done; do not re-open them. Remaining debts from them are in the [carry-over debt register](#carry-over-debt-register).
 
@@ -855,7 +857,7 @@ Closes audit tasks R-08 and R-18 (core) and quality debts R-03 / F-16 / R-05 (pa
 1. Optional knip/jscpd and R-19 platform helpers when they block real work.
 2. Product patches M–Q in the strict sequence defined below.
 
-## Coverage of the roadmap
+## 5. Coverage of the roadmap
 
 | Roadmap section | Closed by |
 |---|---|
@@ -876,7 +878,7 @@ Closes audit tasks R-08 and R-18 (core) and quality debts R-03 / F-16 / R-05 (pa
 | Hypothesis ledger, similarity providers, authorization, oracles (Audit 3) | D, F, L, M–Q (see the Audit 3 table) |
 | Legacy compatibility and recovery product outcomes | M–Q in strict sequence (see Product delivery after 1.0) |
 
-## Approved audit backlog (Audit 1, approved 2026-11-09)
+## 6. Approved audit backlog (Audit 1, approved 2026-11-09)
 
 Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **approved project task**. Each belongs to exactly one patch (or is already closed). A patch is not done until its rows here are closed and the matching findings in [AUDIT.md](AUDIT.md) carry `Status: closed in <version>`. The capability suite checks that every ID of the audit appears in this table. New audits append their IDs here in the same way. In rows and audits written before the consolidation, the label **M1** is a historical name for the early increments of Patch M (1.1.0-beta.1 and .2); it is not a separate patch.
 
@@ -1030,7 +1032,7 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 
 ---
 
-## Release history
+## 7. Release history
 
 Sequencing principle: do not start with Ghidra and do not try to implement every external analyzer at once. First strengthen Reverse's ability to investigate running programs, detect real performance problems and collect evidence, because the main job of Reverse is to help an AI agent find the causes of excessive resource use and objectively verify optimization results. Linux is the first fully supported profiling environment, with interfaces for Windows and macOS designed in from the start.
 
@@ -1250,7 +1252,7 @@ Criterion 9 is satisfied for tools that receive a `session_id`; the trials on re
 - [ ] (on demand, none required today) Extensions added only when a real need appears, each with its own adapter, contracts, requirements and tests: Browser, GPU, Network, Database, Firmware, Container, Cloud, Compiler, Algorithm, Energy
 - [x] Optional token-gated HTTP MCP transport (Patch K; not full Streamable HTTP)
 
-## Core development order and completion criteria
+## 8. Core development order and completion criteria
 
 Overall order: assemble a standalone version with MCP; implement profiling; implement Benchmark and Validation; integrate with the external AI agent (MCP connection, instructions and skills, context passing, control of experiment sequence and re-checks); verify on real applications. Do not try to build everything at once; build a working compact core first and extend it gradually.
 
