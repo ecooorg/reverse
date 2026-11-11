@@ -399,6 +399,28 @@ check('Legacy Linux', 'analyzeLegacyLinux ELF64 reports Linux profile and interp
         await rm(dir, { recursive: true, force: true });
     }
 });
+check('Legacy Linux', 'linux calibration fixtures evaluate without detector misses', async () => {
+    const calMod = await import(pathToFileURL(path.join(DIST, 'legacy-linux-calibration.js')).href);
+    const writeCraftedLinuxCalibrationFixtures = calMod.writeCraftedLinuxCalibrationFixtures;
+    const runLinuxCalibration = calMod.runLinuxCalibration;
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'cap-ll-cal-'));
+    try {
+        const manifest = await writeCraftedLinuxCalibrationFixtures(dir);
+        const manPath = path.join(dir, 'manifest.json');
+        await writeFile(manPath, JSON.stringify(manifest));
+        const report = await runLinuxCalibration(manPath);
+        assert.equal(report.evaluated, 4);
+        const miss = report.failures.filter((f: string) => /expected detector/.test(f));
+        assert.equal(miss.length, 0, miss.join('; '));
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
+check('Legacy Linux', 'linux sourced tables validate', async () => {
+    const { assertLinuxTablesValid } = await import(pathToFileURL(path.join(DIST, 'legacy-linux-tables.js')).href);
+    assert.equal(assertLinuxTablesValid().length, 0);
+});
 check('Execution', 'sandbox refuses execution outside CONTROLLED_EXECUTION', async () => {
     const { runInSandbox } = await import(pathToFileURL(path.join(DIST, 'execution-sandbox.js')).href);
     const prev = process.env.REVERSE_MODE;
