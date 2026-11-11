@@ -35,8 +35,8 @@ const SCRIPT = [
     '        $rows = @(Get-CimInstance Win32_Process -Filter $filter | Select-Object $props);',
     '      }',
     '      "tree" {',
-    '        $rows = @(Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId,CreationDate',
-    '          | Select-Object $treeProps);',
+    '        $rows = @(Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId,CreationDate |',
+    '          Select-Object $treeProps);
     '      }',
     '      "sample" {',
     '        $targetPid = [int]$request.pid;',

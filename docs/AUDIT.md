@@ -1,3 +1,19 @@
+## Audit 24 — 2026-11-11 — Windows PowerShell 5.1 pipeline continuation recovery (1.3.10)
+
+**Scope.** Diagnose the Windows failures in Capabilities run [43088368503](https://github.com/ecooorg/reverse/actions/runs/43088368503) after the 1.3.9 helper framing correction. Fix the confirmed PowerShell 5.1 syntax defect without changing process, profiling, benchmark or MCP checks. Keep the unrelated Linux Node 22 timeout separate and unresolved. No Patch O work is included.
+
+**Finding.**
+
+- **F-84 — Pipeline operator at the start of a continued line.** The persistent helper's `tree` operation placed `| Select-Object` at the start of the next line. Windows PowerShell 5.1 does not accept that continuation form and reports `An empty pipe element is not allowed`. Move `|` to the end of the preceding `Get-CimInstance` line. A platform-independent regression assertion checks the decoded UTF-16LE script for the valid form and rejects the invalid form.
+
+**Verification.** The patch adds a deterministic script-contract test. Windows runtime verification and the required manual `os: all` workflow have not yet run. The Linux Node 22.23.4 timeout from the earlier run remains independently unresolved; no timeout was increased and no check was weakened.
+
+| ID | Sev | Area | Finding | Status |
+|---|---|---|---|---|
+| F-84 | High | Windows process helper | Windows PowerShell 5.1 rejects a pipeline operator at the start of a continued line in the helper's `tree` operation | Status: fixed in 1.3.10; cross-platform contract test added; Windows CI verification pending |
+
+---
+
 ## Audit 23 — 2026-11-11 — Windows helper protocol recovery and Linux Node 22 timeout (1.3.9)
 
 **Scope.** Diagnose Capabilities run [43084133732](https://github.com/ecooorg/reverse/actions/runs/43084133732). Fix the confirmed Windows persistent PowerShell helper source/framing defect without weakening process, profiling, benchmark or MCP checks. Record the separate Linux Node 22 timeout as unresolved because the available failure brief does not identify a failing capability check. No Patch O work is included.

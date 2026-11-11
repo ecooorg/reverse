@@ -32,4 +32,6 @@ test('PowerShell helper uses UTF-16LE EncodedCommand with real script and protoc
     assert.match(script, /ExecutablePath",\n\s+"ThreadCount"/);
     assert.doesNotMatch(script, /ExecutablePath",\\n/);
     assert.match(script, /while \(\$line = \[Console\]::In\.ReadLine\(\)\)/);
+    assert.match(script, /CreationDate \|\\n\\s+Select-Object \\$treeProps/);
+    assert.doesNotMatch(script, /\\n\\s+\\|\\s*Select-Object/);
 });
