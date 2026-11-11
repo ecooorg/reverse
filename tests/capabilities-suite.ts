@@ -351,6 +351,14 @@ check('Legacy Windows', 'detect-only providers register and report unsupported w
     if (r.status === 'unsupported')
         assert.ok((r.limitations || []).length > 0);
 });
+check('Legacy Windows', 'reference trials run both scenarios with L0 limitations', async () => {
+    const { runLegacyReferenceTrials } = await import(pathToFileURL(path.join(DIST, 'legacy-reference-trials.js')).href);
+    const report = await runLegacyReferenceTrials();
+    assert.equal(report.ok, true);
+    assert.equal(report.trials.length, 2);
+    assert.equal(report.preservation.level, 'L0');
+    assert.ok(report.limitations.some((l: string) => /oracle|licensed/i.test(l)));
+});
 check('Execution', 'sandbox refuses execution outside CONTROLLED_EXECUTION', async () => {
     const { runInSandbox } = await import(pathToFileURL(path.join(DIST, 'execution-sandbox.js')).href);
     const prev = process.env.REVERSE_MODE;
