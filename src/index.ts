@@ -46,3 +46,26 @@ export type { CalibrationManifest, CalibrationExpectation, CalibrationReport, De
 export { WINDOWS_RUNTIME_TABLE, allBuiltinCompatTables, assertBuiltinTablesValid, diagnoseFromTables } from './legacy-compat-tables.js';
 export type { CompatDiagnosis } from './legacy-compat-tables.js';
 export { createDiecProvider, createYaraXProvider, createCapaProvider, registerDetectOnlyProviders } from './providers-detect-tools.js';
+
+export {
+    detectSandboxMechanism,
+    runInSandbox,
+    writeIsolationProbe,
+    type SandboxRequest,
+    type SandboxRunResult,
+    type SandboxMechanism,
+    type SandboxLimits
+} from './execution-sandbox.js';
+export {
+    createWineEnvironment,
+    createDosboxEnvironment,
+    createQemuEnvironment,
+    bootstrapExecutionEnvironments,
+    registerExecutionEnvironment,
+    listExecutionEnvironments,
+    runWorksFailsMatrix,
+    type ExecutionEnvironment,
+    type EnvironmentFingerprint,
+    type WorksFailsCell,
+    type EngineKind
+} from './execution-environment.js';

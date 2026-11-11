@@ -22,6 +22,7 @@ export function bootstrapExternalProviders(): void {
     if (done)
         return;
     done = true;
+    bootstrapExecutionEnvironments();
     for (const p of [
         createGhidraProvider(),
         createGhidraSimilarityProvider(),
