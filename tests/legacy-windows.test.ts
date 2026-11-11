@@ -264,3 +264,49 @@ test('UPX-like packer stub is reported as a heuristic', async () => {
         await rm(dir, { recursive: true, force: true });
     }
 });
+test('hostile-input property: random buffers never throw from analyzeLegacyWindows', async () => {
+    // R-04: adversarial/malformed inputs must not crash the parsers.
+    for (let i = 0; i < 32; i++) {
+        const dir = await mkdtemp(path.join(os.tmpdir(), 'reverse-hostile-'));
+        try {
+            const file = path.join(dir, `h-${i}.bin`);
+            const len = 16 + (i * 97) % 4000;
+            const b = Buffer.alloc(len);
+            for (let j = 0; j < len; j++)
+                b[j] = (i * 13 + j * 17) & 0xff;
+            if (i % 4 === 0) {
+                b.write('MZ', 0, 'ascii');
+                b.writeUInt32LE(0x3c < len ? 0x40 : 0, 0x3c > len - 4 ? 0 : 0x3c);
+            }
+            if (i % 5 === 0 && len > 200) {
+                b.write('MZ', 0, 'ascii');
+                b.writeUInt32LE(128, 0x3c);
+                b.write('PE', 128, 'ascii');
+                b.writeUInt16LE(0, 130);
+            }
+            await writeFile(file, b);
+            const r = await analyzeLegacyWindows(file, testAuth);
+            assert.ok(r.findings[0]);
+            assert.ok(['completed', 'partial', 'failed', 'unsupported'].includes(r.status));
+        }
+        finally {
+            await rm(dir, { recursive: true, force: true });
+        }
+    }
+});
+test('builtin compatibility tables validate and diagnosis cites table ids', async () => {
+    const { assertBuiltinTablesValid, diagnoseFromTables } = await import('../dist/legacy-compat-tables.js');
+    const errors = assertBuiltinTablesValid();
+    assert.deepEqual(errors, []);
+    const findings = diagnoseFromTables({
+        format: 'Windows NE',
+        importedLibraries: ['msvbvm60.dll'],
+        delayImportedLibraries: [],
+        toolchainMarkers: [],
+        hardening: { aslr: null, dep: null },
+        packerNames: []
+    });
+    assert.ok(findings.some(f => f.tableEntryIds.includes('win16-not-on-64bit')));
+    assert.ok(findings.some(f => f.tableEntryIds.includes('vb6-runtime-msvbvm60')));
+    assert.ok(findings.every(f => /\[table:/.test(f.evidence)));
+});

@@ -310,6 +310,47 @@ check('Legacy Windows', 'calibration harness reports precision/recall on crafted
     assert.ok(report.scores.length >= 1);
     assert.equal(report.failures.filter((f: string) => f.includes('format expected')).length, 0);
 });
+check('Legacy Windows', 'support matrix formats are recognized by analyze_legacy_windows', async () => {
+    const cases: Array<{
+        name: string;
+        build: () => Buffer;
+        format: string;
+    }> = [
+        {
+            name: 'mz',
+            build: () => { const b = Buffer.alloc(64); b.write('MZ', 0, 'ascii'); return b; },
+            format: 'DOS MZ'
+        },
+        {
+            name: 'ne',
+            build: () => {
+                const b = Buffer.alloc(256);
+                b.write('MZ', 0, 'ascii');
+                b.writeUInt32LE(128, 0x3c);
+                b.write('NE', 128, 'ascii');
+                return b;
+            },
+            format: 'Windows NE'
+        },
+    ];
+    for (const c of cases) {
+        const r: any = await analyzeLegacyWindows(await craft(`matrix-${c.name}.exe`, c.build()), step1Auth);
+        assert.equal(r.findings[0].format, c.format);
+    }
+});
+check('Legacy Windows', 'builtin compatibility tables validate (G-01)', async () => {
+    const { assertBuiltinTablesValid } = await import(pathToFileURL(path.join(DIST, 'legacy-compat-tables.js')).href);
+    assert.deepEqual(assertBuiltinTablesValid(), []);
+});
+check('Legacy Windows', 'detect-only providers register and report unsupported when absent', async () => {
+    const { createDiecProvider } = await import(pathToFileURL(path.join(DIST, 'providers-detect-tools.js')).href);
+    const p = createDiecProvider();
+    // Force unavailable path: still must not throw and must not fabricate findings
+    const r = await p.analyze('/nonexistent/target.bin');
+    assert.ok(r.status === 'unsupported' || r.status === 'partial' || r.status === 'failed');
+    if (r.status === 'unsupported')
+        assert.ok((r.limitations || []).length > 0);
+});
 // ---------------------------------------------------------------- 2. binary analysis
 check('Binary', 'ELF64 little-endian x86_64 header is parsed (arch, bitness, endian, entry point)', async () => {
     const r = await analyzeBinary(await craft('elf64.bin', elf({ cls: 2, le: true, machine: 62, entry: 0x401000n })));
