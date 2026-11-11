@@ -18,16 +18,16 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.2.0** (Patch M closed — Windows compatibility through 2010; 2026-11-11).
+State as of **1.3.0** (Patch N started — old Linux static inventory; 2026-11-11).
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.2.0** (Patch M release) |
+| What is the product version? | **1.3.0** (Patch N in progress) |
 | What is finished? | The 1.0 foundation (**patches A–L**) and **Patch M** (Windows compatibility through 2010, release **1.2.0**). |
-| What is being built? | **Patch N** — old Linux compatibility (next). Patch M (Windows through 2010) is **done** at **1.2.0**. |
+| What is being built? | **Patch N** — old Linux compatibility (target **1.3**). Status: **in progress**. Delivered: a.out/ELF inventory, Linux Target Profile fields, libc/GCC markers (1.3.0). |
 | What has not started? | **Patches O, P, Q** (Classic Mac/early macOS; legacy Android; newer generations and unified compatibility intelligence). Next is **N** (old Linux). Plans: [Detailed plans for patches N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q). |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Start **Patch N** (old Linux) per its detailed plan. Do not begin O/P/Q before N meets its acceptance criteria. |
+| What is the next concrete step? | Continue Patch N work order: step 2 calibration corpus, step 3 remaining parsers (symbol versions, package metadata, providers), then diagnosis tables. |
 | What is open but not blocking? | See the [carry-over debt register](#carry-over-debt-register): No open item blocks M. R-20 sandbox delivered (Linux-first); Windows/macOS hard isolation remains a recorded limitation. Remaining M work is steps 6–8. |
 | What is unverified? | Residual M limitations (explicit): no bundled licensed Windows oracle (preservation L0); Windows/macOS hard sandbox isolation not wired; deep bound-import coverage still partial where noted in CAPABILITIES. Full-matrix green recorded for commit `b66312e` (Capabilities 43037232211, Structure 43037271948, Supply chain 43037302969). |
 
@@ -221,7 +221,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 
 **Definition of done for each patch (the "N/O/P/Q is done when" line below refers to this list):** every checklist item of the patch, **including section 8, its debts**, is ticked or recorded as an explicit limitation in `CAPABILITIES.md`; the seven acceptance dimensions pass; the capability matrix has no ❌ or ⚠️ and no 🚧 for an in-scope capability of the patch; the manual `os: all` run (Linux, macOS, Windows; Node 22 and 24) is green and its run ID is recorded; a debt may be left open only by a signed-off maintainer decision recorded here and in an AUDIT entry; README, `ARCHITECTURE.md`, `CAPABILITIES.md`, `MCP.md`, `SECURITY.md` and this roadmap are updated; an AUDIT entry records what was verified and what was not; the release record and the version index row are added.
 
-### Patch N working plan — Old Linux software (target release 1.3, not started)
+### Patch N working plan — Old Linux software (target release 1.3, **in progress**)
 
 **Outcome.** Reverse can take an old Linux program (roughly 1993 through 2010: kernel 1.x to 2.6.3x era, libc5 and glibc 2.x, XFree86 and early X.Org desktops) that fails on a current system and (a) identify exactly what it is, (b) name the concrete causes of the failure with sources, (c) run it in a suitable old-userland environment under a sandbox, (d) capture and replay deterministic scenarios, (e) validate a repaired, repackaged or rebuilt version against the original, and (f) rank migration options. The same seven acceptance dimensions apply as for M.
 

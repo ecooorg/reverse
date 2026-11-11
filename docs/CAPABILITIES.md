@@ -125,3 +125,13 @@ The hypothesis ledger is implemented in research sessions: hypotheses are tagged
 ## Remaining product plan (planned, patches M–Q)
 
 The remaining work is one ordered sequence, not parallel capability tracks: M completes Windows through 2010 end-to-end; N delivers old Linux end-to-end; O delivers Classic Mac/early macOS end-to-end; P delivers legacy Android end-to-end; Q extends the workflow to newer generations and unifies compatibility intelligence. Each patch includes the relevant Target Profile, sourced diagnosis, execution, behavior capture/replay, validation and migration reporting. Packer detection, full Target Profile, sourced OS/API availability data and calibrated reference corpus remain open in M. Delphi/VB6/MFC signatures and bounded PE import extraction are static indicators, not calibrated classifications. See [ROADMAP.md](ROADMAP.md).
+
+
+## Legacy Linux (Patch N)
+
+| Capability | Status | Notes |
+|---|---|---|
+| `analyzeLegacyLinux` a.out + ELF32/64 inventory | ✅ | PT_INTERP, DT_NEEDED, RPATH/RUNPATH, PIE/NX/RELRO hints |
+| Linux fields on shared Target Profile | ✅ | libcGeneration, compilerAbiGeneration, dynamicInterpreter, threadModel (stub) |
+| libc5 / glibc / libstdc++ markers | ✅ | Static string/soname heuristics; not calibrated |
+| Symbol version walk, package metadata, execution | 🚧 | Later N steps |
