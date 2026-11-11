@@ -74,7 +74,7 @@ Copy protection, dongles and license checks are reported as facts but are not de
 ## Layers (0.1.0)
 
 - **Analysis Core:** bounded file/header inspection, source inventory, direct manifest dependency inventory.
-- **Process Core:** point-in-time process inventory and selected-process inspection. Windows CIM inventory, single-PID inspection, process-tree snapshots and benchmark sampling share one persistent PowerShell helper process per Reverse process (R-19 Windows; Windows CI verification pending); bounded request timeouts restart a failed helper.
+- **Process Core:** point-in-time process inventory and selected-process inspection. Windows CIM inventory, single-PID inspection, process-tree snapshots and benchmark sampling share one persistent PowerShell helper process per Reverse process (R-19 Windows; Windows CI verification pending after the 1.3.9 newline/framing fix); bounded request timeouts restart a failed helper.
 - **Measurement Core:** bounded OS process sampling and repeated command benchmarks (wall-clock, sampled CPU time and peak RAM, binary size).
 - **Validation Core:** exact caller-supplied stdout/stderr/exit-code checks with optional normalization (whitespace, timestamps, sortLines) and JSON fixture runner. This is not semantic equivalence checking.
 - **Evidence Core:** timestamped, source-linked evidence records, hash-chained research sessions, optional HMAC-SHA256 integrity (`REVERSE_EVIDENCE_KEY`), and local JSON artifacts.

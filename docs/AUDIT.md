@@ -1,3 +1,21 @@
+## Audit 23 — 2026-11-11 — Windows helper protocol recovery and Linux Node 22 timeout (1.3.9)
+
+**Scope.** Diagnose Capabilities run [43084133732](https://github.com/ecooorg/reverse/actions/runs/43084133732). Fix the confirmed Windows persistent PowerShell helper source/framing defect without weakening process, profiling, benchmark or MCP checks. Record the separate Linux Node 22 timeout as unresolved because the available failure brief does not identify a failing capability check. No Patch O work is included.
+
+**Findings.**
+
+- **F-82 — Persistent PowerShell helper used escaped text instead of line boundaries.** The helper assembled its multiline script with the two-character sequence `\\n` and searched stdout for that same sequence; PowerShell received a malformed `Select-Object` expression and exited before returning process data. The source now joins script lines with LF, frames stdout on LF (stripping an optional CR), and starts PowerShell with UTF-16LE `-EncodedCommand` so multiline source is not subject to `-Command` quoting. A platform-independent test decodes the command and checks the real newline contract. Windows execution remains pending a Windows CI run.
+- **F-83 — Linux Node 22 capability-suite timeout/cancellation.** The 1.3.9 source snapshot records that the Linux Node 22 capability job exited with a timeout/cancellation classification in run 43084133732. The available failure brief lists selected successful checks but does not identify the timed-out check or provide the complete test-runner tail. Root cause is therefore unconfirmed; keep open and inspect the full job log on the next run rather than increasing timeouts or weakening checks speculatively.
+
+**Verification.** On Linux with Node 22.16.0 and the available TypeScript 5.8.3 toolchain: `npm test` passes 124/124; a direct capability-suite invocation passes 157/157; `format:check` passes 108 TypeScript files; `quality:static`, size gate, MCP docs check, CI summary tests (12/12), and source/built structure checks pass. `npm ci` was not run, so the locked TypeScript 5.9.3 toolchain is not verified. The `npm run verify` wrapper did not finish within the local command window, although the direct capability suite passed. Windows PowerShell execution and the Linux Node 22.23.4 GitHub matrix remain pending.
+
+| ID | Sev | Area | Finding | Status |
+|---|---|---|---|---|
+| F-82 | High | Windows process helper | Literal escaped newlines malformed the persistent PowerShell script and stdout framing | Status: fixed in 1.3.9; platform-independent contract test added; Windows CI verification pending |
+| F-83 | Medium | CI / Linux Node 22 | Capability suite exited with timeout/cancellation classification; available failure brief does not identify the check | Status: open; requires full Linux Node 22 job-log diagnosis; no timeout policy changed |
+
+---
+
 ## Audit 22 — 2026-11-11 — CI formatting recovery and failure aggregation (1.3.8)
 
 **Scope.** Resolve the first failing gate in Capabilities run [43079862360](https://github.com/ecooorg/reverse/actions/runs/43079862360) and prevent a downstream summary job from obscuring an upstream failure when no capability report exists. No product capability or Patch O work is included.
