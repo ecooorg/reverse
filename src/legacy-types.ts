@@ -61,6 +61,14 @@ export interface TargetProfile {
         tag: string;
         basis: string[];
     }>;
+    /** Linux libc generation when known (Patch N); null/omitted on non-Linux targets. */
+    libcGeneration?: ProfileField<string | null>;
+    /** GCC / libstdc++ ABI generation hints (Patch N). */
+    compilerAbiGeneration?: ProfileField<string | null>;
+    /** Thread model: LinuxThreads, NPTL, unknown (Patch N). */
+    threadModel?: ProfileField<string | null>;
+    /** Interpreter path (PT_INTERP / ld-linux) when present. */
+    dynamicInterpreter?: ProfileField<string | null>;
 }
 /** Operator-declared legal basis for legacy analysis (not legal verification). */
 export interface LegacyAuthorization {

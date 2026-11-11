@@ -51,3 +51,5 @@ export * from './execution-environment.js';
 export * from './behavior-capture.js';
 export * from './preservation-migration.js';
 export * from './legacy-reference-trials.js';
+export { analyzeLegacyLinux } from './legacy-linux.js';
+export type { LegacyLinuxFinding } from './legacy-linux.js';
