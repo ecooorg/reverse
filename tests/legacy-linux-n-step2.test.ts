@@ -34,9 +34,14 @@ test('calibration fixtures score a.out and ELF detectors', async () => {
         const manifest = await writeCraftedLinuxCalibrationFixtures(dir);
         const manPath = join(dir, 'manifest.json');
         await writeFile(manPath, JSON.stringify(manifest, null, 2));
-        const report = await runLinuxCalibration(manPath);
+        await assert.rejects(() => runLinuxCalibration(manPath, { authorization: null }), /authorization/i);
+        const report = await runLinuxCalibration(manPath, { authorization: auth });
+        assert.deepEqual(report.authorization, auth);
         assert.equal(report.evaluated, 4);
         assert.ok(report.scores.length > 0);
+        assert.ok(report.scores.every(score =>
+            score.brierScore !== null && score.expectedCalibrationError !== null
+        ));
         const failedDet = report.failures.filter(f => /expected detector/.test(f));
         assert.equal(failedDet.length, 0, failedDet.join('; '));
     }

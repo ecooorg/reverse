@@ -6,6 +6,12 @@ import { createWineEnvironment } from '../dist/execution-environment.js';
 import { listExecutionEnvironments } from '../dist/execution-environment.js';
 import { runWorksFailsMatrix } from '../dist/execution-environment.js';
 const prevMode = process.env.REVERSE_MODE;
+const auth = {
+    basis: 'open_source' as const,
+    licenseOrConsentReference: 'test-license',
+    declaredBy: 'execution-sandbox.test',
+    declaredAt: '2026-11-11T00:00:00.000Z'
+};
 test('sandbox refuses to run without CONTROLLED_EXECUTION and confirm', async () => {
     process.env.REVERSE_MODE = 'READ_ONLY';
     await assert.rejects(() => runInSandbox({
@@ -73,12 +79,19 @@ test('wine/dosbox/qemu adapters report unsupported when binary is absent', async
     try {
         const wine = createWineEnvironment();
         assert.equal(await wine.available(), false);
-        const r = await wine.run('/tmp/nope.exe', { confirm: true });
+        const r = await wine.run('/tmp/nope.exe', { confirm: true, authorization: auth });
         assert.ok(r.limitations.some(l => /not installed/i.test(l)));
     }
     finally {
         process.env.PATH = prevPath;
     }
+});
+test('legacy execution matrix refuses without authorization', async () => {
+    process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
+    await assert.rejects(
+        () => runWorksFailsMatrix(['/tmp/fixture.exe'], { confirm: true }),
+        /authorization/i
+    );
 });
 test('works/fails matrix marks missing engines as unsupported', async () => {
     process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
@@ -87,7 +100,8 @@ test('works/fails matrix marks missing engines as unsupported', async () => {
     try {
         const cells = await runWorksFailsMatrix(['/tmp/fixture.exe'], {
             confirm: true,
-            limits: { timeoutMs: 3000 }
+            limits: { timeoutMs: 3000 },
+            authorization: auth
         });
         assert.ok(cells.length >= 3);
         assert.ok(cells.every((c: {

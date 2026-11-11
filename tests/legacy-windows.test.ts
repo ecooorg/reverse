@@ -201,6 +201,39 @@ test('sourced data table validator accepts a valid table and rejects the failing
     assert.equal(bad.ok, false);
     assert.ok(bad.errors.length >= 4, `expected multiple errors, got: ${bad.errors.join('; ')}`);
 });
+test('calibration manifests require provenance and hashes for operator corpus and reject embedded payloads', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'reverse-calib-policy-'));
+    try {
+        const { loadCalibrationManifest } = await import('../dist/legacy-calibration.js');
+        const manifestPath = path.join(dir, 'manifest.json');
+        const base = {
+            schemaVersion: '1.0',
+            name: 'operator-corpus',
+            description: 'Local operator corpus',
+            reviewedAt: '2026-11-11',
+            expectations: [{
+                id: 'crafted-user-sample',
+                file: 'sample.bin',
+                format: 'Windows PE'
+            }]
+        };
+        await writeFile(manifestPath, JSON.stringify(base));
+        await assert.rejects(() => loadCalibrationManifest(manifestPath), /requires a valid SHA-256/);
+        const embedded = {
+            ...base,
+            expectations: [{
+                ...base.expectations[0],
+                id: 'crafted-embedded',
+                bytes: 'TVqQ'
+            }]
+        };
+        await writeFile(manifestPath, JSON.stringify(embedded));
+        await assert.rejects(() => loadCalibrationManifest(manifestPath), /never embed binaries/);
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
 test('calibration harness scores crafted fixtures and reports precision/recall', async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), 'reverse-calib-'));
     try {
@@ -208,11 +241,20 @@ test('calibration harness scores crafted fixtures and reports precision/recall',
         const manifest = await writeCraftedCalibrationFixtures(dir);
         const manifestPath = path.join(dir, 'manifest.json');
         await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
-        const report = await runCalibration(manifestPath);
+        await assert.rejects(
+            () => runCalibration(manifestPath, { authorization: null }),
+            /authorization/i
+        );
+        const report = await runCalibration(manifestPath, { authorization: testAuth });
         assert.equal(report.evaluated, 4);
         assert.equal(report.skipped, 0);
         assert.ok(report.scores.length >= 1, 'expected at least one detector score');
+        assert.deepEqual(report.authorization, testAuth);
         for (const s of report.scores) {
+            assert.ok(s.brierScore === null || (s.brierScore >= 0 && s.brierScore <= 1));
+            assert.ok(s.expectedCalibrationError === null ||
+                (s.expectedCalibrationError >= 0 && s.expectedCalibrationError <= 1));
+            assert.ok(Array.isArray(s.calibrationBins));
             if (s.precision !== null)
                 assert.ok(s.precision >= 0 && s.precision <= 1);
             if (s.recall !== null)

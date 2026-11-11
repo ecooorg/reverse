@@ -59,6 +59,6 @@ test('linux reference + behavior helpers still pass', async () => {
     process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
     const trials = await runLegacyLinuxReferenceTrials();
     assert.equal(trials.ok, true);
-    const rt = await runLinuxBehaviorRoundTrip();
+    const rt = await runLinuxBehaviorRoundTrip(undefined, auth);
     assert.equal(rt.equal, true);
 });

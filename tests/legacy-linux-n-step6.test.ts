@@ -9,13 +9,19 @@ test('linux reference trials run both scenarios with L0 limitations', async () =
     const ids = report.trials.map(t => t.id).sort();
     assert.deepEqual(ids, ['compare-versions', 'diagnose-and-advise']);
     assert.equal(report.ok, true, report.trials.map(t => `${t.id}:${t.status}`).join(','));
+    assert.equal(report.authorization.basis, 'open_source');
     assert.equal(report.preservation.level, 'L0');
     assert.ok(report.limitations.some(l => /rootfs|oracle/i.test(l)));
     assert.ok((report.migration?.options.length ?? 0) >= 1);
 });
 test('linux behavior round-trip matches under CONTROLLED_EXECUTION', async () => {
     process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
-    const r = await runLinuxBehaviorRoundTrip();
+    const r = await runLinuxBehaviorRoundTrip(undefined, {
+        basis: 'open_source',
+        licenseOrConsentReference: 'crafted-linux-behavior-fixture',
+        declaredBy: 'legacy-linux-n-step6.test',
+        declaredAt: '2026-11-11T00:00:00.000Z'
+    });
     assert.equal(r.record.observation.exitCode, 0);
     assert.match(r.record.observation.stdout, /linux-behavior-ok/);
     assert.equal(r.equal, true, r.differences.join('; '));

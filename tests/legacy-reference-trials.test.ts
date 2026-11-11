@@ -9,6 +9,8 @@ test('reference trials run both scenarios on crafted fixtures', async () => {
     const ids = report.trials.map(t => t.id).sort();
     assert.deepEqual(ids, golden.expected.trialIds);
     assert.equal(report.ok, true, report.trials.map(t => `${t.id}:${t.status}`).join(','));
+    assert.equal(report.authorization.basis, 'open_source');
+    assert.ok(report.migration?.authorization.declaredBy);
     assert.deepEqual(report.trials.map(t => t.status), golden.expected.trialStatuses);
     assert.equal(report.preservation.level, golden.expected.preservationLevel);
     if (golden.expected.requiresExplicitOracleLimitation)

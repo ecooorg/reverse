@@ -304,7 +304,7 @@ check('Legacy Windows', 'calibration harness reports precision/recall on crafted
     const manifest = await writeCraftedCalibrationFixtures(dir);
     const manifestPath = path.join(dir, 'manifest.json');
     await writeFile(manifestPath, JSON.stringify(manifest));
-    const report = await runCalibration(manifestPath);
+    const report = await runCalibration(manifestPath, { authorization: step1Auth });
     assert.equal(report.evaluated, 4);
     assert.equal(report.skipped, 0);
     assert.ok(report.scores.length >= 1);
@@ -408,8 +408,12 @@ check('Legacy Linux', 'linux calibration fixtures evaluate without detector miss
         const manifest = await writeCraftedLinuxCalibrationFixtures(dir);
         const manPath = path.join(dir, 'manifest.json');
         await writeFile(manPath, JSON.stringify(manifest));
-        const report = await runLinuxCalibration(manPath);
+        const report = await runLinuxCalibration(manPath, { authorization: step1Auth });
         assert.equal(report.evaluated, 4);
+        assert.deepEqual(report.authorization, step1Auth);
+        assert.ok(report.scores.every((score: any) =>
+            score.brierScore !== null && score.expectedCalibrationError !== null
+        ));
         const miss = report.failures.filter((f: string) => /expected detector/.test(f));
         assert.equal(miss.length, 0, miss.join('; '));
     }
@@ -469,7 +473,13 @@ check('Execution', 'works/fails matrix marks absent engines unsupported', async 
     try {
         const cells = await runWorksFailsMatrix(['/tmp/fixture.exe'], {
             confirm: true,
-            limits: { timeoutMs: 2000 }
+            limits: { timeoutMs: 2000 },
+            authorization: {
+                basis: 'open_source',
+                licenseOrConsentReference: 'capability-fixture',
+                declaredBy: 'capabilities-suite',
+                declaredAt: '2026-11-11T00:00:00.000Z'
+            }
         });
         assert.ok(cells.length >= 1);
         assert.ok(cells.every((c: {
@@ -2430,4 +2440,160 @@ check('Agent', 'prompt evaluation harness scores default H-09 lite cases', async
     const r: any = evaluateAgentPrompts();
     assert.equal(r.status, 'completed');
     assert.ok(r.findings.every((f: any) => f.passed));
+});
+
+check('Legacy governance', 'capture/replay requires and preserves declared authorization', async () => {
+    const { captureScenario, replayScenario } = await import(pathToFileURL(path.join(DIST, 'behavior-capture.js')).href);
+    const auth = {
+        basis: 'open_source',
+        licenseOrConsentReference: 'capability-fixture',
+        declaredBy: 'capabilities-suite',
+        declaredAt: '2026-11-11T00:00:00.000Z'
+    };
+    const prev = process.env.REVERSE_MODE;
+    process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
+    const scenario = {
+        schemaVersion: '1.0',
+        id: 'capability-auth-roundtrip',
+        command: process.execPath,
+        args: ['-e', 'process.stdout.write("authorized-roundtrip")']
+    };
+    try {
+        await assert.rejects(
+            () => captureScenario(scenario, { confirm: true }),
+            /authorization/i
+        );
+        const record = await captureScenario(scenario, { confirm: true, authorization: auth });
+        assert.deepEqual(record.authorization, auth);
+        const replay = await replayScenario(scenario, record, { confirm: true, authorization: auth });
+        assert.deepEqual(replay.captureAuthorization, auth);
+        assert.deepEqual(replay.replayAuthorization, auth);
+        assert.equal(replay.equal, true);
+    }
+    finally {
+        if (prev === undefined)
+            delete process.env.REVERSE_MODE;
+        else
+            process.env.REVERSE_MODE = prev;
+    }
+});
+check('Legacy governance', 'preservation reports and migration advice retain authorization and enforce L0 without oracle', async () => {
+    const { computePreservationLevel, adviseMigration, assertLevelRespectsOracle } =
+        await import(pathToFileURL(path.join(DIST, 'preservation-migration.js')).href);
+    const auth = {
+        basis: 'open_source',
+        licenseOrConsentReference: 'capability-fixture',
+        declaredBy: 'capabilities-suite',
+        declaredAt: '2026-11-11T00:00:00.000Z'
+    };
+    const report = computePreservationLevel({
+        oracle: null,
+        comparisons: [],
+        authorization: auth
+    });
+    assert.equal(report.level, 'L0');
+    assert.deepEqual(report.authorization, auth);
+    assert.deepEqual(assertLevelRespectsOracle(report), []);
+    const advice = adviseMigration({
+        authorization: auth,
+        targetSummary: 'capability fixture',
+        findings: [{
+            cause: 'Requires an old runtime',
+            evidence: 'fixture evidence',
+            needsExecutionEnvironment: true
+        }],
+        preservation: report
+    });
+    assert.deepEqual(advice.authorization, auth);
+    assert.ok(advice.options.every((option: any) => option.evidence.length > 0));
+});
+check('Legacy governance', 'calibration corpus manifest rejects embedded data and unprovenanced operator samples', async () => {
+    const { loadCalibrationManifest } = await import(pathToFileURL(path.join(DIST, 'legacy-calibration.js')).href);
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'cap-cal-policy-'));
+    const manifestPath = path.join(dir, 'manifest.json');
+    try {
+        await writeFile(manifestPath, JSON.stringify({
+            schemaVersion: '1.0',
+            name: 'operator-corpus',
+            description: 'local only',
+            reviewedAt: '2026-11-11',
+            expectations: [{
+                id: 'operator-entry',
+                file: '/operator/local/sample.bin'
+            }]
+        }));
+        await assert.rejects(() => loadCalibrationManifest(manifestPath), /requires a valid SHA-256/);
+        await writeFile(manifestPath, JSON.stringify({
+            schemaVersion: '1.0',
+            name: 'crafted-corpus',
+            description: 'local only',
+            reviewedAt: '2026-11-11',
+            expectations: [{
+                id: 'crafted-payload',
+                file: 'fixture.bin',
+                bytes: 'AA=='
+            }]
+        }));
+        await assert.rejects(() => loadCalibrationManifest(manifestPath), /never embed binaries/);
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
+check('Legacy Linux', 'Linux support matrix names the implemented a.out and ELF detectors', () => {
+    const docs = readFileSync(path.join(ROOT, 'docs/CAPABILITIES.md'), 'utf8');
+    assert.match(docs, /Linux a\.out.*ELF32.*ELF64/s);
+    assert.match(docs, /analyze_legacy_linux/);
+});
+check('Roadmap', 'M and N status, version and O entry criteria are internally consistent', () => {
+    const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
+    const architecture = readFileSync(path.join(ROOT, 'docs/ARCHITECTURE.md'), 'utf8');
+    const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+    assert.equal(pkg.version, '1.3.7');
+    assert.match(roadmap, /State as of \*\*1\.3\.7\*\*/);
+    assert.match(roadmap, /Patch M.*\*\*done\*\*/s);
+    assert.match(roadmap, /Patch N.*\*\*done\*\*/s);
+    assert.match(roadmap, /Patch O.*not started/i);
+    assert.doesNotMatch(architecture, /M remains open until its complete end-to-end acceptance criteria pass/);
+});
+
+check('Legacy governance', 'legacy profiles never emit analogy labels without a deterministic basis', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'cap-analogy-'));
+    try {
+        const file = path.join(dir, 'target.exe');
+        await writeFile(file, Buffer.from('MZ'));
+        const finding = (await analyzeLegacyWindows(file, step1Auth)).findings[0];
+        const tag = finding.targetProfile.analogyTag;
+        if (tag) {
+            assert.ok(tag.evidence.length > 0);
+            assert.ok(tag.value.basis.length > 0);
+            assert.ok(tag.confidence >= 0 && tag.confidence <= 1);
+        }
+        else {
+            assert.equal(tag, undefined);
+        }
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
+check('Providers', 'Ghidra similarity does not fabricate a zero score without a local engine', async () => {
+    const { createGhidraSimilarityProvider } = await import(pathToFileURL(path.join(DIST, 'providers-ghidra.js')).href);
+    const prevPath = process.env.PATH;
+    const prevHome = process.env.GHIDRA_INSTALL_DIR;
+    process.env.PATH = '/nonexistent-ghidra';
+    process.env.GHIDRA_INSTALL_DIR = '/nonexistent-ghidra';
+    try {
+        const provider = createGhidraSimilarityProvider();
+        const result = await provider.compareFunctions?.('/tmp/a', '/tmp/b');
+        assert.equal(result?.status, 'unsupported');
+        assert.deepEqual(result?.findings, []);
+    }
+    finally {
+        process.env.PATH = prevPath;
+        if (prevHome === undefined)
+            delete process.env.GHIDRA_INSTALL_DIR;
+        else
+            process.env.GHIDRA_INSTALL_DIR = prevHome;
+    }
 });
