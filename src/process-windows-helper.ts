@@ -61,7 +61,9 @@ export function windowsHelperLaunchArguments(): string[] {
 function detachFromEventLoop(proc: ChildProcessWithoutNullStreams): void {
     proc.unref();
     for (const stream of [proc.stdin, proc.stdout, proc.stderr])
-        (stream as unknown as { unref?: () => void }).unref?.();
+        (stream as unknown as {
+            unref?: () => void;
+        }).unref?.();
 }
 function startHelper(): ChildProcessWithoutNullStreams {
     if (child && child.exitCode === null && !child.killed)
