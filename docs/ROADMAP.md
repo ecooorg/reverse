@@ -18,16 +18,16 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.1.5** (Patch M through work-order step 5: sandbox and execution environments; 2026-11-11).
+State as of **1.1.6** (Patch M through work-order step 5: sandbox and execution environments; 2026-11-11).
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.1.5** (prerelease of the 1.2 milestone) |
+| What is the product version? | **1.1.6** (prerelease of the 1.2 milestone) |
 | What is finished? | The 1.0 foundation, **patches A–L**: process intelligence, benchmark engine, evidence and research sessions, static analysis, providers (Ghidra, Rizin, JADX, Apktool, Frida, GDB, profilers), validation and integrity, controlled optimization loop, JS/.NET/WASM analyzers, agent integration. 60 MCP tools. Own code in `src/`: about 9,300 lines (budget 20,000–30,000). |
-| What is being built? | **Patch M** — complete Windows compatibility, DOS through Windows 7-era software (up to 2010); target release **1.2**. Status: **in progress**. Delivered so far: initial detector slices (1.1.0-beta.1, 1.1.5). |
+| What is being built? | **Patch M** — complete Windows compatibility, DOS through Windows 7-era software (up to 2010); target release **1.2**. Status: **in progress**. Delivered so far: initial detector slices (1.1.0-beta.1, 1.1.6). |
 | What has not started? | **Patches N, O, P, Q** (old Linux; Classic Mac/early macOS; legacy Android; newer generations and unified compatibility intelligence). Do not start them before M passes its acceptance criteria. Their detailed plans (scope, work order, checklists, debts, exit criteria) are in [Detailed plans for patches N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q). |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Follow the [work order inside M](#work-order-inside-m-approved-by-the-maintainer-2026-11-11). **Steps 0–5 done** (sandbox + Wine/DOSBox/QEMU adapters; hard Windows/macOS isolation still a recorded limitation). Next is **step 6**: behavior capture and replay. |
+| What is the next concrete step? | Follow the [work order inside M](#work-order-inside-m-approved-by-the-maintainer-2026-11-11). **Steps 0–6 done** (behavior capture/replay scenarios). Next is **step 7**: preservation and migration. |
 | What is open but not blocking? | See the [carry-over debt register](#carry-over-debt-register): No open item blocks M. R-20 sandbox delivered (Linux-first); Windows/macOS hard isolation remains a recorded limitation. Remaining M work is steps 6–8. |
 | What is unverified? | Full-matrix CI is recorded for commit `66fee60` (2026-11-11): [Capabilities](https://github.com/ecooorg/reverse/actions/runs/43024000265) Success — Linux/macOS/Windows × Node 22/24 and package on Ubuntu/Windows; [Structure](https://github.com/ecooorg/reverse/actions/runs/43024033261) Success — Ubuntu/macOS/Windows; [Supply chain](https://github.com/ecooorg/reverse/actions/runs/43024423915) Success. Each workflow produced one final artifact (`Capabilities` / `Structure` / `Supply chain`). Previous baseline remains A–D closure run 42775483864 (0.2.0-beta.8). |
 
@@ -110,20 +110,20 @@ Every patch must deliver all of the following for its target family, with honest
 - Internal work breakdowns are not patch names and must not appear as competing roadmap classifications.
 - Each patch has one scope, one acceptance checklist, one release record and one capability-gate result. A documentation-only maintenance change does not count as a product patch and is not folded into these five deliverables.
 - Preserve backward compatibility and all existing safety gates. Legacy analysis is limited to open-source software or software with full rights-holder consent; operating-system images and proprietary tools are user supplied, never bundled.
-- The initial Windows slice in 1.1.0-beta.1 and detector increment in 1.1.5 are historical progress within M, not separate future roadmap units. M remains open until its complete Windows outcome passes the criteria above.
+- The initial Windows slice in 1.1.0-beta.1 and detector increment in 1.1.6 are historical progress within M, not separate future roadmap units. M remains open until its complete Windows outcome passes the criteria above.
 
 **Version policy:** M 1.2, N 1.3, O 1.4, P 1.5, Q 2.0. Do not assign versions to internal tasks or invent intermediate patch labels. Patch L remains part of the completed 1.0 foundation, not a parallel future track.
 
 ### Patch M working checklist
 
-Patch M is **in progress** (target release 1.2). The items below are *internal tasks*, grouped by the seven acceptance dimensions above; they are not patches and must not be given patch labels or versions. A box is ticked only where code and a passing check exist at 1.1.5. Backlog IDs refer to the [approved audit backlog](#approved-audit-backlog-audit-1-approved-2026-11-09).
+Patch M is **in progress** (target release 1.2). The items below are *internal tasks*, grouped by the seven acceptance dimensions above; they are not patches and must not be given patch labels or versions. A box is ticked only where code and a passing check exist at 1.1.6. Backlog IDs refer to the [approved audit backlog](#approved-audit-backlog-audit-1-approved-2026-11-09).
 
 **1. Target Profile and static inventory**
 - [x] DOS MZ, Windows NE, LE, LX and PE header recognition (1.1.0-beta.1).
 - [x] Machine, PE bitness and subsystem extraction from the bounded header window.
 - [x] Bounded scan (8 MiB) for selected Borland/Delphi, VB6, MFC, Visual C++, DirectX and Glide markers.
-- [x] Bounded PE import table: imported libraries and named functions (1.1.5).
-- [x] Static framework signatures: Delphi form/RTTI-style, VB6 metadata, MFC class/message-map (1.1.5). Indicators with explicit confidence, **not calibrated**.
+- [x] Bounded PE import table: imported libraries and named functions (1.1.6).
+- [x] Static framework signatures: Delphi form/RTTI-style, VB6 metadata, MFC class/message-map (1.1.6). Indicators with explicit confidence, **not calibrated**.
 - [x] Delay imports detected (IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT); bound imports and out-of-window tables remain a known limitation.
 - [x] PE hardening flags: ASLR, DEP, CFG, SEH from DllCharacteristics (R-11 PE part); ELF flags go to N.
 - [x] Opt-in detect-only providers `diec`, `yara-x`, `capa` registered (R-10 subset); unavailable when absent, never simulated.
@@ -556,7 +556,7 @@ These are historical progress notes inside Patch M, not separate roadmap units. 
 
 This prerelease adds `analyze_legacy_windows` and `declare_legacy_authorization`, the session authorization record, deterministic executable-header recognition (MZ/NE/LE/LX/PE), bounded selected marker scanning, and preliminary compatibility candidates. It closes only the legal-policy documentation item and the initial authorization/header-detector sub-slice; it does **not** close G-01/G-02/G-07/G-09 or the Windows wave. Remaining M checklist items are intentionally unchecked.
 
-#### Patch M1 implementation note — historical label for the same patch M — 1.1.5 (Windows detector expansion)
+#### Patch M1 implementation note — historical label for the same patch M — 1.1.6 (Windows detector expansion)
 
 - [x] Bounded PE import-table parsing reports imported libraries and named functions without executing the target.
 - [x] Static VB6/MFC runtime-import signatures and Delphi form-stream, VCL RTTI-style, VB6 metadata and MFC class/message-map signatures are reported with explicit confidence and evidence.
@@ -581,11 +581,11 @@ This record was previously headed "CI diagnostics mini-patch". It is maintenance
 
 ## Carry-over debt register
 
-Approved tasks that are **not** closed, collected from the backlog, the patch records and the audits, so that nothing hides inside a patch marked done. None of them is recorded as blocking Patch M. "State" says what was verified at 1.1.5; "No implementation found" means a search of `src/` for the feature found nothing. Every assignment below was approved by the maintainer on 2026-11-11 and is part of the plan. The task itself lives as a checkbox inside the plan of the patch that owns it (Patch M checklist section 8; section 8 of the N, O, P and Q plans), so a patch can be worked from its own description alone; this register and the debt closure schedule are indexes.
+Approved tasks that are **not** closed, collected from the backlog, the patch records and the audits, so that nothing hides inside a patch marked done. None of them is recorded as blocking Patch M. "State" says what was verified at 1.1.6; "No implementation found" means a search of `src/` for the feature found nothing. Every assignment below was approved by the maintainer on 2026-11-11 and is part of the plan. The task itself lives as a checkbox inside the plan of the patch that owns it (Patch M checklist section 8; section 8 of the N, O, P and Q plans), so a patch can be worked from its own description alone; this register and the debt closure schedule are indexes.
 
 ### Approved tasks without delivery or without recorded closure
 
-| ID | Task | Backlog assignment | State at 1.1.5 | Handling |
+| ID | Task | Backlog assignment | State at 1.1.6 | Handling |
 |---|---|---|---|---|
 | F-75 / R-03 | Pin the two remaining tag references in `.github/workflows/supply-chain.yml` to full commit SHAs | 1.0.1 (R-03 recorded closed) | **Closed** in this increment (step 0 of M): both remaining tags pinned to `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a` (v7.0.1); R-03 check is ✅ | *Closed:* work order step 0 |
 | R-20 | Sandbox for executed targets under `CONTROLLED_EXECUTION` (bwrap/unshare, sandbox-exec, Job Objects/AppContainer or a container provider; no network by default; scratch directory; rlimits) | G (done) | No implementation found. Only the cgroup v2 limiter exists; SECURITY.md lists the gap | *Approved:* inside M, work order step 5, before any execution environment is added, because M is the first patch that runs legacy targets |
@@ -920,13 +920,13 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-61 | No reverse setup / skill install | closed in **1.0.0 / L** |
 | F-62 | No H-09 prompt evaluation harness | closed in **1.0.1** (lite) |
 | F-63 | No deterministic Windows legacy executable header/marker analyzer | initial slice in **1.1.0-beta.1 / M**; full M1 detector matrix remains open |
-| F-64 | No recorded declared authorization basis for legacy analysis | initial gate in **1.1.0-beta.1 / M**; report provenance closed in **1.1.5 / M1**; future operation gates remain open |
+| F-64 | No recorded declared authorization basis for legacy analysis | initial gate in **1.1.0-beta.1 / M**; report provenance closed in **1.1.6 / M1**; future operation gates remain open |
 | F-65 | Initial M slice not reflected consistently in package metadata and project documentation | closed in **1.1.0-beta.1 / M** |
 | F-66 | CI AI summary could crash or omit actionable diagnostics | closed in **1.1.0-beta.1 maintenance** |
 | F-67 | CI AI summary could misclassify capability-suite test failures as formatting failures | fix in **1.1.0-beta.1 maintenance**; verified by regression tests; GitHub rerun pending verification |
-| F-68 | Windows legacy analyzer lacked PE imports and structural framework signatures | closed in **1.1.5 / M1** (bounded static detectors; corpus calibration remains open) |
-| F-69 | Legacy compatibility candidates ignored PE import evidence | closed in **1.1.5 / M1** (selected imports; OS API availability tables remain open) |
-| F-70 | Legacy authorization was not embedded in analysis results | closed in **1.1.5 / M1** |
+| F-68 | Windows legacy analyzer lacked PE imports and structural framework signatures | closed in **1.1.6 / M1** (bounded static detectors; corpus calibration remains open) |
+| F-69 | Legacy compatibility candidates ignored PE import evidence | closed in **1.1.6 / M1** (selected imports; OS API availability tables remain open) |
+| F-70 | Legacy authorization was not embedded in analysis results | closed in **1.1.6 / M1** |
 | F-71 | Future platform and cross-cutting work used overlapping patch classifications | closed in documentation-only planning patch (2026-11-10); no product capability claimed |
 
 ### Findings (Audit 4, A–D closure review, 2026-11-10)
@@ -975,7 +975,7 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-72 | ROADMAP structure and status drift: a stale A–P dependency table without Q, no working checklist for Patch M, unticked 0.3/0.4/Later checklists for delivered patches, "closed when the run is green" statuses after a green run, planning notes after the last section | closed in documentation-only consolidation patch (2026-11-11); no product capability claimed |
 | F-73 | Cross-document drift: README tool count (34 versus 60), CAPABILITIES header and MCP row, mixed Windows tables, GITHUB.md action pins, duplicated ARCHITECTURE sentence, unstructured MCP.md rows, AUDIT.md notice in the middle of the file | closed in documentation-only consolidation patch (2026-11-11); no product capability claimed |
 | F-74 | Approved tasks (R-10, R-11, R-12, R-14, R-15, R-20 and others) stayed assigned to completed patches with no recorded delivery | closed in documentation-only consolidation patch (2026-11-11) by the [carry-over debt register](#carry-over-debt-register); the tasks themselves remain open |
-| F-75 | Two action references in `supply-chain.yml` are tags, not SHAs; the R-03 check shows 🚧 although R-03 was recorded as closed in 1.0.1 | closed in 1.1.5, Patch M step 0 |
+| F-75 | Two action references in `supply-chain.yml` are tags, not SHAs; the R-03 check shows 🚧 although R-03 was recorded as closed in 1.0.1 | closed in 1.1.6, Patch M step 0 |
 
 ### Recommendations
 
@@ -1057,7 +1057,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.0.0 | Foundation A–K on a green capability matrix; Patch L core | Patch K, Patch L |
 | 1.0.1 | Hygiene: SHA-pinned Actions, harness split, `quality:static`, lite H-09 | Patch L |
 | 1.1.0-beta.1 | Patch M initial Windows slice; CI diagnostics maintenance | [Patch M history](#patch-m-history-delivered-increments) |
-| 1.1.5 | Patch M Windows detector expansion | Patch M history |
+| 1.1.6 | Patch M Windows detector expansion | Patch M history |
 | 1.2.0 | Patch M complete (planned) | — |
 | 1.3 / 1.4 / 1.5 / 2.0 | Patches N / O / P / Q (planned) | — |
 

@@ -91,6 +91,7 @@ Process sampling remains read-only. It captures an OS start-time identity token 
 | Opt-in detect-only providers `diec`, `yara-x`, `capa` | step 3 | 🚧 | Registered; report `unsupported` when absent — never simulated |
 | Sandbox for executed targets (R-20): scratch dir, timeout, process-group kill; bwrap/unshare on Linux when present | step 5 | ✅ | No network by default only when bwrap/unshare available; Windows/macOS hard isolation not wired; requires CONTROLLED_EXECUTION + confirm |
 | ExecutionEnvironment contract + Wine / DOSBox / QEMU adapters | step 5 | ✅ | Detect-only when binary absent; never simulated; works/fails matrix from real runs |
+| Behavior capture and replay (scenario, normalize, compare) | step 6 | ✅ | Requires CONTROLLED_EXECUTION; duration not compared; nondeterminism must be listed in volatileFields |
 
 | Target Profile envelope (per-field evidence/confidence/coverage) | step 1 | ✅ | Installer field null until detectors land; confidence uncalibrated |
 | Calibration harness (crafted fixtures + operator hash manifests) | step 2 | ✅ | Operator corpus optional; nothing uploaded |
