@@ -48,3 +48,4 @@ export type { CompatDiagnosis } from './legacy-compat-tables.js';
 export { createDiecProvider, createYaraXProvider, createCapaProvider, registerDetectOnlyProviders } from './providers-detect-tools.js';
 export * from './execution-sandbox.js';
 export * from './execution-environment.js';
+export * from './behavior-capture.js';

@@ -3,7 +3,7 @@
  * Linux first: bwrap or unshare when available; other platforms record limitations.
  * Never claims isolation it cannot enforce. Requires CONTROLLED_EXECUTION + confirm.
  */
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { mkdtemp, rm, writeFile, readFile, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -180,15 +180,15 @@ export async function runInSandbox(req: SandboxRequest): Promise<SandboxRunResul
             },
             stdio: ['ignore', 'pipe', 'pipe'],
             detached: true
-        }) as ChildProcessWithoutNullStreams;
+        });
         let stdout = '';
         let stderr = '';
-        child.stdout.on('data', (c: Buffer) => {
+        child.stdout?.on('data', (c: Buffer) => {
             stdout += c.toString('utf8');
             if (stdout.length > 256000)
                 stdout = stdout.slice(0, 256000);
         });
-        child.stderr.on('data', (c: Buffer) => {
+        child.stderr?.on('data', (c: Buffer) => {
             stderr += c.toString('utf8');
             if (stderr.length > 128000)
                 stderr = stderr.slice(0, 128000);
