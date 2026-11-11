@@ -504,3 +504,13 @@ Supply chain [43037302969](https://github.com/ecooorg/reverse/actions/runs/43037
 Annotations that appeared on those green runs as "error-like lines" were false positives from TAP self-tests whose names contain the word "failure"; `ci-ai-summary` no longer emits Annotations for suspicious-only (no failed step / junit / capability issue).
 
 Explicit product limitations at M exit: no bundled licensed Windows oracle (preservation L0); Windows/macOS hard sandbox isolation not wired; partial PE bound-import coverage as noted in CAPABILITIES.md.
+
+## Maintenance note — Patch N release 1.3.5 (2026-11-11)
+
+Patch N is closed. Evidence: green full-matrix runs on commit `b5ea3fa` — Capabilities [43059743774](https://github.com/ecooorg/reverse/actions/runs/43059743774),
+Structure [43059819947](https://github.com/ecooorg/reverse/actions/runs/43059819947),
+Supply chain [43059851184](https://github.com/ecooorg/reverse/actions/runs/43059851184).
+
+The first red run of this stage (MCP contract: 61 served tools against 60 documented, `analyze_legacy_linux` missing from the fixture and from `docs/MCP.md`) was fixed by aligning the fixture and documentation with the served tool surface; the tool itself was already correct.
+
+Explicit product limitations at N exit: no old-Linux rootfs or oracle bundled (preservation L0); kernel-ABI faults need a VM; string-residue verneed summary only; `goblin` not wired. Step 0 debts R-01, R-05, R-07, R-19 (Windows part) and `fast-check` for R-04 stay open in the carry-over register.

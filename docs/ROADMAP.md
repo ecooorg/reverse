@@ -18,18 +18,18 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.3.5** (Patch N close-up: verneed summary, MCP linux tool, lief; 2026-11-11).
+State as of **1.3.5** (Patch N closed; 2026-11-11).
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.3.5** (Patch N in progress) |
-| What is finished? | The 1.0 foundation (**patches A–L**) and **Patch M** (Windows compatibility through 2010, release **1.2.0**). |
-| What is being built? | **Patch N** — old Linux compatibility (target **1.3**). Status: **in progress**. Delivered: N steps through reference/behavior (1.3.0–1.3.4); verneed summary, GLIBC/GLIBCXX diagnosis, MCP analyze_legacy_linux, lief detect-only (1.3.5). |
-| What has not started? | **Patches O, P, Q** (Classic Mac/early macOS; legacy Android; newer generations and unified compatibility intelligence). Next is **N** (old Linux). Plans: [Detailed plans for patches N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q). |
+| What is the product version? | **1.3.5** (Patch N closed) |
+| What is finished? | The 1.0 foundation (**patches A–L**) and **Patch M** (Windows compatibility through 2010, release **1.2.0**) and **Patch N** (old Linux compatibility, closed at **1.3.5**). |
+| What is being built? | Nothing is in progress. Next is **Patch O** (Classic Mac and early macOS, target **1.4**); it may start once its entry criteria hold (see the shared rules). Patch N delivered: Linux Target Profile fields, a.out/ELF inventory, sourced diagnosis, environments, behavior capture/replay, reference trials, verneed-oriented summary, MCP `analyze_legacy_linux` and the detect-only `lief` provider. |
+| What has not started? | **Patches O, P, Q** (Classic Mac/early macOS; legacy Android; newer generations and unified compatibility intelligence). Next is **O**. Plans: [Detailed plans for patches N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q). |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Security review, os:all green matrix, explicit residual limitations, and release **1.3.0** when exit criteria hold. |
+| What is the next concrete step? | Start Patch O at its step 0 (debts due: F-08 macOS part, R-19 macOS part). The N step 0 debts that stayed open are carried over (see the register). |
 | What is open but not blocking? | See the [carry-over debt register](#carry-over-debt-register): No open item blocks M. R-20 sandbox delivered (Linux-first); Windows/macOS hard isolation remains a recorded limitation. Remaining M work is steps 6–8. |
-| What is unverified? | Residual M limitations (explicit): no bundled licensed Windows oracle (preservation L0); Windows/macOS hard sandbox isolation not wired; deep bound-import coverage still partial where noted in CAPABILITIES. Full-matrix green recorded for commit `b66312e` (Capabilities 43037232211, Structure 43037271948, Supply chain 43037302969). |
+| What is unverified? | Residual N limitations (explicit): no bundled old-Linux rootfs or oracle (preservation stays L0); containers share the host kernel, so kernel-ABI faults are not confirmed without a VM; the verneed summary is a string-residue scan, not a full `SHT_GNU_verneed` walk; `goblin` is not wired; libc/compiler generation heuristics are not calibrated beyond the crafted fixtures. Full-matrix green recorded for commit `b5ea3fa` (Capabilities 43059743774, Structure 43059819947, Supply chain 43059851184). Windows/macOS hard sandbox isolation remains a recorded limitation from M. |
 
 ## Delivery plan: foundation A–L and product patches M–Q
 
@@ -67,7 +67,7 @@ One table for every patch. Patches A–L are the completed 1.0 foundation; M–Q
 | K | Runtime analyzers and on-demand extensions | 1.0 | F, J | done |
 | L | Agent integration and distribution | 1.x (core in 1.0.0, hygiene in 1.0.1) | D, J | done (full H-09 harness and optional single-file binary remain open) |
 | M | Windows compatibility, DOS through Windows 7-era (up to 2010) | 1.2 | A–L foundation; steps 0–8; reference trials | **done** (1.2.0) |
-| N | Old Linux software | 1.3 | M shared contracts and evidence model | not started |
+| N | Old Linux software | 1.3 | M shared contracts and evidence model | **done** (1.3.5) |
 | O | Classic Mac and early macOS software | 1.4 | N shared contracts and environment/replay foundations | not started |
 | P | Legacy Android software | 1.5 | O shared contracts; Android foundations already present in E/J | not started |
 | Q | Newer generations and unified compatibility intelligence | 2.0 | M–P complete | not started |
@@ -221,7 +221,9 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 
 **Definition of done for each patch (the "N/O/P/Q is done when" line below refers to this list):** every checklist item of the patch, **including section 8, its debts**, is ticked or recorded as an explicit limitation in `CAPABILITIES.md`; the seven acceptance dimensions pass; the capability matrix has no ❌ or ⚠️ and no 🚧 for an in-scope capability of the patch; the manual `os: all` run (Linux, macOS, Windows; Node 22 and 24) is green and its run ID is recorded; a debt may be left open only by a signed-off maintainer decision recorded here and in an AUDIT entry; README, `ARCHITECTURE.md`, `CAPABILITIES.md`, `MCP.md`, `SECURITY.md` and this roadmap are updated; an AUDIT entry records what was verified and what was not; the release record and the version index row are added.
 
-### Patch N working plan — Old Linux software (target release 1.3, **in progress**)
+### Patch N working plan — Old Linux software (target release 1.3, **done**, closed at 1.3.5)
+
+**Closure (2026-11-11).** Patch N is closed at **1.3.5** with the release record below. Work-order steps 1–8 were delivered in the 1.3.0–1.3.5 line. Items of this plan that stayed unticked are recorded as explicit limitations or carry-over debts in the [register](#carry-over-debt-register) and in `CAPABILITIES.md`; none of them is a ❌ or ⚠️ in the capability matrix.
 
 **Outcome.** Reverse can take an old Linux program (roughly 1993 through 2010: kernel 1.x to 2.6.3x era, libc5 and glibc 2.x, XFree86 and early X.Org desktops) that fails on a current system and (a) identify exactly what it is, (b) name the concrete causes of the failure with sources, (c) run it in a suitable old-userland environment under a sandbox, (d) capture and replay deterministic scenarios, (e) validate a repaired, repackaged or rebuilt version against the original, and (f) rank migration options. The same seven acceptance dimensions apply as for M.
 
@@ -309,13 +311,13 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 
 **Out of scope and known limits.** Kernel-mode code, drivers and kernel modules; hardware-specific software without an emulator; copy-protected or encrypted commercial software without rights-holder consent; reconstructing proprietary libraries. Containers cannot reproduce old kernel behavior, so those faults are diagnosed in a VM or reported as unconfirmed.
 
-**N is done when** section 8 (the debts) and the definition of done for N, O, P and Q holds for the Linux family and the release is **1.3.0** with its release record.
+**N is done when** section 8 (the debts) and the definition of done for N, O, P and Q holds for the Linux family and the release has its release record. **Recorded:** closed at **1.3.5** (the release line 1.3.x; see [1.3.5 — Patch N closed](#135--patch-n-closed-old-linux-compatibility)). Step 0 debts R-01, R-05, R-07 (generation), R-19 (Windows part) and `fast-check` for R-04 are not delivered and move to the carry-over register as open items (no blocker for O).
 
 ### Patch O working plan — Classic Mac and early macOS software (target release 1.4, not started)
 
 **Outcome.** Reverse can take a classic Mac OS or early Mac OS X program (roughly System 1 in 1984 through Mac OS X 10.6 in 2009–2010) and (a) identify its code model, resources and bundle layout, (b) name the concrete causes it fails on a current Mac, (c) run it in a suitable emulator or virtual machine under a sandbox, (d) capture and replay deterministic scenarios, (e) validate a repaired, repackaged or rebuilt version against the original, and (f) rank migration options.
 
-**Entry criteria.** Patch N released as 1.3.0 (see the shared rules above).
+**Entry criteria.** Patch N released as 1.3.5 (closed; see the shared rules above).
 
 **Target families and era boundaries.**
 
@@ -594,11 +596,11 @@ Approved tasks that are **not** closed, collected from the backlog, the patch re
 | R-10 | Opt-in providers: lief/goblin, objdump/readelf, capa, yara-x, diec, syft, osv-scanner, cargo-auditable, Go build info | E, F, H (done) | Only rz-bin/Rizin, Ghidra, JADX, Apktool and profilers exist; the others: no implementation found | *Approved:* `diec`, `yara-x`, `capa` in M step 3; `lief`/`goblin`, `objdump`/`readelf` in N step 3; `syft`, `osv-scanner`, `cargo-auditable`, Go build info in Q step 4 or an explicit won't-do with sign-off |
 | R-12 | Profile ingestion in standard formats (perf, pprof, `.cpuprofile`, Speedscope, Firefox Profiler); eBPF via bpftrace | H (done) | Export shape closed in 0.2.0-beta.6; ingestion: no implementation found | *Approved:* Android formats in P step 6; the other formats, ETW and network I/O in Q step 6 |
 | R-15 | Golden results and the three reference trials as manual CI jobs | J (done) | Fixture trials run in the suite; golden results and dedicated manual CI jobs: no implementation found | *Approved:* M step 8, then each later patch step 8; completed in Q steps 0 and 10 |
-| R-01 | Mutation testing (Stryker) on pure modules | D (done) | No mutation runner configured | *Approved:* N step 0 (box in the N plan, section 8) |
+| R-01 | Mutation testing (Stryker) on pure modules | D (done) | No mutation runner configured | *Approved:* N step 0, **not delivered; carried over after N closed at 1.3.5** (box in the N plan, section 8) |
 | R-04 | Fuzz and property tests (`fast-check`) for parsers | D (done) | Partial: deterministic hostile process-parser corpus; `fast-check` and binary-parser fuzzing open | *Approved:* step 3 of M, N, O and P for the parsers each patch adds (boxes in sections 1 or 8 of those plans); newer-generation parsers in Q step 4 |
-| R-05 | Linter, `knip`, `jscpd`, own-line size gate | C (done) | Partial: strict TypeScript, format gate, size gate, `quality:static`; `knip`, `jscpd` and a dedicated linter not installed | *Approved:* N step 0 (box in the N plan, section 8) |
-| R-07 | Contract-first MCP (docs generated from one definition) | D (done) | Partial: schemas, profiles, errors, pagination, size budget exist; docs are contract-tested, not generated | *Approved:* N step 0 (box in the N plan, section 8) |
-| R-19 | Windows/macOS metric parity: persistent helpers instead of a fork per sample; `typeperf`/ETW and `libproc` | D/H (done) | Open: PowerShell helper forks per sample | *Approved:* Windows part in N step 0; macOS part in O step 0 (boxes in those plans, section 8) |
+| R-05 | Linter, `knip`, `jscpd`, own-line size gate | C (done) | Partial: strict TypeScript, format gate, size gate, `quality:static`; `knip`, `jscpd` and a dedicated linter not installed | *Approved:* N step 0, **not delivered; carried over after N closed at 1.3.5** (box in the N plan, section 8) |
+| R-07 | Contract-first MCP (docs generated from one definition) | D (done) | Partial: schemas, profiles, errors, pagination, size budget exist; docs are contract-tested, not generated | *Approved:* N step 0, **not delivered; carried over after N closed at 1.3.5** (box in the N plan, section 8) |
+| R-19 | Windows/macOS metric parity: persistent helpers instead of a fork per sample; `typeperf`/ETW and `libproc` | D/H (done) | Open: PowerShell helper forks per sample | *Approved:* Windows part in N step 0 (**not delivered; carried over after N closed at 1.3.5**); macOS part in O step 0 (boxes in those plans, section 8) |
 | F-08 | Single-PID fast path for inspection and sampling | B (done) | Linux and Windows done; macOS reads the full table | *Approved:* O step 0 (box in the O plan, section 8) |
 | F-06 | MCP protocol: stateless 2026 protocol era | D (done) | Stateful revisions through 2025-11-25 only | *Approved:* Q step 0 (box in the Q plan, section 6) |
 | R-08 / R-18 / H-09 | Full live-agent evaluation corpus harness; optional single-file binary | L | Core shipped in 1.0.0; lite evaluation (`evaluateAgentPrompts`) in 1.0.1; full harness and single binary open | *Approved:* Q step 9 (box in the Q plan, section 6) |
@@ -1036,6 +1038,17 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 
 ## Release history
 
+### 1.3.5 — Patch N closed (old Linux compatibility) — 2026-11-11
+
+- **Scope delivered.** Linux fields on the shared Target Profile; a.out and ELF32/64 inventory (PT_INTERP, DT_NEEDED, RPATH/RUNPATH, PIE/NX/RELRO hints); libc5/glibc/libstdc++ generation markers; calibration fixtures with a precision/recall harness; sourced libc, libstdc++, desktop and audio diagnosis tables; package metadata readers (RPM/DEB/makeself/gzip, static only); opt-in `readelf`, `objdump` and `lief` detect-only providers; qemu-user, chroot-rootfs and OSS-shim environments (unavailable when absent); behavior capture/replay helper on the shared sandbox; two reference trials on crafted lawful fixtures; verneed-oriented GLIBC/GLIBCXX summary; MCP `analyze_legacy_linux` behind the session authorization gate (61 tools).
+- **Explicit limitations.** No old-Linux rootfs or licensed oracle bundled, so preservation stays L0 unless the operator supplies one; containers share the host kernel, so kernel-ABI faults need a VM; the verneed summary is a string-residue scan, not a full `SHT_GNU_verneed` structure walk; `goblin` is not wired; generation heuristics are calibrated only on crafted fixtures; Windows/macOS hard sandbox isolation is still not wired.
+- **Carry-over (not delivered in N).** R-01 (Stryker), R-05 (linter, `knip`, `jscpd`), R-07 (MCP docs generated from one definition; they stay contract-tested), R-19 Windows part (persistent helper) and `fast-check` property tests for the a.out/ELF/archive parsers (R-04). They stay open in the debt register; the closure date is unchanged (none may remain open past the exit of Q).
+- **Verification.** `os: all` green on commit `b5ea3fa`:
+  - Capabilities [43059743774](https://github.com/ecooorg/reverse/actions/runs/43059743774)
+  - Structure [43059819947](https://github.com/ecooorg/reverse/actions/runs/43059819947)
+  - Supply chain [43059851184](https://github.com/ecooorg/reverse/actions/runs/43059851184)
+- **Version index.** 1.3.5 closes Patch N; next product patch is **O** (Classic Mac/early macOS) → 1.4.
+
 ### 1.2.0 — Patch M closed (Windows compatibility through 2010) — 2026-11-11
 
 - **Scope delivered.** Target Profile + authorization gate; PE/NE/LE/LX/MZ detectors; sourced compatibility tables and diagnosis; calibration harness; Linux-first sandbox + Wine/DOSBox/QEMU adapters (detect-only when absent); behavior capture/replay; preservation L0–L3 (oracle rule); migration advisor; two reference trials on crafted lawful fixtures.
@@ -1071,7 +1084,8 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.1.0-beta.1 | Patch M initial Windows slice; CI diagnostics maintenance | [Patch M history](#patch-m-history-delivered-increments) |
 | 1.1.8 | Patch M Windows detector expansion | Patch M history |
 | 1.2.0 | Patch M closed (Windows through 2010) | 2026-11-11; runs 43037232211 / 43037271948 / 43037302969 |
-| 1.3 / 1.4 / 1.5 / 2.0 | Patches N / O / P / Q (planned) | — |
+| 1.3.5 | Patch N closed (old Linux compatibility) | 2026-11-11; runs 43059743774 / 43059819947 / 43059851184 |
+| 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP
 

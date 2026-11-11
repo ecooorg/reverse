@@ -1,6 +1,6 @@
 ## Status
 
-Patch **M** closed at **1.2.0** (2026-11-11). Residual limitations listed per row (L0 without oracle; sandbox hard-isolation gaps).
+Patch **M** closed at **1.2.0** and Patch **N** closed at **1.3.5** (2026-11-11). Residual limitations listed per row (L0 without oracle; sandbox hard-isolation gaps; no full `SHT_GNU_verneed` walk, no `goblin`).
 
 # Capability matrix
 
