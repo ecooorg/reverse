@@ -6,12 +6,7 @@ import path from 'node:path';
 import { analyzeLegacyWindows } from '../dist/legacy-windows.js';
 import { EvidenceEngine } from '../dist/evidence-engine.js';
 import { LegacyAuthorizationError, requireLegacyGate } from '../dist/legacy-gate.js';
-import {
-    validateSourcedDataTable,
-    exampleSourcedTable,
-    invalidSourcedTableFixture
-} from '../dist/legacy-tables.js';
-
+import { validateSourcedDataTable, exampleSourcedTable, invalidSourcedTableFixture } from '../dist/legacy-tables.js';
 /** Valid authorization for unit tests (gate requires it after step 1). */
 const testAuth = {
     basis: 'open_source' as const,
@@ -19,7 +14,6 @@ const testAuth = {
     declaredBy: 'unit-test',
     declaredAt: new Date().toISOString()
 };
-
 test('legacy Windows detector recognizes DOS MZ and 16-bit NE', async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), 'reverse-legacy-'));
     try {
@@ -186,30 +180,48 @@ test('legacy analysis result carries the declared authorization provenance', asy
         await rm(dir, { recursive: true, force: true });
     }
 });
-
 test('shared gate refuses analyze_legacy_windows without authorization', async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), 'reverse-legacy-gate-'));
     try {
         const file = path.join(dir, 'no-auth.exe');
         await writeFile(file, Buffer.from('MZ'));
-        await assert.rejects(
-            () => analyzeLegacyWindows(file, null),
-            (err: Error) => err instanceof LegacyAuthorizationError || /authorization|consent/i.test(err.message)
-        );
-        await assert.rejects(
-            () => requireLegacyGate({ operation: 'test_op' }),
-            (err: Error) => err instanceof LegacyAuthorizationError || /authorization|consent/i.test(err.message)
-        );
+        const isAuthErr = (err: Error) => err instanceof LegacyAuthorizationError
+            || /authorization|consent/i.test(err.message);
+        await assert.rejects(() => analyzeLegacyWindows(file, null), isAuthErr);
+        await assert.rejects(() => requireLegacyGate({ operation: 'test_op' }), isAuthErr);
     }
     finally {
         await rm(dir, { recursive: true, force: true });
     }
 });
-
 test('sourced data table validator accepts a valid table and rejects the failing fixture', () => {
     const good = validateSourcedDataTable(exampleSourcedTable());
     assert.equal(good.ok, true, good.errors.join('; '));
     const bad = validateSourcedDataTable(invalidSourcedTableFixture());
     assert.equal(bad.ok, false);
     assert.ok(bad.errors.length >= 4, `expected multiple errors, got: ${bad.errors.join('; ')}`);
+});
+test('calibration harness scores crafted fixtures and reports precision/recall', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'reverse-calib-'));
+    try {
+        const { writeCraftedCalibrationFixtures, runCalibration } = await import('../dist/legacy-calibration.js');
+        const manifest = await writeCraftedCalibrationFixtures(dir);
+        const manifestPath = path.join(dir, 'manifest.json');
+        await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+        const report = await runCalibration(manifestPath);
+        assert.equal(report.evaluated, 4);
+        assert.equal(report.skipped, 0);
+        assert.ok(report.scores.length >= 1, 'expected at least one detector score');
+        for (const s of report.scores) {
+            if (s.precision !== null)
+                assert.ok(s.precision >= 0 && s.precision <= 1);
+            if (s.recall !== null)
+                assert.ok(s.recall >= 0 && s.recall <= 1);
+        }
+        // Format expectations should hold for NE and PE
+        assert.equal(report.failures.filter(f => f.includes('format expected')).length, 0);
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
 });

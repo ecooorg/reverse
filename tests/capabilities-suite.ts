@@ -283,19 +283,32 @@ check('Legacy Windows', 'shared gate refuses legacy analysis without authorizati
     let refused = false;
     try {
         await analyzeLegacyWindows(await craft('legacy-no-auth.exe', b), null);
-    } catch {
+    }
+    catch {
         refused = true;
     }
     assert.equal(refused, true, 'analyze_legacy_windows must refuse without authorization');
 });
 check('Legacy Windows', 'sourced data table format validates good tables and rejects the failing fixture', async () => {
-    const { validateSourcedDataTable, exampleSourcedTable, invalidSourcedTableFixture } =
-        await import(pathToFileURL(path.join(DIST, 'legacy-tables.js')).href);
+    const tables = await import(pathToFileURL(path.join(DIST, 'legacy-tables.js')).href);
+    const { validateSourcedDataTable, exampleSourcedTable, invalidSourcedTableFixture } = tables;
     const good = validateSourcedDataTable(exampleSourcedTable());
     assert.equal(good.ok, true, good.errors?.join('; '));
     const bad = validateSourcedDataTable(invalidSourcedTableFixture());
     assert.equal(bad.ok, false);
     assert.ok(bad.errors.length >= 4);
+});
+check('Legacy Windows', 'calibration harness reports precision/recall on crafted fixtures', async () => {
+    const { writeCraftedCalibrationFixtures, runCalibration } = await import(pathToFileURL(path.join(DIST, 'legacy-calibration.js')).href);
+    const dir = await mkdtemp(path.join(WORK, 'calib-'));
+    const manifest = await writeCraftedCalibrationFixtures(dir);
+    const manifestPath = path.join(dir, 'manifest.json');
+    await writeFile(manifestPath, JSON.stringify(manifest));
+    const report = await runCalibration(manifestPath);
+    assert.equal(report.evaluated, 4);
+    assert.equal(report.skipped, 0);
+    assert.ok(report.scores.length >= 1);
+    assert.equal(report.failures.filter((f: string) => f.includes('format expected')).length, 0);
 });
 // ---------------------------------------------------------------- 2. binary analysis
 check('Binary', 'ELF64 little-endian x86_64 header is parsed (arch, bitness, endian, entry point)', async () => {
