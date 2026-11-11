@@ -327,7 +327,7 @@ export async function buildSummary({ logsDir = DEFAULT_LOG_DIR, rootDir = '.', e
 /** Emit the failure brief so it appears under Actions → Annotations (and job summary). */
 function emitGitHubAnnotations(markdown, stats) {
   if (process.env.GITHUB_ACTIONS !== 'true') return;
-  const hasProblems = stats.failures || stats.junitFailures || stats.capabilityIssues || stats.suspicious;
+  const hasProblems = stats.failures || stats.junitFailures || stats.capabilityIssues;
   if (!hasProblems) return;
 
   const full = String(markdown);
