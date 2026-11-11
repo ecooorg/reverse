@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { result } from './core-types.js';
 import { profileField, type LegacyAuthorization, type TargetProfile } from './legacy-types.js';
 import { assertAuthorizationPresent, requireLegacyGate } from './legacy-gate.js';
+import { diagnoseFromTables } from './legacy-compat-tables.js';
 export type { LegacyAuthorization, TargetProfile } from './legacy-types.js';
 export interface PeHardeningFlags {
     aslr: boolean | null;
@@ -412,90 +413,46 @@ export async function analyzeLegacyWindows(file: string, authorization: LegacyAu
     const packerHeuristics = detectPackerHeuristics(b, peOffset);
     const structuralDetectors = detectStructure(text, imports.libraries);
     const toolchainMarkers = markerRules.filter(([re]) => re.test(text)).map(([, label]) => label);
-    const compatibilityFindings: LegacyWindowsFinding['compatibilityFindings'] = [];
-    if (format === 'DOS MZ' || format === 'Windows NE')
-        compatibilityFindings.push({
-            cause: '16-bit DOS/Windows execution is not native on 64-bit Windows.',
-            evidence: `Detected ${format} executable header.`,
-            confidence: 0.99,
-            limitations: ['Header detection does not prove the program is runnable or identify all DOS extenders.'],
-            needsExecutionEnvironment: true
-        });
-    if (format === 'Windows LE' || format === 'Windows LX')
-        compatibilityFindings.push({
-            cause: 'Legacy 32-bit linear-executable format may require a compatible loader or OS.',
-            evidence: `Detected ${format} executable header.`,
-            confidence: 0.99,
-            limitations: ['The specific loader/runtime requirement is not inferred from the header alone.'],
-            needsExecutionEnvironment: true
-        });
-    const vbEvidence = [
-        ...toolchainMarkers.filter(x => x.includes('Visual Basic 6')),
-        ...imports.libraries.filter(x => /msvbvm|vb40032/.test(x))
-    ];
-    if (vbEvidence.length)
-        compatibilityFindings.push({
-            cause: 'The application may depend on the Visual Basic runtime.',
-            evidence: vbEvidence.join('; '),
-            confidence: imports.libraries.some(x => /msvbvm|vb40032/.test(x)) ? 0.99 : 0.85,
-            limitations: ['Static evidence does not prove runtime availability or use on every path.'],
-            needsExecutionEnvironment: true
-        });
-    const graphicsEvidence = [
-        ...toolchainMarkers.filter(x => x.includes('DirectX') || x.includes('Glide')),
-        ...imports.libraries.filter(x => /^(ddraw|d3d|d3drm|glide)/.test(x))
-    ];
-    if (graphicsEvidence.length)
-        compatibilityFindings.push({
-            cause: 'The application may depend on legacy graphics APIs or drivers.',
-            evidence: graphicsEvidence.join('; '),
-            confidence: imports.libraries.some(x => /^(ddraw|d3d|d3drm|glide)/.test(x)) ? 0.98 : 0.8,
-            limitations: ['Static evidence does not prove an active code path or required driver version.'],
-            needsExecutionEnvironment: true
-        });
-    if (format === 'Windows PE' && hardening.dllCharacteristics !== null) {
-        if (hardening.aslr === false)
-            compatibilityFindings.push({
-                cause: 'PE image does not claim ASLR (DYNAMIC_BASE).',
-                evidence: hardening.evidence.join('; '),
-                confidence: 0.95,
-                limitations: ['DllCharacteristics reflects the link-time flag, not runtime policy.'],
-                needsExecutionEnvironment: false
-            });
-        if (hardening.dep === false)
-            compatibilityFindings.push({
-                cause: 'PE image does not claim DEP/NX (NX_COMPAT).',
-                evidence: hardening.evidence.join('; '),
-                confidence: 0.95,
-                limitations: ['DllCharacteristics reflects the link-time flag, not runtime policy.'],
-                needsExecutionEnvironment: false
-            });
-    }
-    if (delayImportedLibraries.length)
-        compatibilityFindings.push({
-            cause: 'Binary uses delay-load imports; the delayed modules may be absent at first load.',
-            evidence: delayImportedLibraries.join(', '),
-            confidence: 0.9,
-            limitations: ['Delay-import presence does not prove the delayed path is taken.'],
-            needsExecutionEnvironment: true
-        });
-    if (packerHeuristics.length)
+    const tableFindings = diagnoseFromTables({
+        format,
+        importedLibraries: imports.libraries,
+        delayImportedLibraries,
+        toolchainMarkers,
+        hardening: { aslr: hardening.aslr, dep: hardening.dep },
+        packerNames: packerHeuristics.map(p => p.name)
+    });
+    const compatibilityFindings: LegacyWindowsFinding['compatibilityFindings'] = tableFindings.map(f => ({
+        cause: f.cause,
+        evidence: f.evidence,
+        confidence: f.confidence,
+        limitations: f.limitations,
+        needsExecutionEnvironment: f.needsExecutionEnvironment
+    }));
+    if (packerHeuristics.length && !compatibilityFindings.some(c => /Packer/i.test(c.cause))) {
         compatibilityFindings.push({
             cause: 'Packer/protector heuristics fired; static inventory may be incomplete.',
             evidence: packerHeuristics.map(p => p.name).join('; '),
             confidence: Math.max(...packerHeuristics.map(p => p.confidence)),
-            limitations: ['Heuristics are not a substitute for diec/yara-x/capa providers.'],
+            limitations: [
+                'Heuristics are not a substitute for diec/yara-x/capa providers.',
+                'No sourced table row claims a specific packer family beyond the heuristic name.'
+            ],
             needsExecutionEnvironment: true
         });
-    const mfcLibraries = imports.libraries.filter(x => /mfc/.test(x));
-    if (mfcLibraries.length)
+    }
+    if (delayImportedLibraries.length &&
+        !compatibilityFindings.some(c => /delay-load/i.test(c.cause))) {
         compatibilityFindings.push({
-            cause: 'The application imports a versioned Microsoft Foundation Classes runtime.',
-            evidence: mfcLibraries.join(', '),
-            confidence: 0.99,
-            limitations: ['Import presence does not establish whether the runtime is installed on the target system.'],
+            cause: 'Binary uses delay-load imports; delayed modules may be absent at first load.',
+            evidence: delayImportedLibraries.join(', '),
+            confidence: 0.9,
+            limitations: [
+                'Delay-import presence does not prove the delayed path is taken.',
+                'No OS-version availability is inferred without a matching table row.'
+            ],
             needsExecutionEnvironment: true
         });
+    }
     const formatEvidence = format === 'unknown'
         ? ['No recognized MZ/NE/LE/LX/PE signature in the bounded header window.']
         : [`Header signature for ${format} at offset 0 / e_lfanew.`];

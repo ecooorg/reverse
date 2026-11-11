@@ -15,6 +15,7 @@ import { createSimpleperfProvider } from './providers-native-profile.js';
 import { createJavascriptProvider } from './providers-runtime.js';
 import { createDotnetProvider } from './providers-runtime.js';
 import { createWasmProvider } from './providers-runtime.js';
+import { createDiecProvider, createYaraXProvider, createCapaProvider } from './providers-detect-tools.js';
 let done = false;
 /** Register opt-in external adapters once. Safe to call multiple times. */
 export function bootstrapExternalProviders(): void {
@@ -37,7 +38,10 @@ export function bootstrapExternalProviders(): void {
         createSimpleperfProvider(),
         createJavascriptProvider(),
         createDotnetProvider(),
-        createWasmProvider()
+        createWasmProvider(),
+        createDiecProvider(),
+        createYaraXProvider(),
+        createCapaProvider()
     ]) {
         try {
             registerProvider(p);

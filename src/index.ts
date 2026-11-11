@@ -43,3 +43,6 @@ export type { ProfileField, SourcedTableEntry, SourcedDataTable, TableValidation
 export { validateSourcedDataTable, exampleSourcedTable, invalidSourcedTableFixture } from './legacy-tables.js';
 export { loadCalibrationManifest, runCalibration, writeCraftedCalibrationFixtures } from './legacy-calibration.js';
 export type { CalibrationManifest, CalibrationExpectation, CalibrationReport, DetectorScore } from './legacy-calibration.js';
+export { WINDOWS_RUNTIME_TABLE, allBuiltinCompatTables, assertBuiltinTablesValid, diagnoseFromTables } from './legacy-compat-tables.js';
+export type { CompatDiagnosis } from './legacy-compat-tables.js';
+export { createDiecProvider, createYaraXProvider, createCapaProvider, registerDetectOnlyProviders } from './providers-detect-tools.js';
