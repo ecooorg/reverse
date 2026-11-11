@@ -1,6 +1,6 @@
 ## Status
 
-Patch **M** closed at **1.2.0** and Patch **N** closed at **1.3.5** (2026-11-11). Residual limitations listed per row (L0 without oracle; sandbox hard-isolation gaps; no full `SHT_GNU_verneed` walk, no `goblin`).
+Patch **M** closed at **1.2.0** and Patch **N** closed at **1.3.5** (2026-11-11); post-N debt increment **1.3.6** closes MCP-doc generation and the Linux untrusted-content/golden-trial portions, and implements the Windows persistent helper pending Windows CI. Residual limitations listed per row (L0 without oracle; sandbox hard-isolation gaps; no full `SHT_GNU_verneed` walk, no `goblin`).
 
 # Capability matrix
 
@@ -12,13 +12,14 @@ This file states what really works and what does not. Planned work is only in th
 | Android APK/AAB | ZIP inventory: entries, `classes*.dex`, `lib/<abi>/*.so`, ABI list, AndroidManifest/resources.arsc presence, R8/ProGuard path indicators, sibling Gradle lock notes (Patch E) | Binary AXML not decoded; no DEX class listing; no full Gradle resolution |
 | Source | Bounded file inventory (5000 files, 2 MiB read per file), extension counts, approximate lines, **comment- and string-aware external imports** (JS/TS/Python/Go/Rust/Java), package manifest (Patch E) | Not a full language AST; no call graph, dead-code proof, or vulnerability scan |
 | Dependencies | package.json direct deps plus **lockfile resolution** (package-lock, yarn.lock, Cargo.lock, go.sum, requirements.txt, poetry.lock) with transitive/lock-only nodes and duplicate-version notes (Patch E) | No CVE database, no registry outdated query, no size/replacement recommendations |
-| Processes | Visible inventory (listing cap 500; single-process inspection searches the full inventory), PID/PPID, executable/arguments, uptime, threads, RSS/VMS, CPU time where exposed, disk I/O and open-FD count on Linux; visible child tree; start-time identity tokens; UID ownership checks on Linux/macOS | No memory maps or thread stacks; Linux selected-PID inspection uses a direct `/proc/<pid>` fast path and Windows a filtered single-PID WMI query (macOS still reads the full table); Windows ownership is not verified; macOS does not report thread counts (BSD `ps` has no such column); cross-platform metrics are not at parity |
+| Processes | Visible inventory (listing cap 500; single-process inspection searches the full inventory), PID/PPID, executable/arguments, uptime, threads, RSS/VMS, CPU time where exposed, disk I/O and open-FD count on Linux; visible child tree; start-time identity tokens; UID ownership checks on Linux/macOS | No memory maps or thread stacks; Linux selected-PID inspection uses a direct `/proc/<pid>` fast path and Windows uses a persistent PowerShell CIM helper for inventory, filtered single-PID inspection and process-tree snapshots (Windows helper verification pending; macOS still reads the full table); Windows ownership is not verified; macOS does not report thread counts (BSD `ps` has no such column); cross-platform metrics are not at parity |
 | Profiling | Process-level time series (CPU/RSS/IO); **function hotspots via `get_hotspots` when perf/sample is present and CONTROLLED_EXECUTION is set** (Patch H); disk I/O via `get_process_io` on Linux | Network per-process metrics limited; hotspots never fabricated without a real profiler |
-| Benchmark | Repeated command execution, wall-clock duration, median/mean/min/max, stdout/stderr hard-capped at 1 MiB (bytes) per stream with truncation flags, whole-process-tree kill on timeout | Per-run CPU time and peak RAM are SAMPLED (Linux `/proc`, macOS `ps`; lower bounds, direct child only) and Windows uses PowerShell `Get-Process` sampling (higher overhead; short runs may have no sample); I/O metrics and hardware normalization are not implemented. Interleaved benchmark suites and local baseline artifacts are available. Also reported: binary size of the command, cold/warm label (first process of a call is `cold`; the OS file cache is not dropped). Statistics: P95, std-dev, MAD, outliers, 95% interval, warm-up runs, environment fingerprint; `compare_results` returns `improved`, `regressed`, `no_significant_change` or `insufficient_evidence` (Mann-Whitney plus bootstrap, at least 5 successful runs per side) |
+| Benchmark | Repeated command execution, wall-clock duration, median/mean/min/max, stdout/stderr hard-capped at 1 MiB (bytes) per stream with truncation flags, whole-process-tree kill on timeout | Per-run CPU time and peak RAM are SAMPLED (Linux `/proc`, macOS `ps`; lower bounds, direct child only) and Windows uses the persistent PowerShell `Get-Process` helper (Windows CI verification pending; first-sample startup overhead remains; very short runs may have no sample); I/O metrics and hardware normalization are not implemented. Interleaved benchmark suites and local baseline artifacts are available. Also reported: binary size of the command, cold/warm label (first process of a call is `cold`; the OS file cache is not dropped). Statistics: P95, std-dev, MAD, outliers, 95% interval, warm-up runs, environment fingerprint; `compare_results` returns `improved`, `regressed`, `no_significant_change` or `insufficient_evidence` (Mann-Whitney plus bootstrap, at least 5 successful runs per side) |
 | Validation | Exact expected exit code/stdout/stderr checks; truncated output never matches; a clean mismatch is `completed` with `passed: false` | Not semantic equivalence, test discovery, or proof of correctness |
 | Evidence | Typed evidence records, source/time/confidence/limitations/hash, local ID-addressable JSON artifacts, atomic writes and streamed file hashing; research sessions with hash-chained entries, evidence created from analyzer results through `session_id`, and a separate hypothesis ledger with content-checked promotion | Optional HMAC-SHA256 session signing is implemented (patch I); Merkle root and public-key detached signatures are not implemented (ROADMAP debt register, R-14); no remote artifact store |
 | Safety | `READ_ONLY` by default; `OBSERVE` samples only verified-owned processes; explicit `CONTROLLED_EXECUTION` scoped cgroup-v2 resource-limit API on delegated Linux hierarchies; ownership and identity checks before moving a process | No OS sandbox or filesystem/network isolation; Windows/macOS hard process quotas are not implemented; cgroup availability depends on delegation and permissions |
 | MCP | stdio JSON-RPC initialize, ping, tools/list, tools/call; protocol revisions through 2025-11-25; tool titles, annotations and output schemas; request cancellation; benchmark suites and research-session tools; prompts and resources methods (`prompts/list`, `prompts/get`, `resources/list`, `resources/read`, patch L); optional Bearer-token HTTP `POST /rpc` (patch K) | No stateless 2026-07-28 protocol era, roots or OAuth; the HTTP transport is optional, localhost by default and not full MCP Streamable HTTP |
+| MCP tool documentation | `docs/MCP.md` tool table generated from the `src/mcp-tools*.ts` registry; `npm run docs:mcp:check` gates drift | The human-written protocol and transport sections remain maintained separately |
 
 ## Status semantics
 
@@ -147,3 +148,18 @@ The remaining work is one ordered sequence, not parallel capability tracks: M co
 | MCP `analyze_legacy_linux` | ✅ | Session authorization required |
 | Opt-in lief detect-only provider | ✅ | Unavailable when missing; never simulated |
 | Full SHT_GNU_verneed structure walk, goblin | 🚧 | Residual; string summary covers practical diagnosis |
+
+
+## Patch N carry-over debt closure (1.3.6)
+
+| Debt | Status | Evidence |
+|---|---|---|
+| R-07 MCP contract-first documentation | ✅ | Generated table from the same built tool registry used by `tools/list`; check runs in `npm run verify` and Capabilities CI |
+| R-19 Windows persistent helper | 🚧 pending Windows CI | One PowerShell process serves CIM inventory, single-PID inspection, process-tree snapshots and benchmark samples; Windows lifecycle test is added but has not run on Windows yet |
+| R-02 Linux untrusted text | ✅ | `analyzeLegacyLinux` applies `wrapUntrusted` at its library boundary; adversarial ELF PT_INTERP fixture verifies marker and truncation |
+| R-15 Linux golden trials | ✅ | Golden manifest and manual `Patch N Linux golden trials` workflow; fixture trials remain L0 without an oracle |
+
+
+## Dependency-free static quality gate (R-05 / F-33 partial)
+
+`npm run quality:static` is now included in the `quality` and `verify` scripts and in the Capabilities workflow alongside the format and source-size gates. It checks duplicate-like source files and TODO/FIXME markers without adding dependencies. This does **not** close R-05: a dedicated linter, `knip` and `jscpd` remain open.

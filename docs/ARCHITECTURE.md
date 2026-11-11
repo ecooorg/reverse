@@ -1,6 +1,6 @@
 # Architecture
 
-Sections marked **implemented**, or named after the patch that delivered them, describe what exists today (1.3.5). Headings still marked **(0.1.0)** (*Layers*, *Data flow*) describe the original structure that every later patch kept. Sections marked **(planned)** describe the target design and the patch in which it is scheduled; see [ROADMAP.md](ROADMAP.md) (start with its *Status at a glance*). Nothing marked *planned* should be treated as implemented.
+Sections marked **implemented**, or named after the patch that delivered them, describe what exists today (1.1.0-beta.2). Headings still marked **(0.1.0)** (*Layers*, *Data flow*) describe the original structure that every later patch kept. Sections marked **(planned)** describe the target design and the patch in which it is scheduled; see [ROADMAP.md](ROADMAP.md) (start with its *Status at a glance*). Nothing marked *planned* should be treated as implemented.
 
 ## Purpose and design principles
 
@@ -26,7 +26,7 @@ Development rules:
 
 ## Product goal and sequential product plan (patches M–Q)
 
-**Goal.** Reverse must let an agent fully analyze modern **and old** programs without source, find why they do not work or work badly on modern hardware and in a modern environment, and propose concrete improvements or a full rework with the highest verifiable preservation of functionality. Patches A–L form the completed 1.0 foundation. All remaining product work is delivered in one sequence: M (Windows through 2010), N (old Linux), O (Classic Mac/early macOS), P (legacy Android), and Q (newer generations plus unified compatibility intelligence). Do not plan separate platform waves or cross-cutting patch tracks. The initial Windows slice in 1.1.0-beta.1/.2 was partial progress inside M; Patch M completed at 1.2.0 and Patch N completed at 1.3.5. See [ROADMAP.md](ROADMAP.md).
+**Goal.** Reverse must let an agent fully analyze modern **and old** programs without source, find why they do not work or work badly on modern hardware and in a modern environment, and propose concrete improvements or a full rework with the highest verifiable preservation of functionality. Patches A–L form the completed 1.0 foundation. All remaining product work is delivered in one sequence: M (Windows through 2010), N (old Linux), O (Classic Mac/early macOS), P (legacy Android), and Q (newer generations plus unified compatibility intelligence). Do not plan separate platform waves or cross-cutting patch tracks. The initial Windows slice in 1.1.0-beta.1/.2 is partial progress inside M; M remains open until its complete end-to-end acceptance criteria pass. See [ROADMAP.md](ROADMAP.md).
 
 **Authorized use only.** The legacy track exists to help developers and rights holders restore old programs that no longer work. Reverse therefore works only with (a) open-source software, under its license, or (b) software whose developers and rights holders have given full consent to the analysis and any resulting rework. The basis is declared by the operator and recorded in the research session; Reverse cannot verify legal status and does not claim to. See [SECURITY.md](SECURITY.md).
 
@@ -71,7 +71,7 @@ Copy protection, dongles and license checks are reported as facts but are not de
 ## Layers (0.1.0)
 
 - **Analysis Core:** bounded file/header inspection, source inventory, direct manifest dependency inventory.
-- **Process Core:** point-in-time process inventory and selected-process inspection.
+- **Process Core:** point-in-time process inventory and selected-process inspection. Windows CIM inventory, single-PID inspection, process-tree snapshots and benchmark sampling share one persistent PowerShell helper process per Reverse process (R-19 Windows; Windows CI verification pending); bounded request timeouts restart a failed helper.
 - **Measurement Core:** bounded OS process sampling and repeated command benchmarks (wall-clock, sampled CPU time and peak RAM, binary size).
 - **Validation Core:** exact caller-supplied stdout/stderr/exit-code checks with optional normalization (whitespace, timestamps, sortLines) and JSON fixture runner. This is not semantic equivalence checking.
 - **Evidence Core:** timestamped, source-linked evidence records, hash-chained research sessions, optional HMAC-SHA256 integrity (`REVERSE_EVIDENCE_KEY`), and local JSON artifacts.
@@ -295,9 +295,15 @@ The default is `READ_ONLY`; new programs are studied in a mode that makes no cha
 
 CPU and RAM control must not be presented as full system isolation. Real hard limits need separate OS mechanisms such as cgroups on Linux.
 
+## Untrusted legacy-analysis data
+
+Linux ELF strings, dynamic names and package metadata are target-controlled input. `analyzeLegacyLinux` applies the shared `wrapUntrusted` envelope at the library boundary, so direct API callers receive the same string-length and total-response bounds as MCP callers; the MCP transport applies its outer response guard as well. The adversarial ELF interpreter fixture verifies that an overlong target string is marked and truncated.
+
 ## Interface
 
 ### MCP tools
+
+The MCP tool registry in `src/mcp-tools*.ts` is the source of truth for `tools/list`. `tests/mcp-docs.mjs` generates the `docs/MCP.md` tool table from the built registry, and `docs:mcp:check` makes documentation drift a failing gate (R-07).
 
 The existing tools, the implemented 0.2 process tools and `get_environment_fingerprint` are listed in [MCP.md](MCP.md). Existing tools must be preserved and backward compatibility must not be broken. Before adding a command, the existing contracts are checked and compatible ones reused, instead of creating duplicate commands.
 

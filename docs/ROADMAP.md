@@ -18,17 +18,17 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.3.5** (Patch N closed; 2026-11-11).
+State as of **1.3.6** (Patch N post-closure debt increment; 2026-11-11).
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.3.5** (Patch N closed) |
+| What is the product version? | **1.3.6** (Patch N post-closure debt increment; N remains closed at 1.3.5) |
 | What is finished? | The 1.0 foundation (**patches A–L**) and **Patch M** (Windows compatibility through 2010, release **1.2.0**) and **Patch N** (old Linux compatibility, closed at **1.3.5**). |
-| What is being built? | Nothing is in progress. Next is **Patch O** (Classic Mac and early macOS, target **1.4**); it may start once its entry criteria hold (see the shared rules). Patch N delivered: Linux Target Profile fields, a.out/ELF inventory, sourced diagnosis, environments, behavior capture/replay, reference trials, verneed-oriented summary, MCP `analyze_legacy_linux` and the detect-only `lief` provider. |
+| What is being built? | No product feature is in progress. Patch N maintenance 1.3.6 closes R-07 and the N/Linux portions of R-02/R-15, and implements R-19 Windows pending CI verification. Next is **Patch O** (Classic Mac and early macOS, target **1.4**); it remains not started until its entry criteria and O step 0 are satisfied. Patch N delivered: Linux Target Profile fields, a.out/ELF inventory, sourced diagnosis, environments, behavior capture/replay, reference trials, verneed-oriented summary, MCP `analyze_legacy_linux` and the detect-only `lief` provider. |
 | What has not started? | **Patches O, P, Q** (Classic Mac/early macOS; legacy Android; newer generations and unified compatibility intelligence). Next is **O**. Plans: [Detailed plans for patches N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q). |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Start Patch O at its step 0 (debts due: F-08 macOS part, R-19 macOS part). The N step 0 debts that stayed open are carried over (see the register). |
-| What is open but not blocking? | See the [carry-over debt register](#carry-over-debt-register): No open item blocks M. R-20 sandbox delivered (Linux-first); Windows/macOS hard isolation remains a recorded limitation. Remaining M work is steps 6–8. |
+| What is the next concrete step? | Before O, run and record the required manual `os: all` workflow for 1.3.6; then close O step 0 debts F-08 macOS and R-19 macOS. O has not started. |
+| What is open but not blocking? | R-01 (Stryker), R-05 (`knip`, `jscpd`, dedicated linter; dependency-free `quality:static` is now CI-gated), R-04 (`fast-check`), R-19 Windows (implementation delivered; Windows CI verification pending) and R-19 macOS remain open. See the [carry-over debt register](#carry-over-debt-register). |
 | What is unverified? | Residual N limitations (explicit): no bundled old-Linux rootfs or oracle (preservation stays L0); containers share the host kernel, so kernel-ABI faults are not confirmed without a VM; the verneed summary is a string-residue scan, not a full `SHT_GNU_verneed` walk; `goblin` is not wired; libc/compiler generation heuristics are not calibrated beyond the crafted fixtures. Full-matrix green recorded for commit `b5ea3fa` (Capabilities 43059743774, Structure 43059819947, Supply chain 43059851184). Windows/macOS hard sandbox isolation remains a recorded limitation from M. |
 
 ## Delivery plan: foundation A–L and product patches M–Q
@@ -169,7 +169,7 @@ Patch M is **done** (release **1.2.0**). The items below are *internal tasks*, g
 - Where no lawful fixture, platform oracle or licensed environment exists, record that as an explicit release limitation instead of claiming success.
 
 **8. Debts due in this patch** (one box per debt; a debt whose box already sits in sections 1–7 is only named here, so no task has two boxes)
-- [x] F-66 and F-67: CI-diagnostics artifacts upload and the AI summary classifies capability-suite failures correctly; verified on runs 43024000265, 43024033261 and 43024423915 (2026-11-11).
+- [ ] F-66 and F-67: on the first GitHub Actions run after this roadmap lands, confirm that the CI-diagnostics artifacts upload and that the AI summary classifies a capability-suite failure correctly; record the run ID (before work order step 1).
 - [ ] R-02: every new source of untrusted text introduced in M (executable strings, resources, installer metadata) passes through the existing untrusted-content wrapper, with an adversarial fixture (step 3).
 - [ ] R-15: golden results and a manual CI job for the M reference trials (step 8).
 - [ ] Record a green manual `os: all` run (Linux, macOS, Windows; Node 22 and 24) with its run ID; one run covers the unrecorded E–M release gates (step 8).
@@ -244,7 +244,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 
 | Step | Work | Closes | Exit criteria |
 |---|---|---|---|
-| 0 | Debts due: R-05 (linter, `knip`, `jscpd`, line-size gate kept), R-07 (MCP docs generated from one tool definition, so the growing tool surface cannot drift), R-19 Windows part (persistent helpers instead of a PowerShell fork per sample), R-01 (mutation testing with Stryker on the pure modules: normalization, scoring, parser helpers) | R-01, R-05, R-07, R-19 (Windows), F-33 remainder | Each tool installed and gated in CI or recorded as a limitation; docs/MCP.md is generated or contract-tested from the same definitions |
+| 0 | Debts due: R-05 (linter, `knip`, `jscpd`, line-size gate kept), R-07 (MCP docs generated from one tool definition), R-19 Windows part (persistent PowerShell helper for process inspection/tree and benchmark samples), R-01 (mutation testing with Stryker on the pure modules: normalization, scoring, parser helpers) | R-01, R-05, R-07, R-19 (Windows), F-33 remainder | Each tool installed and gated in CI or recorded as a limitation; docs/MCP.md is generated or contract-tested from the same definitions |
 | 1 | Linux fields in the shared Target Profile (libc generation, ABI/GCC generation, thread model, kernel interface expectations, desktop/audio stack, installer type) | Section 1 | The M Target Profile envelope carries them without a second schema |
 | 2 | Linux ground-truth corpus and calibration: crafted a.out/ELF fixtures plus open-source or consented samples, manifest of hashes for operator corpora | H-08 for N | Precision and recall reported per new detector; a regression fails a check |
 | 3 | Static inventory: a.out and ELF parsers (header, program/section headers, dynamic section, symbol versions, needed libraries, interpreter, RPATH/RUNPATH, notes), libc/libstdc++/GCC generation detection, ELF hardening flags (PIE, NX, RELRO, stack canary, FORTIFY), installer and package metadata readers, opt-in providers `readelf`, `objdump` and `lief`/`goblin`, hostile-input property tests for every new parser, Linux rows of the support matrix | G-02 (Linux), G-09 (Linux), R-11 (ELF part), R-10 (`lief`/`goblin`, `objdump`/`readelf`), R-04 (a.out/ELF/archive parsers) | Every field has evidence; absent providers are unavailable, never simulated; fuzz tests exist for each parser |
@@ -297,21 +297,21 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 - [ ] Scenario 1 and scenario 2 on lawful fixtures; explicit limitation where no oracle or licensed environment exists.
 
 *8. Debts due in this patch* (one box per debt; a debt whose box already sits in sections 1–7 is only named here)
-- [ ] R-05 and the F-33 remainder: linter, `knip` and `jscpd` installed and gated in CI, own-line size gate kept (step 0).
-- [ ] R-07: `docs/MCP.md` and `tools/list` generated or contract-tested from one tool definition (step 0).
+- [ ] R-05 / F-33 remainder: dependency-free `quality:static`, format and size gates are CI-gated in 1.3.6; dedicated linter, `knip` and `jscpd` remain open (step 0).
+- [x] R-07: `docs/MCP.md` tool table generated from the built MCP tool registry used by `tools/list`; `docs:mcp:check` fails on drift (1.3.6).
 - [ ] R-01: Stryker mutation testing on the pure modules (normalization, scoring, parser helpers) with a recorded baseline score (step 0).
-- [ ] R-19 Windows part: a persistent helper instead of a PowerShell fork per sample (step 0).
+- [ ] R-19 Windows part: persistent helper implemented for process inventory, single-PID inspection, process-tree snapshots and benchmark samples; Windows lifecycle test is added but still needs a Windows CI run (1.3.6; pending verification).
 - [ ] R-04: hostile-input property tests (`fast-check`) for the a.out, ELF and archive parsers (step 3).
-- [ ] R-02: every new source of untrusted text (ELF strings, package metadata, scriptlets read statically) passes through the untrusted-content wrapper, with an adversarial fixture (step 3).
-- [ ] R-15: golden results and a manual CI job for the N reference trials (step 8).
+- [x] R-02 (N/Linux): `analyzeLegacyLinux` wraps its result at the library boundary; hostile ELF PT_INTERP fixture verifies untrusted marker and string truncation (1.3.6).
+- [x] R-15 (N/Linux): checked-in golden expectations for both reference trials and manual `Patch N Linux golden trials` workflow (1.3.6).
 - [ ] Record a green manual `os: all` run with its run ID (step 8).
 - Tracked by boxes in the sections above: R-11 ELF part and R-10 (`readelf`, `objdump`, `lief`/`goblin`) in section 1; the N share of G-01…G-10, H-03…H-08 and H-10 in sections 1–7.
 
-**Debts closed or carried over at N exit.** The N-specific delivery boxes in sections 1–7 record the implemented work. R-01, R-05, R-07, R-19 (Windows part), and the `fast-check` part of R-04 were not delivered; they remain open in the carry-over register. The `fast-check`-independent deterministic hostile-input coverage, where present, is not a substitute for the approved property-testing debt. R-11 (ELF part), the delivered `objdump`/`readelf` and `lief` detection portions of R-10, and the N-specific G/H items are described by the N release record and capability matrix; `goblin` remains explicitly unwired.
+**Debts closed in N (summary of section 8 and of the boxes it names).** R-07, R-02 (N/Linux portion), R-15 (N/Linux portion), R-11 (ELF part), the `lief`/`goblin` and `objdump`/`readelf` part of R-10, R-04 for the a.out/ELF/archive parsers, and the N share of G-01…G-10, H-03…H-08, H-10.
 
 **Out of scope and known limits.** Kernel-mode code, drivers and kernel modules; hardware-specific software without an emulator; copy-protected or encrypted commercial software without rights-holder consent; reconstructing proprietary libraries. Containers cannot reproduce old kernel behavior, so those faults are diagnosed in a VM or reported as unconfirmed.
 
-**N is done when** section 8 (the debts) and the definition of done for N, O, P and Q holds for the Linux family and the release has its release record. **Recorded:** closed at **1.3.5** (the release line 1.3.x; see [1.3.5 — Patch N closed](#135--patch-n-closed-old-linux-compatibility)). Step 0 debts R-01, R-05, R-07 (generation), R-19 (Windows part) and `fast-check` for R-04 are not delivered and move to the carry-over register as open items (no blocker for O).
+**N is done when** section 8 (the debts) and the definition of done for N, O, P and Q holds for the Linux family and the release has its release record. **Recorded:** closed at **1.3.5** (the release line 1.3.x; see [1.3.5 — Patch N closed](#135--patch-n-closed-old-linux-compatibility)). The original 1.3.5 close left R-01, R-05, R-07, R-19 (Windows), and `fast-check` for R-04 open. Post-closure maintenance 1.3.6 closes R-07 and the N/Linux portions of R-02 and R-15; R-19 Windows is implemented but pending Windows CI verification. R-01, R-05 and `fast-check` remain open.
 
 ### Patch O working plan — Classic Mac and early macOS software (target release 1.4, not started)
 
@@ -595,12 +595,12 @@ Approved tasks that are **not** closed, collected from the backlog, the patch re
 | R-11 | Hardening-flag report (PIE, NX, RELRO, canary, CFG, ASLR) | E (done) | No implementation found | *Approved:* PE flags in M step 3; ELF flags in N step 3; Mach-O flags in O step 3; all families in Q step 4 (boxes in those plans) |
 | R-10 | Opt-in providers: lief/goblin, objdump/readelf, capa, yara-x, diec, syft, osv-scanner, cargo-auditable, Go build info | E, F, H (done) | Only rz-bin/Rizin, Ghidra, JADX, Apktool and profilers exist; the others: no implementation found | *Approved:* `diec`, `yara-x`, `capa` in M step 3; `lief`/`goblin`, `objdump`/`readelf` in N step 3; `syft`, `osv-scanner`, `cargo-auditable`, Go build info in Q step 4 or an explicit won't-do with sign-off |
 | R-12 | Profile ingestion in standard formats (perf, pprof, `.cpuprofile`, Speedscope, Firefox Profiler); eBPF via bpftrace | H (done) | Export shape closed in 0.2.0-beta.6; ingestion: no implementation found | *Approved:* Android formats in P step 6; the other formats, ETW and network I/O in Q step 6 |
-| R-15 | Golden results and the three reference trials as manual CI jobs | J (done) | Fixture trials run in the suite; golden results and dedicated manual CI jobs: no implementation found | *Approved:* M step 8, then each later patch step 8; completed in Q steps 0 and 10 |
+| R-15 | Golden results and the three reference trials as manual CI jobs | J (done) | N/Linux golden manifest and manual workflow delivered in 1.3.6; M/O/P and Q remainder still due | *Approved:* M step 8, each later patch step 8; N/Linux portion closed in 1.3.6; remaining portions due in their patch steps |
 | R-01 | Mutation testing (Stryker) on pure modules | D (done) | No mutation runner configured | *Approved:* N step 0, **not delivered; carried over after N closed at 1.3.5** (box in the N plan, section 8) |
 | R-04 | Fuzz and property tests (`fast-check`) for parsers | D (done) | Partial: deterministic hostile process-parser corpus; `fast-check` and binary-parser fuzzing open | *Approved:* step 3 of M, N, O and P for the parsers each patch adds (boxes in sections 1 or 8 of those plans); newer-generation parsers in Q step 4 |
-| R-05 | Linter, `knip`, `jscpd`, own-line size gate | C (done) | Partial: strict TypeScript, format gate, size gate, `quality:static`; `knip`, `jscpd` and a dedicated linter not installed | *Approved:* N step 0, **not delivered; carried over after N closed at 1.3.5** (box in the N plan, section 8) |
-| R-07 | Contract-first MCP (docs generated from one definition) | D (done) | Partial: schemas, profiles, errors, pagination, size budget exist; docs are contract-tested, not generated | *Approved:* N step 0, **not delivered; carried over after N closed at 1.3.5** (box in the N plan, section 8) |
-| R-19 | Windows/macOS metric parity: persistent helpers instead of a fork per sample; `typeperf`/ETW and `libproc` | D/H (done) | Open: PowerShell helper forks per sample | *Approved:* Windows part in N step 0 (**not delivered; carried over after N closed at 1.3.5**); macOS part in O step 0 (boxes in those plans, section 8) |
+| R-05 | Linter, `knip`, `jscpd`, own-line size gate | C (done) | Partial: strict TypeScript, format/size gates and dependency-free `quality:static` are run in CI (1.3.6); `knip`, `jscpd` and a dedicated linter remain open | *Approved:* N step 0; available checks strengthened in 1.3.6, external tools remain open |
+| R-07 | Contract-first MCP (docs generated from one definition) | D (done) | **Closed in 1.3.6:** `docs/MCP.md` tool table generated from the registry used by `tools/list`; drift check is a CI gate | *Approved:* N step 0; closed in post-N maintenance 1.3.6 |
+| R-19 | Windows/macOS metric parity: persistent helpers instead of a fork per sample; `typeperf`/ETW and `libproc` | D/H (done) | Windows persistent helper implemented in 1.3.6; Windows CI verification pending; macOS `libproc` portion remains open | *Approved:* Windows part N step 0 (implemented 1.3.6; pending Windows verification); macOS part O step 0 |
 | F-08 | Single-PID fast path for inspection and sampling | B (done) | Linux and Windows done; macOS reads the full table | *Approved:* O step 0 (box in the O plan, section 8) |
 | F-06 | MCP protocol: stateless 2026 protocol era | D (done) | Stateful revisions through 2025-11-25 only | *Approved:* Q step 0 (box in the Q plan, section 6) |
 | R-08 / R-18 / H-09 | Full live-agent evaluation corpus harness; optional single-file binary | L | Core shipped in 1.0.0; lite evaluation (`evaluateAgentPrompts`) in 1.0.1; full harness and single binary open | *Approved:* Q step 9 (box in the Q plan, section 6) |
@@ -625,7 +625,7 @@ These capabilities are **not** implemented and must not be described as availabl
   - Structure run [43024033261](https://github.com/ecooorg/reverse/actions/runs/43024033261) — Success; ubuntu/macOS/windows + single final artifact.
   - Supply chain run [43024423915](https://github.com/ecooorg/reverse/actions/runs/43024423915) — Success; single final artifact.
   - Prior baseline: A–D closure run 42775483864 (0.2.0-beta.8).
-- GitHub artifact layout (one workflow artifact with `AI-DEBUG-SUMMARY.md` + `detailed-logs.zip`) and failure classification verified on the same runs (F-66, F-67). Both debts are closed; a future diagnostics regression may warrant a new rerun.
+- GitHub artifact layout (one workflow artifact with `AI-DEBUG-SUMMARY.md` + `detailed-logs.zip`) verified on the same runs (F-66). F-67 remains only if a future diagnostics regression needs a dedicated rerun.
 
 ### Debt closure schedule
 
@@ -640,20 +640,20 @@ These capabilities are **not** implemented and must not be described as availabl
 | R-11 hardening flags | PE: M step 3; ELF: N step 3; Mach-O: O step 3; every family again in Q step 4 | approved |
 | R-10 providers | `diec`, `yara-x`, `capa`: M step 3; `lief`/`goblin`, `objdump`/`readelf`: N step 3; `syft`, `osv-scanner`, `cargo-auditable`, Go build info: Q step 4, or an explicit won't-do with sign-off | approved |
 | R-04 fuzz and property tests | New parsers of each patch in step 3 of that patch (M, N, O, P); existing binary parsers (ZIP, WASM, .NET, ELF) are covered when touched in N step 3 | approved |
-| R-05 linter, `knip`, `jscpd`; F-33 remainder | N step 0 | approved |
-| R-07 contract-first MCP (docs from one definition) | N step 0 | approved |
+| R-05 linter, `knip`, `jscpd`; F-33 remainder | N step 0 | **Partial 1.3.6:** dependency-free quality/format/size gates CI-gated; external tools remain open |
+| R-07 contract-first MCP (docs from one definition) | N step 0 | **closed 1.3.6** |
 | R-01 mutation testing on the pure modules | N step 0 | approved |
-| R-19 metric parity | Windows part: N step 0; macOS part together with F-08: O step 0 | approved |
+| R-19 metric parity | Windows part: N step 0; macOS part together with F-08: O step 0 | **Windows implemented 1.3.6; Windows verification pending; macOS open for O step 0** |
 | F-08 macOS single-PID fast path | O step 0 | approved |
 | R-12 profile ingestion | Android formats (`simpleperf`, Perfetto): P step 6; `perf`, pprof, `.cpuprofile`, Speedscope, Firefox Profiler, bpftrace, ETW, per-process network I/O: Q step 6 | approved |
 | Android items of the Audit 8 non-claims (AXML, DEX class listing, Gradle/build dependencies, Frida call-frequency and `Java.perform` scripts, Perfetto, `dumpsys`) | P steps 3 and 6 | approved |
 | Other Audit 8 non-claims (CVE and registry queries, dependency-size recommendations, test-framework discovery, continuous Frida profiles for non-Android targets, ETW hotspots, network I/O, full CFG/decompilation/xrefs/BSim without a corpus) | Q step 6 or an explicit limitation at Q step 10; full CFG, decompilation and BSim stay provider-backed and are never claimed as built in | approved |
 | F-06 stateless MCP protocol | Q step 0 | approved |
 | R-14 Merkle, Ed25519, export, verify | Q step 8 | approved |
-| R-15 golden results and manual CI jobs | Fixture-based jobs for M trials at M step 8; each later patch adds its own at step 8; completed in Q step 0 and step 10 | approved |
+| R-15 golden results and manual CI jobs | M step 8; N step 8; O/P step 8; Q step 0 and 10 | **N/Linux closed 1.3.6; other patch portions remain due** |
 | R-08, R-18, H-09 full harness and single-file binary | Q step 9 | approved |
 | G-01…G-10, F-63, F-64, H-03…H-08, H-10 | M (introduced); the family share is closed in step 8 of each of N, O, P; unified in Q | approved |
-| R-02 untrusted-content hardening (closed in basic form in 0.2.0-beta.5) | Every new source of untrusted text (strings, resources, manifests, package metadata, installer scripts read statically) goes through the existing untrusted-content wrapper with an adversarial fixture, in step 3 of each patch M–Q | approved |
+| R-02 untrusted-content hardening (basic form closed in 0.2.0-beta.5) | Every new source of untrusted text (strings, resources, manifests, package metadata, installer scripts read statically) goes through the existing untrusted-content wrapper with an adversarial fixture, in step 3 of each patch M–Q | N/Linux portion closed in 1.3.6; M/O/P/Q portions remain assigned |
 | Any other row of the backlog or the audits that is open and not listed above | Reviewed at the exit of every patch; any row still open at Q step 10 is closed or becomes a signed-off limitation | approved |
 
 ## Completed foundation: patches A–L
@@ -925,7 +925,7 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-64 | No recorded declared authorization basis for legacy analysis | initial gate in **1.1.0-beta.1 / M**; report provenance closed in **1.1.8 / M1**; future operation gates remain open |
 | F-65 | Initial M slice not reflected consistently in package metadata and project documentation | closed in **1.1.0-beta.1 / M** |
 | F-66 | CI AI summary could crash or omit actionable diagnostics | closed in **1.1.0-beta.1 maintenance** |
-| F-67 | CI AI summary could misclassify capability-suite test failures as formatting failures | closed: regression tests and GitHub verification on 2026-11-11 runs 43024000265 / 43024033261 / 43024423915 |
+| F-67 | CI AI summary could misclassify capability-suite test failures as formatting failures | fix in **1.1.0-beta.1 maintenance**; verified by regression tests; GitHub rerun pending verification |
 | F-68 | Windows legacy analyzer lacked PE imports and structural framework signatures | closed in **1.1.8 / M1** (bounded static detectors; corpus calibration remains open) |
 | F-69 | Legacy compatibility candidates ignored PE import evidence | closed in **1.1.8 / M1** (selected imports; OS API availability tables remain open) |
 | F-70 | Legacy authorization was not embedded in analysis results | closed in **1.1.8 / M1** |
@@ -984,12 +984,12 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | ID | Task | Patch |
 |---|---|---|
 | R-01 | Mutation testing (Stryker) on pure modules | **D** (open; no mutation runner configured) |
-| R-02 | Threat model and prompt-injection hardening (`untrustedContent` wrapper, length caps, adversarial fixtures) | closed in 0.2.0-beta.5 (basic wrapper and caps) |
+| R-02 | Threat model and prompt-injection hardening (`untrustedContent` wrapper, length caps, adversarial fixtures) | Basic wrapper closed in 0.2.0-beta.5; N/Linux analyzer boundary and adversarial ELF fixture closed in 1.3.6; M/O/P/Q portions remain due |
 | R-03 | Pin GitHub Action SHAs | closed in **1.0.1** for the workflow action refs of that time; **reopened by F-75** (two refs in `supply-chain.yml` are tags); provenance/Scorecard remain optional hardening |
 | R-04 | Fuzz and property tests (`fast-check`, devDependency) for parsers | partial in 0.2.0-beta.6: deterministic hostile process-parser corpus; fast-check and binary parser fuzzing remain open |
 | R-05 | Static gates: linter and formatter, `knip`, `jscpd`, own-line size gate | partial in 0.2.0-beta.6: strict TypeScript, format check and own-line size gate; knip/jscpd/dedicated linter remain open; 0.2.0-beta.7: format gate now covers every TypeScript file and the size gate limits line length to 140 characters; knip, jscpd and a dedicated linter remain open |
 | R-06 | Reformat dense files, formatter check in the structure workflow | closed in 0.2.0-beta.7 (beta.6 had reformatted only part of the files and left 186 lines over 140 characters; now every `src/` and `tests/` file passes the format gate and the line-length gate) |
-| R-07 | Contract-first MCP: one definition generates `tools/list`, [MCP.md](MCP.md) and schemas; compact/full schema profile; structured error codes; pagination; size budgets | partial in 0.2.0-beta.6: schemas, profiles, errors, offset pagination and 1 MiB budget implemented; docs are contract-tested but not generated |
+| R-07 | Contract-first MCP: one definition generates `tools/list`, [MCP.md](MCP.md) and schemas; compact/full schema profile; structured error codes; pagination; size budgets | Core schemas/profiles/errors/pagination/size budget from 0.2.0-beta.6; tool table generated from the built registry and drift-gated in 1.3.6 |
 | R-08 | MCP prompts and resources; `reverse setup` for Claude Code, Codex, Cursor, Gemini CLI with dry run and backups; investigation skill file | **L** |
 | R-09 | `reverse doctor` | closed in 0.2.0-beta.6 |
 | R-10 | Existing parsers and tools as opt-in providers (lief/goblin, objdump/readelf, rz-bin, capa, yara-x, diec, syft, osv-scanner, cargo-auditable, Go build info) | **E** (static), **F** (provider adapters), **H** (profiling); partly delivered; `diec`, `yara-x` and `capa` reassigned to **M** (approved 2026-11-11), the rest on demand |
@@ -997,11 +997,11 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | R-12 | Profile ingestion in standard formats (perf, pprof, `.cpuprofile`, Speedscope, Firefox Profiler); hyperfine-compatible benchmark export; eBPF via bpftrace | export shape closed in 0.2.0-beta.6; profile ingestion remains **H** |
 | R-13 | Statistics: bootstrap intervals, Mann-Whitney with Hodges-Lehmann shift, effect size, MAD outliers, environment-noise detection, interleaved A/B runs by default, `insufficient_evidence` verdict | closed in 0.2.0-beta.6 (noise snapshot and interleaved suites added) |
 | R-14 | Tamper-evident evidence: per-session hash chain, Merkle root, Ed25519 signature, `reverse export` / `reverse verify` | **I** |
-| R-15 | Golden results and the three reference trials as manual CI jobs | **J** |
+| R-15 | Golden results and the three reference trials as manual CI jobs | **J**; M/N/O/P each add their golden workflow at step 8; N/Linux portion closed in 1.3.6 |
 | R-16 | Node support window: drop Node 20, `engines` and matrix to 22 and 24 | closed in 0.2.0-beta.3 |
 | R-17 | Node built-ins instead of code: `util.parseArgs`, `AbortSignal.timeout`, `fs.glob`, test coverage, `os.availableParallelism` | closed in 0.2.0-beta.6 |
 | R-18 | Distribution: `npx` entry, install scripts that only check Node and print configuration, optional single binary, `server.json` for MCP registries | **L** |
-| R-19 | Windows and macOS metric parity: persistent helpers instead of a fork per sample; `typeperf`/ETW and `libproc` providers | **D/H** open: PowerShell helper currently forks per sample (a run shorter than one sample has no CPU/RSS data on Windows); persistent helper and ETW/libproc remain |
+| R-19 | Windows and macOS metric parity: persistent helpers instead of a fork per sample; `typeperf`/ETW and `libproc` providers | Windows persistent PowerShell helper implemented in 1.3.6 (Windows CI pending); macOS `libproc` and other parity work remain for O |
 | R-20 | Sandbox for executed targets under `CONTROLLED_EXECUTION` (bwrap/unshare, sandbox-exec, Job Objects/AppContainer or a container provider; no network by default; scratch directory; rlimits) | **M step 5 (2026-11-11):** Linux bwrap/unshare when present; process-group+scratch+timeout everywhere; Windows/macOS hard isolation still open |
 
 ### Goal gaps (Audit 2, approved 2026-11-09)
@@ -1037,6 +1037,10 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 ---
 
 ## Release history
+
+### 1.3.6 — Post-N debt increment (no new product patch)
+
+Closed the MCP documentation generation contract (R-07), implemented the persistent Windows PowerShell helper for CIM and benchmark sampling (R-19 Windows; Windows CI verification pending), Linux analysis untrusted-content wrapping with an adversarial ELF fixture (R-02 N portion), and golden Linux reference-trial expectations plus a manual workflow (R-15 N portion). Patch N remains historically closed at 1.3.5; Patch O has not started. Local Linux tests passed; Windows execution and the required manual `os: all` run remain pending.
 
 ### 1.3.5 — Patch N closed (old Linux compatibility) — 2026-11-11
 
@@ -1085,6 +1089,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.1.8 | Patch M Windows detector expansion | Patch M history |
 | 1.2.0 | Patch M closed (Windows through 2010) | 2026-11-11; runs 43037232211 / 43037271948 / 43037302969 |
 | 1.3.5 | Patch N closed (old Linux compatibility) | 2026-11-11; runs 43059743774 / 43059819947 / 43059851184 |
+| 1.3.6 | Post-N debt increment: R-07, R-02 Linux, R-15 Linux, F-33/R-05 partial; R-19 Windows implemented pending CI | 2026-11-11; local Linux build/tests and structure gates; Windows CI and full `os: all` pending |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP

@@ -1,18 +1,30 @@
-# Audit log
+## Audit 20 — 2026-11-11 — Patch N carry-over debt increment (1.3.6)
 
-## Audit 20 — 2026-11-11 — Post-N status consistency (documentation-only)
-
-**Scope.** Reconcile stale foundation documentation with the recorded 1.3.5 release evidence and make the Patch N step-0 carry-over explicit. No product behavior or dependency set changed.
+**Scope.** Close the N/Linux portions and deliver the Windows implementation of approved carry-over work without starting Patch O or adding the unavailable quality-tool dependencies.
 
 **Delivered.**
 
-- Mark F-66 and F-67 verified using the recorded 2026-11-11 workflow runs; the Patch M checklist and carry-over register now agree.
-- Align MCP documentation with the completed Patch M (1.2.0) and Patch N (1.3.5) states.
-- Update the architecture document's current-version and Windows-sequence statements.
-- Correct the Patch N exit summary: R-01, R-05, R-07 and Windows R-19 remain open; deterministic tests do not close the `fast-check` portion of R-04.
+- **R-07:** `docs/MCP.md`'s tool table is generated from the built `src/mcp-tools*.ts` registry used by `tools/list`. `npm run docs:mcp:check` fails on drift and runs in `npm run verify` and Capabilities CI.
+- **R-19 (Windows):** a single persistent PowerShell helper now serves process inventory, single-PID inspection, process-tree snapshots and benchmark resource samples. Requests are allow-listed, serialized, bounded by timeouts, and the helper is restarted after failure. A Windows-only lifecycle test checks reuse; it has not yet run on a Windows runner.
+- **R-02 (N/Linux):** `analyzeLegacyLinux` applies the existing `wrapUntrusted` wrapper at its library boundary, bounding ELF-derived strings and marking them as untrusted. An adversarial ELF PT_INTERP fixture verifies truncation.
+- **R-15 (N/Linux):** checked-in golden expectations cover both Linux reference trials, and a manual `workflow_dispatch` workflow runs the golden test. Results remain L0 because no operator-supplied rootfs/oracle is bundled.
+- **F-33 / R-05 available portion:** dependency-free `quality:static` now runs in `quality`, `verify` and Capabilities CI beside format and size gates. `knip`, `jscpd` and a dedicated linter remain open.
 
-**Not claimed.** Stryker, knip, jscpd, fast-check, generated MCP documentation and the Windows persistent sampling helper were not added. Their corresponding debts remain open as recorded in the roadmap.
+**Not delivered / not claimed.** R-01 (Stryker), R-05 (`knip`, `jscpd`, dedicated linter), and R-04 (`fast-check`) remain open. R-15 portions for M/O/P/Q remain open. R-02 portions for M/O/P/Q remain open. R-19 macOS remains assigned to O. No Patch O feature was started.
 
+**Verification.** Local Linux TypeScript build, test compilation, all 119 unit tests, structure checks (source and built), MCP documentation drift check passed. Windows helper execution and the manual `os: all` matrix were not run in this environment; Windows verification remains required before closing R-19 Windows and before O.
+
+| ID | Sev | Area | Finding | Status |
+|---|---|---|---|---|
+| R-07 | Medium | MCP contract | Tool documentation was maintained separately from the registry and could drift | Status: closed in 1.3.6; generated tool table and CI drift check |
+| R-19 (Windows) | Medium | Process metrics | Windows process inventory and benchmark samples spawned PowerShell repeatedly | Status: implementation delivered in 1.3.6; closure pending Windows CI lifecycle verification; macOS portion remains open |
+| R-02 (N/Linux) | Medium | Untrusted content | ELF strings and related Linux analysis metadata were not explicitly wrapped at the library boundary | Status: N/Linux portion closed in 1.3.6; hostile ELF fixture verifies marking and truncation |
+| R-15 (N/Linux) | Low | Reference trials | Linux reference trials had no checked-in golden expectations or dedicated manual workflow | Status: N/Linux portion closed in 1.3.6; M/O/P/Q portions remain open |
+| F-33 / R-05 | Low | Quality gates | The dependency-free static hygiene gate was not part of CI | Status: available portion delivered in 1.3.6 (`quality:static` added to CI); dedicated linter, `knip` and `jscpd` remain open |
+
+---
+
+# Audit log
 
 This file is permanent. **New audits are added at the top** (newest first); older audits are never edited except to mark a finding as closed (`Status: closed in <version>, <patch>`). Each audit lists findings with an ID, severity, evidence and a recommended fix, then improvement proposals. Findings that are accepted are copied into [ROADMAP.md](ROADMAP.md) under the patch named in the "Patch" column; this file stays the record of *why*.
 
@@ -79,7 +91,7 @@ IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H*
 
 | ID | Sev | Area | Finding | Status |
 |---|---|---|---|---|
-| F-67 | Medium | CI diagnostics / contract drift | Capability-suite failures could be mislabeled as formatting failures, obscuring the actual assertion failures | Status: closed; regression tests and GitHub verification recorded on 2026-11-11 runs 43024000265 / 43024033261 / 43024423915 |
+| F-67 | Medium | CI diagnostics / contract drift | Capability-suite failures could be mislabeled as formatting failures, obscuring the actual assertion failures | Status: fix in 1.1.0-beta.1 maintenance; GitHub rerun pending |
 
 ---
 
@@ -91,7 +103,7 @@ IDs: **F** finding (defect or drift), **R** recommendation, **G** goal gap, **H*
 
 | ID | Sev | Area | Finding | Status |
 |---|---|---|---|---|
-| F-66 | Medium | CI diagnostics | AI summary generator could crash on missing content and did not provide enough structured evidence for diagnosis | Status: closed; GitHub artifact verification recorded on 2026-11-11 runs 43024000265 / 43024033261 / 43024423915 |
+| F-66 | Medium | CI diagnostics | AI summary generator could crash on missing content and did not provide enough structured evidence for diagnosis | Status: closed in 1.1.0-beta.1 maintenance; actual GitHub artifact verification remains pending |
 
 ---
 
