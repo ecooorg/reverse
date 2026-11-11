@@ -63,6 +63,7 @@ Never weaken, skip or delete a test or a check to make a run pass. If a check is
 
 - TypeScript `strict`, ESM, Node 22 or newer, **zero runtime dependencies**. Adding a dependency needs a written justification and the user's approval; devDependencies are acceptable when needed for build or tests.
 - Own code stays compact (target 20–30 thousand lines, never above 50 thousand). Do not reimplement what a specialist tool does (disassembler, debugger, instrumentation); wrap it behind an `AnalyzerProvider`. Never remove evidence, validation or safety code just to save lines.
+- Source size gate (`tests/size-gate.mjs`, run by the capability suite and CI): each file under `src/` is limited to **1000 lines**, the total of all `src/` files to **50 000 lines**, and every source or test line to **140 characters**. These limits are enforced; raise them only with an explicit roadmap decision when a parser or table legitimately needs more room.
 - Every operation returns the `Result` envelope from `src/core-types.ts` with honest `status`, `coverage`, `limitations` and `errors`. Return `partial` instead of throwing for bad input files or an absent process; throw only for programmer errors such as an invalid PID.
 - Cross-platform from the start: Linux, macOS and Windows. Do not add POSIX-only or Windows-only code without a branch for the other systems or a recorded limitation. Use `path`, never hard-coded separators.
 - Keep functions small and readable. Do not add clever one-line code; the older dense files may be reformatted only when you are changing them anyway.
