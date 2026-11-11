@@ -57,6 +57,12 @@ export function windowsHelperLaunchArguments(): string[] {
     const encoded = Buffer.from(SCRIPT, 'utf16le').toString('base64');
     return ['-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', encoded];
 }
+/** An idle helper must not keep the host process alive: pending requests are held by their own timers. */
+function detachFromEventLoop(proc: ChildProcessWithoutNullStreams): void {
+    proc.unref();
+    for (const stream of [proc.stdin, proc.stdout, proc.stderr])
+        (stream as unknown as { unref?: () => void }).unref?.();
+}
 function startHelper(): ChildProcessWithoutNullStreams {
     if (child && child.exitCode === null && !child.killed)
         return child;
@@ -65,6 +71,7 @@ function startHelper(): ChildProcessWithoutNullStreams {
         windowsHide: true
     });
     child = proc;
+    detachFromEventLoop(proc);
     helperStarts++;
     stderr = '';
     let stdoutBuffer = '';
