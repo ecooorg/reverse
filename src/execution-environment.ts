@@ -7,9 +7,7 @@ import { access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { runInSandbox, type SandboxLimits, type SandboxRunResult } from './execution-sandbox.js';
 import { operatingMode } from './benchmark-gate.js';
-
 export type EngineKind = 'wine' | 'dosbox' | 'qemu' | 'native';
-
 export interface EnvironmentFingerprint {
     engine: EngineKind;
     binary: string | null;
@@ -17,7 +15,6 @@ export interface EnvironmentFingerprint {
     /** Hashes of operator-supplied images/ROMs (never uploaded). */
     imageHashes?: string[];
 }
-
 export interface ExecutionEnvironment {
     name: string;
     kind: EngineKind;
@@ -36,7 +33,6 @@ export interface ExecutionEnvironment {
         workDir?: string;
     }): Promise<SandboxRunResult>;
 }
-
 async function which(bin: string): Promise<string | null> {
     const pathEnv = process.env.PATH ?? '';
     const sep = process.platform === 'win32' ? ';' : ':';
@@ -52,21 +48,19 @@ async function which(bin: string): Promise<string | null> {
     }
     return null;
 }
-
 function requireControlled(confirm: boolean): void {
     if (operatingMode() !== 'CONTROLLED_EXECUTION' || !confirm) {
-        throw new Error(
-            'Execution environments require REVERSE_MODE=CONTROLLED_EXECUTION and confirm=true.'
-        );
+        throw new Error('Execution environments require REVERSE_MODE=CONTROLLED_EXECUTION and confirm=true.');
     }
 }
-
-function createPathEngine(
-    name: string,
-    kind: EngineKind,
-    binaries: string[],
-    buildArgs: (target: string, args: string[]) => string[]
-): ExecutionEnvironment {
+type PathEngineSpec = {
+    name: string;
+    kind: EngineKind;
+    binaries: string[];
+    buildArgs: (target: string, args: string[]) => string[];
+};
+function createPathEngine(spec: PathEngineSpec): ExecutionEnvironment {
+    const { name, kind, binaries, buildArgs } = spec;
     let resolved: string | null | undefined;
     return {
         name,
@@ -127,56 +121,48 @@ function createPathEngine(
         }
     };
 }
-
 /** Wine — primary Win32 compatibility layer. */
 export function createWineEnvironment(): ExecutionEnvironment {
-    return createPathEngine(
-        'wine',
-        'wine',
-        ['wine', 'wine64'],
-        (target, args) => [target, ...args]
-    );
+    return createPathEngine({
+        name: 'wine',
+        kind: 'wine',
+        binaries: ['wine', 'wine64'],
+        buildArgs: (target, args) => [target, ...args]
+    });
 }
-
 /** DOSBox-class emulator for DOS / early Windows. */
 export function createDosboxEnvironment(): ExecutionEnvironment {
-    return createPathEngine(
-        'dosbox',
-        'dosbox',
-        ['dosbox', 'dosbox-x', 'dosbox-staging'],
-        (target, args) => [target, '-exit', ...args]
-    );
+    return createPathEngine({
+        name: 'dosbox',
+        kind: 'dosbox',
+        binaries: ['dosbox', 'dosbox-x', 'dosbox-staging'],
+        buildArgs: (target, args) => [target, '-exit', ...args]
+    });
 }
-
 /** QEMU system emulator — needs operator-supplied images (hashed into fingerprint later). */
 export function createQemuEnvironment(): ExecutionEnvironment {
-    return createPathEngine(
-        'qemu',
-        'qemu',
-        ['qemu-system-x86_64', 'qemu-system-i386'],
-        // Without an image we only allow a version probe-style invocation in run().
-        (_target, args) => (args.length ? args : ['--version'])
-    );
+    // Without an image, run only allows a version probe-style invocation.
+    return createPathEngine({
+        name: 'qemu',
+        kind: 'qemu',
+        binaries: ['qemu-system-x86_64', 'qemu-system-i386'],
+        buildArgs: (_target, args) => (args.length ? args : ['--version'])
+    });
 }
-
 const registry: ExecutionEnvironment[] = [];
-
 export function registerExecutionEnvironment(env: ExecutionEnvironment): void {
     if (registry.some(e => e.name === env.name))
         return;
     registry.push(env);
 }
-
 export function listExecutionEnvironments(): readonly ExecutionEnvironment[] {
     return registry;
 }
-
 export function bootstrapExecutionEnvironments(): void {
     registerExecutionEnvironment(createWineEnvironment());
     registerExecutionEnvironment(createDosboxEnvironment());
     registerExecutionEnvironment(createQemuEnvironment());
 }
-
 export interface WorksFailsCell {
     target: string;
     environment: string;
@@ -185,14 +171,13 @@ export interface WorksFailsCell {
     evidence: string;
     limitations: string[];
 }
-
 /**
  * Run one fixture under each available environment; absent engines → unsupported.
  */
-export async function runWorksFailsMatrix(
-    targets: string[],
-    opts: { confirm: boolean; limits?: SandboxLimits }
-): Promise<WorksFailsCell[]> {
+export async function runWorksFailsMatrix(targets: string[], opts: {
+    confirm: boolean;
+    limits?: SandboxLimits;
+}): Promise<WorksFailsCell[]> {
     requireControlled(opts.confirm);
     if (!registry.length)
         bootstrapExecutionEnvironments();
@@ -214,7 +199,7 @@ export async function runWorksFailsMatrix(
             try {
                 const r = await env.run(target, {
                     confirm: true,
-                    limits: opts.limits ?? { timeoutMs: 10_000 }
+                    limits: opts.limits ?? { timeoutMs: 10000 }
                 });
                 let outcome: WorksFailsCell['outcome'] = 'fails';
                 if (r.timedOut)

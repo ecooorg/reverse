@@ -9,33 +9,32 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { operatingMode } from './benchmark-gate.js';
-
 export interface SandboxLimits {
     /** Wall-clock timeout for the whole tree (ms). Default 15_000. */
     timeoutMs?: number;
     memoryMaxBytes?: number;
     cpuQuotaPercent?: number;
 }
-
 export interface SandboxRequest {
     /** Absolute path of the program or interpreter. */
     command: string;
     args?: string[];
     /** Optional files to materialize under the scratch directory before run. */
-    seedFiles?: Array<{ relativePath: string; content: Buffer | string }>;
+    seedFiles?: Array<{
+        relativePath: string;
+        content: Buffer | string;
+    }>;
     limits?: SandboxLimits;
     /** Operator must pass true; doubles as MCP confirm. */
     confirm: boolean;
     env?: Record<string, string>;
 }
-
 export interface SandboxMechanism {
     id: 'bwrap' | 'unshare' | 'process-group' | 'none';
     networkIsolated: boolean;
     scratchIsolated: boolean;
     detail: string;
 }
-
 export interface SandboxRunResult {
     exitCode: number | null;
     signal: string | null;
@@ -48,7 +47,6 @@ export interface SandboxRunResult {
     /** True when the process tree was killed due to timeout. */
     timedOut: boolean;
 }
-
 async function which(bin: string): Promise<string | null> {
     const pathEnv = process.env.PATH ?? '';
     for (const dir of pathEnv.split(process.platform === 'win32' ? ';' : ':')) {
@@ -63,7 +61,6 @@ async function which(bin: string): Promise<string | null> {
     }
     return null;
 }
-
 /** Probe which isolation mechanism this host can offer. */
 export async function detectSandboxMechanism(): Promise<SandboxMechanism> {
     if (process.platform === 'linux') {
@@ -107,21 +104,15 @@ export async function detectSandboxMechanism(): Promise<SandboxMechanism> {
         detail: 'Windows: Job Objects/AppContainer not wired; process-group + timeout + scratch cwd'
     };
 }
-
 function assertControlled(confirm: boolean): void {
     if (operatingMode() !== 'CONTROLLED_EXECUTION' || confirm !== true) {
-        throw new Error(
-            'Sandbox execution requires REVERSE_MODE=CONTROLLED_EXECUTION and confirm=true.'
-        );
+        throw new Error('Sandbox execution requires REVERSE_MODE=CONTROLLED_EXECUTION and confirm=true.');
     }
 }
-
-function buildCommand(
-    mechanism: SandboxMechanism,
-    scratch: string,
-    command: string,
-    args: string[]
-): { cmd: string; args: string[] } {
+function buildCommand(mechanism: SandboxMechanism, scratch: string, command: string, args: string[]): {
+    cmd: string;
+    args: string[];
+} {
     if (mechanism.id === 'bwrap') {
         return {
             cmd: 'bwrap',
@@ -152,7 +143,6 @@ function buildCommand(
     }
     return { cmd: command, args };
 }
-
 /**
  * Run a command inside the best available sandbox.
  * Always uses a unique scratch directory; kills the process group on timeout.
@@ -160,7 +150,7 @@ function buildCommand(
 export async function runInSandbox(req: SandboxRequest): Promise<SandboxRunResult> {
     assertControlled(req.confirm);
     const limits = req.limits ?? {};
-    const timeoutMs = limits.timeoutMs ?? 15_000;
+    const timeoutMs = limits.timeoutMs ?? 15000;
     const mechanism = await detectSandboxMechanism();
     const limitations: string[] = [];
     if (!mechanism.networkIsolated)
@@ -169,7 +159,6 @@ export async function runInSandbox(req: SandboxRequest): Promise<SandboxRunResul
         limitations.push('Filesystem is not fully jailed; only cwd is set to the scratch directory.');
     if (mechanism.id === 'process-group')
         limitations.push(mechanism.detail);
-
     const scratch = await mkdtemp(join(tmpdir(), 'reverse-sandbox-'));
     try {
         for (const seed of req.seedFiles ?? []) {
@@ -178,13 +167,7 @@ export async function runInSandbox(req: SandboxRequest): Promise<SandboxRunResul
                 throw new Error(`seed path escapes scratch: ${seed.relativePath}`);
             await writeFile(dest, seed.content);
         }
-
-        const built = buildCommand(
-            mechanism,
-            scratch,
-            req.command,
-            req.args ?? []
-        );
+        const built = buildCommand(mechanism, scratch, req.command, req.args ?? []);
         const started = Date.now();
         const child = spawn(built.cmd, built.args, {
             cwd: scratch,
@@ -198,20 +181,18 @@ export async function runInSandbox(req: SandboxRequest): Promise<SandboxRunResul
             stdio: ['ignore', 'pipe', 'pipe'],
             detached: true
         }) as ChildProcessWithoutNullStreams;
-
         let stdout = '';
         let stderr = '';
         child.stdout.on('data', (c: Buffer) => {
             stdout += c.toString('utf8');
-            if (stdout.length > 256_000)
-                stdout = stdout.slice(0, 256_000);
+            if (stdout.length > 256000)
+                stdout = stdout.slice(0, 256000);
         });
         child.stderr.on('data', (c: Buffer) => {
             stderr += c.toString('utf8');
-            if (stderr.length > 128_000)
-                stderr = stderr.slice(0, 128_000);
+            if (stderr.length > 128000)
+                stderr = stderr.slice(0, 128000);
         });
-
         let timedOut = false;
         const timer = setTimeout(() => {
             timedOut = true;
@@ -225,8 +206,10 @@ export async function runInSandbox(req: SandboxRequest): Promise<SandboxRunResul
             }
             catch { /* ignore */ }
         }, timeoutMs);
-
-        const exit = await new Promise<{ code: number | null; signal: string | null }>(resolveExit => {
+        const exit = await new Promise<{
+            code: number | null;
+            signal: string | null;
+        }>(resolveExit => {
             child.on('error', err => {
                 stderr += String(err);
                 resolveExit({ code: null, signal: null });
@@ -236,7 +219,6 @@ export async function runInSandbox(req: SandboxRequest): Promise<SandboxRunResul
             });
         });
         clearTimeout(timer);
-
         return {
             exitCode: exit.code,
             signal: exit.signal,
@@ -256,7 +238,6 @@ export async function runInSandbox(req: SandboxRequest): Promise<SandboxRunResul
         }
     }
 }
-
 /** Write a tiny probe script that tries network + outside write; used by capability tests. */
 export async function writeIsolationProbe(dir: string): Promise<string> {
     const script = join(dir, `probe-${randomUUID().slice(0, 8)}.mjs`);
@@ -287,11 +268,7 @@ setTimeout(() => { console.log('NETWORK_BLOCKED'); process.exit(0); }, 1200);
     await writeFile(script, body);
     return script;
 }
-
-export async function readScratchFile(
-    scratchDir: string,
-    relativePath: string
-): Promise<string | null> {
+export async function readScratchFile(scratchDir: string, relativePath: string): Promise<string | null> {
     try {
         return await readFile(join(scratchDir, relativePath), 'utf8');
     }
