@@ -10,6 +10,7 @@ import { createHash } from 'node:crypto';
 import { result } from './core-types.js';
 import { profileField, type LegacyAuthorization, type TargetProfile } from './legacy-types.js';
 import { requireLegacyGate } from './legacy-gate.js';
+import { diagnoseLinuxFromTables, type LinuxCompatDiagnosis } from './legacy-linux-tables.js';
 export interface LegacyLinuxFinding {
     format: 'a.out' | 'ELF' | 'unknown';
     architecture: string;
@@ -27,6 +28,7 @@ export interface LegacyLinuxFinding {
     };
     libcMarkers: string[];
     compilerMarkers: string[];
+    compatibilityFindings: LinuxCompatDiagnosis[];
     targetProfile: TargetProfile;
     authorization: LegacyAuthorization;
     sha256: string;
@@ -492,6 +494,13 @@ export async function analyzeLegacyLinux(filePath: string, authorization?: Legac
             complete: !!interpreter
         })
     };
+    const compatibilityFindings = diagnoseLinuxFromTables({
+        format,
+        neededLibraries: needed,
+        interpreter,
+        libcMarkers,
+        compilerMarkers
+    });
     const finding: LegacyLinuxFinding = {
         format,
         architecture,
@@ -504,6 +513,7 @@ export async function analyzeLegacyLinux(filePath: string, authorization?: Legac
         hardening,
         libcMarkers,
         compilerMarkers,
+        compatibilityFindings,
         targetProfile,
         authorization: auth,
         sha256
