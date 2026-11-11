@@ -136,4 +136,7 @@ The remaining work is one ordered sequence, not parallel capability tracks: M co
 | libc5 / glibc / libstdc++ markers | ✅ | Static string/soname heuristics; not calibrated |
 | Linux calibration fixtures + precision/recall harness | ✅ | Crafted a.out/ELF only; operator corpora via hash manifest |
 | Sourced Linux libc/libstdc++ diagnosis tables | ✅ | Documentary rows; findings cite table ids |
-| Symbol version walk, package metadata, execution | 🚧 | Later N steps |
+| GNU symbol-version string hints (GLIBC/GLIBCXX/CXXABI) | ✅ | Bounded string scan; not full verneed graph |
+| Package metadata: RPM/DEB/makeself/gzip markers | ✅ | Static head only; never runs scriptlets |
+| Opt-in readelf/objdump detect-only providers | ✅ | Unavailable when missing; never simulated |
+| Full verneed walk, lief/goblin, execution environments | 🚧 | Later N steps |
