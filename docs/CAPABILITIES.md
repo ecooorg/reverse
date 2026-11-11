@@ -143,4 +143,7 @@ The remaining work is one ordered sequence, not parallel capability tracks: M co
 | Desktop/audio sourced tables (X11, GTK1, Qt3, OSS) | ✅ | Documentary diagnosis rows |
 | Linux reference trials (diagnose-and-advise + compare-versions) | ✅ | L0 without operator rootfs/oracle |
 | Linux behavior capture/replay round-trip helper | ✅ | Shared sandbox pipeline; no rootfs claim |
-| Full verneed graph walk, lief/goblin | 🚧 | Later N steps / release close |
+| Verneed-oriented version summary (max GLIBC/GLIBCXX) | ✅ | String-residue scan; not full SHT_GNU_verneed |
+| MCP `analyze_legacy_linux` | ✅ | Session authorization required |
+| Opt-in lief detect-only provider | ✅ | Unavailable when missing; never simulated |
+| Full SHT_GNU_verneed structure walk, goblin | 🚧 | Residual; string summary covers practical diagnosis |
