@@ -3,46 +3,30 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import {
-    detectSandboxMechanism,
-    runInSandbox,
-    writeIsolationProbe
-} from '../dist/execution-sandbox.js';
-import {
-    bootstrapExecutionEnvironments,
-    createWineEnvironment,
-    listExecutionEnvironments,
-    runWorksFailsMatrix
-} from '../dist/execution-environment.js';
-
+import { detectSandboxMechanism, runInSandbox, writeIsolationProbe } from '../dist/execution-sandbox.js';
+import { bootstrapExecutionEnvironments } from '../dist/execution-environment.js';
+import { createWineEnvironment } from '../dist/execution-environment.js';
+import { listExecutionEnvironments } from '../dist/execution-environment.js';
+import { runWorksFailsMatrix } from '../dist/execution-environment.js';
 const prevMode = process.env.REVERSE_MODE;
-
 test('sandbox refuses to run without CONTROLLED_EXECUTION and confirm', async () => {
     process.env.REVERSE_MODE = 'READ_ONLY';
-    await assert.rejects(
-        () => runInSandbox({
-            command: process.execPath,
-            args: ['-e', 'console.log(1)'],
-            confirm: true
-        }),
-        /CONTROLLED_EXECUTION/
-    );
+    await assert.rejects(() => runInSandbox({
+        command: process.execPath,
+        args: ['-e', 'console.log(1)'],
+        confirm: true
+    }), /CONTROLLED_EXECUTION/);
     process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
-    await assert.rejects(
-        () => runInSandbox({
-            command: process.execPath,
-            args: ['-e', 'console.log(1)'],
-            confirm: false
-        }),
-        /confirm/
-    );
+    await assert.rejects(() => runInSandbox({
+        command: process.execPath,
+        args: ['-e', 'console.log(1)'],
+        confirm: false
+    }), /confirm/);
 });
-
 test('sandbox runs a probe in a scratch directory with a real mechanism report', async () => {
     process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
     const mechanism = await detectSandboxMechanism();
     assert.ok(['bwrap', 'unshare', 'process-group', 'none'].includes(mechanism.id));
-
     const dir = await mkdtemp(join(tmpdir(), 'reverse-probe-'));
     try {
         const probe = await writeIsolationProbe(dir);
@@ -52,7 +36,7 @@ test('sandbox runs a probe in a scratch directory with a real mechanism report',
             command: process.execPath,
             args: [probe],
             confirm: true,
-            limits: { timeoutMs: 8_000 }
+            limits: { timeoutMs: 8000 }
         });
         assert.equal(typeof r.durationMs, 'number');
         assert.ok(r.mechanism.id);
@@ -69,14 +53,12 @@ test('sandbox runs a probe in a scratch directory with a real mechanism report',
         await rm(dir, { recursive: true, force: true });
     }
 });
-
 test('wine/dosbox/qemu adapters report unsupported when binary is absent', async () => {
     bootstrapExecutionEnvironments();
     const names = listExecutionEnvironments().map(e => e.name);
     assert.ok(names.includes('wine'));
     assert.ok(names.includes('dosbox'));
     assert.ok(names.includes('qemu'));
-
     // Force PATH empty-ish so wine is unlikely to resolve.
     const prevPath = process.env.PATH;
     process.env.PATH = '/nonexistent-reverse-path';
@@ -90,7 +72,6 @@ test('wine/dosbox/qemu adapters report unsupported when binary is absent', async
         process.env.PATH = prevPath;
     }
 });
-
 test('works/fails matrix marks missing engines as unsupported', async () => {
     process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
     const prevPath = process.env.PATH;
@@ -99,7 +80,7 @@ test('works/fails matrix marks missing engines as unsupported', async () => {
         // Re-bootstrap with empty path: register new instances
         const cells = await runWorksFailsMatrix(['/tmp/fixture.exe'], {
             confirm: true,
-            limits: { timeoutMs: 3_000 }
+            limits: { timeoutMs: 3000 }
         });
         assert.ok(cells.length >= 3);
         assert.ok(cells.every(c => c.outcome === 'unsupported' || c.outcome === 'error'));
@@ -108,7 +89,6 @@ test('works/fails matrix marks missing engines as unsupported', async () => {
         process.env.PATH = prevPath;
     }
 });
-
 test.after(() => {
     if (prevMode === undefined)
         delete process.env.REVERSE_MODE;
