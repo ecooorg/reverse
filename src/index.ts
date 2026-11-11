@@ -58,3 +58,4 @@ export * from './legacy-linux-calibration.js';
 export * from './legacy-linux-symver.js';
 export * from './legacy-linux-packages.js';
 export { createReadelfProvider, createObjdumpProvider } from './providers-detect-tools.js';
+export { createQemuUserEnvironment, createChrootEnvironment, createOssShimEnvironment } from './execution-environment.js';

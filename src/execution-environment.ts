@@ -7,7 +7,7 @@ import { access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { runInSandbox, type SandboxLimits, type SandboxRunResult } from './execution-sandbox.js';
 import { operatingMode } from './benchmark-gate.js';
-export type EngineKind = 'wine' | 'dosbox' | 'qemu' | 'native';
+export type EngineKind = 'wine' | 'dosbox' | 'qemu' | 'native' | 'chroot' | 'qemu-user' | 'oss-shim';
 export interface EnvironmentFingerprint {
     engine: EngineKind;
     binary: string | null;
@@ -149,6 +149,92 @@ export function createQemuEnvironment(): ExecutionEnvironment {
         buildArgs: (_target, args) => (args.length ? args : ['--version'])
     });
 }
+/**
+ * QEMU user-mode for foreign Linux arch (i386/x86_64/arm).
+ * Detect-only when qemu-* missing; never simulates a rootfs.
+ */
+export function createQemuUserEnvironment(): ExecutionEnvironment {
+    return createPathEngine({
+        name: 'qemu-user',
+        kind: 'qemu-user',
+        binaries: ['qemu-x86_64', 'qemu-i386', 'qemu-arm', 'qemu-aarch64'],
+        buildArgs: (target, args) => [target, ...args]
+    });
+}
+/**
+ * Operator-supplied rootfs via REVERSE_LINUX_ROOTFS + system chroot.
+ * Absent rootfs or chroot binary → unsupported (never invents a tree).
+ */
+export function createChrootEnvironment(): ExecutionEnvironment {
+    let resolved: string | null | undefined;
+    let rootfs: string | null | undefined;
+    return {
+        name: 'chroot-rootfs',
+        kind: 'chroot',
+        async available() {
+            rootfs = process.env.REVERSE_LINUX_ROOTFS?.trim() || null;
+            resolved = await which('chroot');
+            return !!(rootfs && resolved);
+        },
+        async detail() {
+            if (resolved === undefined)
+                await this.available();
+            if (!rootfs)
+                return 'REVERSE_LINUX_ROOTFS is not set (operator-supplied rootfs required)';
+            if (!resolved)
+                return 'chroot not found on PATH';
+            return `chroot at ${resolved}; rootfs=${rootfs}`;
+        },
+        async fingerprint() {
+            if (resolved === undefined)
+                await this.available();
+            return {
+                engine: 'chroot',
+                binary: resolved ?? null,
+                imageHashes: rootfs ? [`rootfs-path:${rootfs}`] : []
+            };
+        },
+        async run(target, opts) {
+            requireControlled(opts.confirm);
+            if (!(await this.available()) || !resolved || !rootfs) {
+                return {
+                    exitCode: null,
+                    signal: null,
+                    stdout: '',
+                    stderr: 'chroot-rootfs unavailable',
+                    durationMs: 0,
+                    timedOut: false,
+                    mechanism: { id: 'none', detail: 'unavailable', networkIsolated: false, scratchIsolated: false },
+                    limitations: [
+                        'Set REVERSE_LINUX_ROOTFS to an operator-supplied old userland.',
+                        'chroot binary must be on PATH. Reverse never bundles a rootfs.'
+                    ],
+                    scratchDir: ''
+                };
+            }
+            return runInSandbox({
+                command: resolved,
+                args: [rootfs, target, ...(opts.args ?? [])],
+                confirm: opts.confirm,
+                limits: opts.limits,
+                env: {
+                    REVERSE_LINUX_ROOTFS: rootfs
+                }
+            });
+        }
+    };
+}
+/**
+ * OSS audio shim (padsp / aoss) — detect-only wrapper around the target.
+ */
+export function createOssShimEnvironment(): ExecutionEnvironment {
+    return createPathEngine({
+        name: 'oss-shim',
+        kind: 'oss-shim',
+        binaries: ['padsp', 'aoss'],
+        buildArgs: (target, args) => [target, ...args]
+    });
+}
 const registry: ExecutionEnvironment[] = [];
 export function registerExecutionEnvironment(env: ExecutionEnvironment): void {
     if (registry.some(e => e.name === env.name))
@@ -162,6 +248,9 @@ export function bootstrapExecutionEnvironments(): void {
     registerExecutionEnvironment(createWineEnvironment());
     registerExecutionEnvironment(createDosboxEnvironment());
     registerExecutionEnvironment(createQemuEnvironment());
+    registerExecutionEnvironment(createQemuUserEnvironment());
+    registerExecutionEnvironment(createChrootEnvironment());
+    registerExecutionEnvironment(createOssShimEnvironment());
 }
 export interface WorksFailsCell {
     target: string;

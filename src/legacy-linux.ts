@@ -302,18 +302,18 @@ function detectLibcMarkers(text: string, needed: string[]): string[] {
 }
 function detectCompilerMarkers(text: string, needed: string[]): string[] {
     const out: string[] = [];
-    const n = needed.join(' ').toLowerCase();
-    if (/libstdc\+\+\.so\.6/.test(n))
+    const blob = `${text}\n${needed.join('\n')}`.toLowerCase();
+    if (/libstdc\+\+\.so\.6/.test(blob))
         out.push('libstdc++.so.6 (GCC 3.4+/4.x)');
-    if (/libstdc\+\+\.so\.5/.test(n))
+    if (/libstdc\+\+\.so\.5/.test(blob))
         out.push('libstdc++.so.5 (GCC 3.0–3.3)');
-    if (/libstdc\+\+.*libc6/.test(n))
+    if (/libstdc\+\+-libc6/.test(blob))
         out.push('libstdc++-libc6 (GCC 2.95 era)');
-    if (/GCC:/.test(text))
+    if (/gcc:/.test(blob))
         out.push('GCC version string in .comment');
-    if (/GLIBCXX_3\./i.test(text))
+    if (/glibcxx_3\./i.test(blob))
         out.push('GLIBCXX symbol versions');
-    if (/CXXABI_/i.test(text))
+    if (/cxxabi_/i.test(blob))
         out.push('CXXABI symbol versions');
     return [...new Set(out)];
 }

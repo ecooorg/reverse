@@ -103,8 +103,49 @@ export const LINUX_LIBSTDCPP_TABLE: SourcedDataTable = {
         })
     ]
 };
+/** Desktop / audio path facts for old Linux (documentary). */
+export const LINUX_DESKTOP_AUDIO_TABLE: SourcedDataTable = {
+    schemaVersion: '1.0',
+    name: 'linux-desktop-audio',
+    description: 'OSS/ALSA and X11-era path and library facts (documentary).',
+    tableVersion: '2026-11-11',
+    entries: [
+        entry({
+            id: 'linux-oss-dev-dsp',
+            fact: 'OSS programs open /dev/dsp and /dev/mixer; modern hosts need padsp/aoss or ALSA OSS.',
+            source: 'OSS / ALSA OSS emulation notes (documentary)',
+            license: 'Documentary',
+            retrievedAt: '2026-11-11',
+            signature: '/dev/dsp'
+        }),
+        entry({
+            id: 'linux-libx11',
+            fact: 'X11 clients link libX11.so.6; missing X libraries need Xephyr/Xvfb or host X.',
+            source: 'X.Org / XFree86 library sonames (documentary)',
+            license: 'Documentary',
+            retrievedAt: '2026-11-11',
+            signature: 'libX11.so.6'
+        }),
+        entry({
+            id: 'linux-gtk1',
+            fact: 'GTK 1.x uses libgtk-1.2.so.0; not provided by GTK 3/4 stacks.',
+            source: 'GTK historical sonames (documentary)',
+            license: 'Documentary',
+            retrievedAt: '2026-11-11',
+            signature: 'libgtk-1.2.so.0'
+        }),
+        entry({
+            id: 'linux-qt3',
+            fact: 'Qt3 clients use libqt-mt.so.3 / libqt.so.3; incompatible with Qt5/6 alone.',
+            source: 'Qt3 library notes (documentary)',
+            license: 'Documentary',
+            retrievedAt: '2026-11-11',
+            signature: 'libqt-mt.so.3'
+        })
+    ]
+};
 export function allLinuxCompatTables(): SourcedDataTable[] {
-    return [LINUX_LIBC_TABLE, LINUX_LIBSTDCPP_TABLE];
+    return [LINUX_LIBC_TABLE, LINUX_LIBSTDCPP_TABLE, LINUX_DESKTOP_AUDIO_TABLE];
 }
 export function assertLinuxTablesValid(): string[] {
     const errors: string[] = [];
@@ -239,6 +280,44 @@ export function diagnoseLinuxFromTables(input: {
             cause: 'Needs GCC 2.95 libstdc++-libc6; requires an old userland.',
             evidence: 'marker libstdc++-libc6',
             confidence: 0.85,
+            needsExec: true
+        });
+    }
+    if (needed.some(n => /libx11\.so/.test(n)) || /libx11\.so/.test(markers)) {
+        push({
+            id: 'linux-libx11',
+            cause: 'Links to libX11; needs an X11 library stack or nested X server.',
+            evidence: 'soname/marker libX11',
+            confidence: 0.8,
+            needsExec: true
+        });
+    }
+    if (needed.some(n => /libgtk-1\.2/.test(n)) || /libgtk-1\.2/.test(markers)) {
+        push({
+            id: 'linux-gtk1',
+            cause: 'Links to GTK 1.2; not provided by modern GTK 3/4 alone.',
+            evidence: 'soname/marker libgtk-1.2',
+            confidence: 0.85,
+            needsExec: true
+        });
+    }
+    if (needed.some(n => /libqt-mt\.so\.3|libqt\.so\.3/.test(n)) ||
+        /libqt-mt\.so\.3/.test(markers)) {
+        push({
+            id: 'linux-qt3',
+            cause: 'Links to Qt3; needs a Qt3 userland, not Qt5/6 alone.',
+            evidence: 'soname/marker libqt-mt.so.3',
+            confidence: 0.85,
+            needsExec: true
+        });
+    }
+    if (/\/dev\/dsp|\/dev\/mixer/.test(markers) ||
+        needed.some(n => /liboss|libasound/.test(n))) {
+        push({
+            id: 'linux-oss-dev-dsp',
+            cause: 'May need OSS /dev/dsp or an OSS→ALSA shim (padsp/aoss).',
+            evidence: 'OSS device or audio library marker',
+            confidence: 0.7,
             needsExec: true
         });
     }
