@@ -50,3 +50,4 @@ export * from './execution-sandbox.js';
 export * from './execution-environment.js';
 export * from './behavior-capture.js';
 export * from './preservation-migration.js';
+export * from './legacy-reference-trials.js';
