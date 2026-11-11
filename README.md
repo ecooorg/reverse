@@ -65,7 +65,7 @@ All GitHub Actions workflows publish a ZIP artifact with detailed logs and a sep
 
 ## MCP connection
 
-Reverse implements the MCP JSON-RPC stdio transport and exposes 34 tools, including process inspection, interleaved benchmark suites, stored baselines, typed evidence, hash-chained research sessions, hypothesis promotion and artifact linking. Command-running tools require `REVERSE_MODE=CONTROLLED_EXECUTION` and a command allowlist. Process inventory supports offset pagination; tool results are capped at 1 MiB.
+Reverse implements the MCP JSON-RPC stdio transport and exposes 60 tools, including process inspection, interleaved benchmark suites, stored baselines, typed evidence, hash-chained research sessions, hypothesis promotion and artifact linking, static analysis and provider tools, the controlled optimization loop, runtime analyzers and the initial legacy Windows analysis (the exact list is in [MCP.md](docs/MCP.md)). MCP prompts and resources are served too, and an optional token-gated HTTP transport exists (see MCP.md). Command-running tools require `REVERSE_MODE=CONTROLLED_EXECUTION` and a command allowlist. Process inventory supports offset pagination; tool results are capped at 1 MiB.
 
 Example client configuration:
 
@@ -88,14 +88,18 @@ The server writes protocol messages to stdout. Do not add logging to stdout; dia
 2. Findings carry status, timestamp, host, coverage, limitations, and evidence references.
 3. External analysis engines are providers, never silently simulated.
 4. Commands execute locally. Reverse does not upload inspected binaries.
-5. Mutating operations are out of scope for this MVP. Benchmark/validation commands do execute user-supplied commands under the current user's permissions; over MCP they are off unless `REVERSE_MODE=CONTROLLED_EXECUTION` and `REVERSE_COMMAND_ALLOWLIST` are set (see docs/MCP.md).
+5. Reverse never modifies the original target: changes are applied only to isolated workspace copies, under `CONTROLLED_EXECUTION` with an explicit `confirm: true` (patch J). Benchmark/validation commands do execute user-supplied commands under the current user's permissions; over MCP they are off unless `REVERSE_MODE=CONTROLLED_EXECUTION` and `REVERSE_COMMAND_ALLOWLIST` are set (see docs/MCP.md).
 6. A timing improvement is not proof of semantic equivalence.
 7. Analogies and AI guesses are hypotheses, kept apart from facts and promoted only by same-session Validation or Benchmark evidence.
 8. The legacy track is for open-source software or software whose developers and rights holders consent; see [SECURITY.md](docs/SECURITY.md).
 
-## Current release (1.1.0-beta.2)
+## Project status (1.1.0-beta.2)
 
-Patches **A–K** and **L** are the 1.0 baseline. This prerelease contains an initial Windows-through-2010 slice of product patch **M**: static DOS MZ / Windows NE, LE, LX and PE recognition, bounded PE import extraction, Delphi form/RTTI-style and VB6/MFC signature detection, preliminary compatibility findings, and report-embedded session authorization provenance. The authorization declaration is not legal verification. Patch M remains open: reference-corpus calibration, packer detection, full Target Profile, sourced OS/API compatibility tables, execution environments, behavior capture/replay and preservation reporting are still planned. The remaining product sequence is M Windows, N old Linux, O Classic Mac/early macOS, P legacy Android, and Q newer generations plus unified compatibility intelligence; there are no parallel platform-wave or cross-cutting patch tracks. See [docs/ROADMAP.md](docs/ROADMAP.md), [docs/CAPABILITIES.md](docs/CAPABILITIES.md), [docs/SECURITY.md](docs/SECURITY.md) and [docs/AUDIT.md](docs/AUDIT.md).
+- **Done:** patches **A–K** and **L** are the 1.0 baseline (process intelligence, benchmarks, evidence, static analysis, providers, controlled optimization, runtime analyzers, agent integration).
+- **In progress:** product patch **M** (Windows compatibility, DOS through Windows 7-era, target release 1.2). This prerelease contains an initial slice: static DOS MZ / Windows NE, LE, LX and PE recognition, bounded PE import extraction, Delphi form/RTTI-style and VB6/MFC signature detection, preliminary compatibility findings, and report-embedded session authorization provenance. The authorization declaration is not legal verification.
+- **Still open in M:** reference-corpus calibration, packer detection, full Target Profile, sourced OS/API compatibility tables, execution environments, behavior capture/replay and preservation reporting are still planned.
+- **Not started:** the rest of the product sequence: N old Linux, O Classic Mac/early macOS, P legacy Android, Q newer generations plus unified compatibility intelligence. There are no parallel platform-wave or cross-cutting patch tracks.
+- **Where to start (people and AI assistants):** read [AGENTS.md](AGENTS.md), then the *Status at a glance* section of [docs/ROADMAP.md](docs/ROADMAP.md). See also [docs/CAPABILITIES.md](docs/CAPABILITIES.md), [docs/SECURITY.md](docs/SECURITY.md) and [docs/AUDIT.md](docs/AUDIT.md).
 
 ## Documentation
 
