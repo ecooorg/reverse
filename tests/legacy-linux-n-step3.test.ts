@@ -78,3 +78,35 @@ test('readelf/objdump providers report unavailable when missing (never simulate)
         process.env.PATH = prev;
     }
 });
+test('Linux analysis marks ELF-derived strings as untrusted and caps adversarial lengths', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'll-untrusted-'));
+    try {
+        const b = Buffer.alloc(6200);
+        b[0] = 0x7f;
+        b.write('ELF', 1, 'ascii');
+        b[4] = 2;
+        b[5] = 1;
+        b[6] = 1;
+        b.writeUInt16LE(2, 16);
+        b.writeUInt16LE(62, 18);
+        b.writeUInt32LE(1, 20);
+        b.writeBigUInt64LE(64n, 32);
+        b.writeUInt16LE(56, 54);
+        b.writeUInt16LE(1, 56);
+        b.writeUInt32LE(3, 64);
+        b.writeUInt32LE(4, 68);
+        b.writeBigUInt64LE(200n, 72);
+        b.writeBigUInt64LE(200n, 80);
+        b.writeBigUInt64LE(5000n, 96);
+        b.write('/' + 'x'.repeat(4900), 200, 'ascii');
+        const file = join(dir, 'hostile-elf');
+        await writeFile(file, b);
+        const report: any = await analyzeLegacyLinux(file, auth);
+        assert.ok(report.untrustedContent);
+        assert.ok(report.findings[0].interpreter.length <= 4200);
+        assert.match(report.findings[0].interpreter, /truncated/);
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});

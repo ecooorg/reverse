@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "suite": "Patch N Linux reference trials",
+  "expected": {
+    "trialIds": [
+      "compare-versions",
+      "diagnose-and-advise"
+    ],
+    "trialStatuses": [
+      "limited",
+      "limited"
+    ],
+    "preservationLevel": "L0",
+    "requiresExplicitOracleLimitation": true,
+    "minimumMigrationOptions": 1
+  }
+}
