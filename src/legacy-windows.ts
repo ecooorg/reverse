@@ -5,6 +5,20 @@ import { result } from './core-types.js';
 import { profileField, type LegacyAuthorization, type TargetProfile } from './legacy-types.js';
 import { assertAuthorizationPresent, requireLegacyGate } from './legacy-gate.js';
 export type { LegacyAuthorization, TargetProfile } from './legacy-types.js';
+export interface PeHardeningFlags {
+    aslr: boolean | null;
+    dep: boolean | null;
+    cfg: boolean | null;
+    seh: boolean | null;
+    /** Raw DllCharacteristics when present. */
+    dllCharacteristics: number | null;
+    evidence: string[];
+}
+export interface PackerHeuristic {
+    name: string;
+    evidence: string[];
+    confidence: number;
+}
 export interface LegacyWindowsFinding {
     format: 'DOS MZ' | 'Windows NE' | 'Windows LE' | 'Windows LX' | 'Windows PE' | 'unknown';
     architecture: string;
@@ -19,6 +33,12 @@ export interface LegacyWindowsFinding {
     }>;
     importedLibraries: string[];
     importedFunctions: string[];
+    /** Delay-load imported libraries (IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT). */
+    delayImportedLibraries: string[];
+    /** PE DllCharacteristics-derived hardening flags (null when not PE / truncated). */
+    hardening: PeHardeningFlags;
+    /** Lightweight packer/protector heuristics (high-entropy sections, known stubs). */
+    packerHeuristics: PackerHeuristic[];
     compatibilityFindings: Array<{
         cause: string;
         evidence: string;
@@ -160,6 +180,154 @@ function detectStructure(text: string, libraries: string[]) {
  * Statically inspect a DOS/Windows binary.
  * Requires a valid authorization (session declaration or explicit object) — the shared gate (step 1).
  */
+const IMAGE_DLLCHARACTERISTICS_NX_COMPAT = 0x0100;
+const IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE = 0x0040;
+const IMAGE_DLLCHARACTERISTICS_GUARD_CF = 0x4000;
+const IMAGE_DLLCHARACTERISTICS_NO_SEH = 0x0400;
+function parsePeHardening(b: Buffer, peOffset: number): PeHardeningFlags {
+    const empty: PeHardeningFlags = {
+        aslr: null, dep: null, cfg: null, seh: null,
+        dllCharacteristics: null, evidence: []
+    };
+    try {
+        const optional = peOffset + 24;
+        const magic = b.readUInt16LE(optional);
+        // DllCharacteristics is at optional+70 for PE32 and PE32+
+        const dllCharOff = optional + 70;
+        if (dllCharOff + 2 > b.length)
+            return empty;
+        if (magic !== 0x10b && magic !== 0x20b)
+            return empty;
+        const dll = b.readUInt16LE(dllCharOff);
+        return {
+            aslr: (dll & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE) !== 0,
+            dep: (dll & IMAGE_DLLCHARACTERISTICS_NX_COMPAT) !== 0,
+            cfg: (dll & IMAGE_DLLCHARACTERISTICS_GUARD_CF) !== 0,
+            seh: (dll & IMAGE_DLLCHARACTERISTICS_NO_SEH) === 0,
+            dllCharacteristics: dll,
+            evidence: [`PE DllCharacteristics=0x${dll.toString(16)} at optional+70`]
+        };
+    }
+    catch {
+        return empty;
+    }
+}
+function parsePeDelayImports(b: Buffer, peOffset: number): string[] {
+    const libraries: string[] = [];
+    try {
+        const sectionCount = b.readUInt16LE(peOffset + 6);
+        const optionalSize = b.readUInt16LE(peOffset + 20);
+        const optional = peOffset + 24;
+        const magic = b.readUInt16LE(optional);
+        // Delay import directory is data directory index 13
+        const dirBase = optional + (magic === 0x20b ? 112 : magic === 0x10b ? 96 : 0);
+        const delayEntry = dirBase + 13 * 8;
+        if (delayEntry + 8 > b.length || delayEntry + 8 > optional + optionalSize)
+            return libraries;
+        const delayRva = b.readUInt32LE(delayEntry);
+        if (!delayRva)
+            return libraries;
+        const sectionsAt = optional + optionalSize;
+        const sections: Array<{
+            va: number;
+            size: number;
+            raw: number;
+            rawSize: number;
+        }> = [];
+        for (let i = 0; i < Math.min(sectionCount, 96); i++) {
+            const at = sectionsAt + i * 40;
+            if (at + 40 > b.length)
+                break;
+            sections.push({
+                va: b.readUInt32LE(at + 12),
+                size: b.readUInt32LE(at + 8),
+                raw: b.readUInt32LE(at + 20),
+                rawSize: b.readUInt32LE(at + 16)
+            });
+        }
+        const rvaToOffset = (rva: number): number => {
+            for (const section of sections) {
+                const span = Math.max(section.size, section.rawSize);
+                if (rva >= section.va && rva - section.va < span) {
+                    const delta = rva - section.va;
+                    return delta < section.rawSize && section.raw + delta < b.length
+                        ? section.raw + delta : -1;
+                }
+            }
+            return -1;
+        };
+        // ImgDelayDescr: attributes, name RVA at +4 (newer) or +4 depends on version
+        let descr = rvaToOffset(delayRva);
+        for (let i = 0; i < 64 && descr >= 0 && descr + 32 <= b.length; i++, descr += 32) {
+            const nameRva = b.readUInt32LE(descr + 4);
+            if (!nameRva)
+                break;
+            const lib = boundedCString(b, rvaToOffset(nameRva)).toLowerCase();
+            if (lib)
+                libraries.push(lib);
+        }
+    }
+    catch { /* bounded best-effort */ }
+    return libraries;
+}
+function detectPackerHeuristics(b: Buffer, peOffset: number | null): PackerHeuristic[] {
+    const found: PackerHeuristic[] = [];
+    const text = b.toString('latin1');
+    const stubs: Array<[
+        RegExp,
+        string,
+        number
+    ]> = [
+        [/UPX[0-9]!|UPX\d{1,3}/i, 'UPX packer stub', 0.9],
+        [/\.themida|Themida|WinLicense/i, 'Themida/WinLicense protector marker', 0.85],
+        [/VMProtect|\.vmp[0-9]/i, 'VMProtect marker', 0.85],
+        [/ASPack|\.aspack/i, 'ASPack marker', 0.8],
+        [/PECompact|PEC2/i, 'PECompact marker', 0.8],
+    ];
+    for (const [re, name, conf] of stubs) {
+        if (re.test(text))
+            found.push({ name, evidence: [`string match ${re}`], confidence: conf });
+    }
+    if (peOffset !== null) {
+        try {
+            const sectionCount = b.readUInt16LE(peOffset + 6);
+            const optionalSize = b.readUInt16LE(peOffset + 20);
+            const sectionsAt = peOffset + 24 + optionalSize;
+            for (let i = 0; i < Math.min(sectionCount, 16); i++) {
+                const at = sectionsAt + i * 40;
+                if (at + 40 > b.length)
+                    break;
+                const name = b.toString('ascii', at, at + 8).replace(/\0.*$/, '');
+                const rawSize = b.readUInt32LE(at + 16);
+                const raw = b.readUInt32LE(at + 20);
+                if (rawSize < 256 || raw + rawSize > b.length)
+                    continue;
+                // Shannon entropy of first 4 KiB of section
+                const sample = b.subarray(raw, raw + Math.min(rawSize, 4096));
+                const counts = new Array(256).fill(0);
+                for (const byte of sample)
+                    counts[byte]++;
+                let entropy = 0;
+                const n = sample.length;
+                for (const c of counts) {
+                    if (!c)
+                        continue;
+                    const p = c / n;
+                    entropy -= p * Math.log2(p);
+                }
+                if (entropy >= 7.2) {
+                    found.push({
+                        name: `high-entropy section ${name || i}`,
+                        evidence: [`section "${name}" entropy ${entropy.toFixed(2)} over ${n} bytes`],
+                        confidence: entropy >= 7.5 ? 0.75 : 0.6
+                    });
+                }
+            }
+        }
+        catch { /* best-effort */ }
+    }
+    return found;
+}
 export async function analyzeLegacyWindows(file: string, authorization: LegacyAuthorization | null = null, options: {
     sessionId?: string;
 } = {}) {
@@ -232,6 +400,16 @@ export async function analyzeLegacyWindows(file: string, authorization: LegacyAu
     const imports = peOffset === null
         ? { libraries: [] as string[], functions: [] as string[] }
         : parsePeImports(b, peOffset);
+    const delayImportedLibraries = peOffset === null
+        ? []
+        : parsePeDelayImports(b, peOffset);
+    const hardening = peOffset === null
+        ? {
+            aslr: null, dep: null, cfg: null, seh: null,
+            dllCharacteristics: null, evidence: [] as string[]
+        }
+        : parsePeHardening(b, peOffset);
+    const packerHeuristics = detectPackerHeuristics(b, peOffset);
     const structuralDetectors = detectStructure(text, imports.libraries);
     const toolchainMarkers = markerRules.filter(([re]) => re.test(text)).map(([, label]) => label);
     const compatibilityFindings: LegacyWindowsFinding['compatibilityFindings'] = [];
@@ -273,6 +451,40 @@ export async function analyzeLegacyWindows(file: string, authorization: LegacyAu
             evidence: graphicsEvidence.join('; '),
             confidence: imports.libraries.some(x => /^(ddraw|d3d|d3drm|glide)/.test(x)) ? 0.98 : 0.8,
             limitations: ['Static evidence does not prove an active code path or required driver version.'],
+            needsExecutionEnvironment: true
+        });
+    if (format === 'Windows PE' && hardening.dllCharacteristics !== null) {
+        if (hardening.aslr === false)
+            compatibilityFindings.push({
+                cause: 'PE image does not claim ASLR (DYNAMIC_BASE).',
+                evidence: hardening.evidence.join('; '),
+                confidence: 0.95,
+                limitations: ['DllCharacteristics reflects the link-time flag, not runtime policy.'],
+                needsExecutionEnvironment: false
+            });
+        if (hardening.dep === false)
+            compatibilityFindings.push({
+                cause: 'PE image does not claim DEP/NX (NX_COMPAT).',
+                evidence: hardening.evidence.join('; '),
+                confidence: 0.95,
+                limitations: ['DllCharacteristics reflects the link-time flag, not runtime policy.'],
+                needsExecutionEnvironment: false
+            });
+    }
+    if (delayImportedLibraries.length)
+        compatibilityFindings.push({
+            cause: 'Binary uses delay-load imports; the delayed modules may be absent at first load.',
+            evidence: delayImportedLibraries.join(', '),
+            confidence: 0.9,
+            limitations: ['Delay-import presence does not prove the delayed path is taken.'],
+            needsExecutionEnvironment: true
+        });
+    if (packerHeuristics.length)
+        compatibilityFindings.push({
+            cause: 'Packer/protector heuristics fired; static inventory may be incomplete.',
+            evidence: packerHeuristics.map(p => p.name).join('; '),
+            confidence: Math.max(...packerHeuristics.map(p => p.confidence)),
+            limitations: ['Heuristics are not a substitute for diec/yara-x/capa providers.'],
             needsExecutionEnvironment: true
         });
     const mfcLibraries = imports.libraries.filter(x => /mfc/.test(x));
@@ -381,7 +593,9 @@ export async function analyzeLegacyWindows(file: string, authorization: LegacyAu
     const finding: LegacyWindowsFinding = {
         format, architecture, bitness, targetEra, subsystem, toolchainMarkers,
         structuralDetectors, importedLibraries: imports.libraries,
-        importedFunctions: imports.functions, compatibilityFindings,
+        importedFunctions: imports.functions,
+        delayImportedLibraries, hardening, packerHeuristics,
+        compatibilityFindings,
         targetProfile, authorization: auth, sha256
     };
     return result<LegacyWindowsFinding>(abs, 'legacy_windows_analysis', [finding], {
