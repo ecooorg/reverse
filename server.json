@@ -2,7 +2,9 @@
   "name": "reverse",
   "description": "Local analysis, profiling, benchmarking and evidence core (MCP stdio).",
   "command": "reverse",
-  "args": ["mcp"],
-  "version": "1.1.0-beta.2",
+  "args": [
+    "mcp"
+  ],
+  "version": "1.1.5",
   "transport": "stdio"
 }

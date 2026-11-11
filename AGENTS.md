@@ -13,6 +13,23 @@ Before reading code or making any change:
 5. When a patch is done, update the roadmap in the same change: mark the patch (and the checklist items it closes) done, add its release section and its row in the version index, update *Status at a glance* and the debt register, and move the matching items in `ARCHITECTURE.md` from *planned* to *implemented*. After every delivered increment (not only at patch end) tick the checklist items it closes, so the roadmap always shows where the project stands. Use the roadmap's status vocabulary (done, in progress, not started, open, partial, pending verification) and never tick an item without code and a passing check.
 6. Keep one source of truth: status lives in `docs/ROADMAP.md`; do not repeat a different status in README, CAPABILITIES or ARCHITECTURE. Documentation-only maintenance is not a product patch and gets an audit entry (new IDs appended to the backlog) but no patch letter.
 
+
+## Version number after every delivered increment
+
+The third numeric component of the product version tracks **delivered work steps**, not only public releases.
+
+- Form: `MAJOR.MINOR.STEP` during an active product patch (example while Patch M is in progress: `1.1.0` → `1.1.1` → … → `1.1.5` after step 5).
+- **Every** product increment that lands on `main` (each work-order step of M–Q, or any other shipped change set) MUST bump that step digit and update **all** of these in the same change:
+  - `package.json` (`version`)
+  - `src/core-version.ts` (`VERSION`)
+  - `server.json` (`version` and any nested package version fields)
+  - `package-lock.json` if it embeds the package version
+  - `docs/ROADMAP.md` *Status at a glance* and the version index when the roadmap requires it
+- Do **not** leave a stale prerelease label such as `1.1.0-beta.2` after later steps have been delivered; the version string is how the owner and the next assistant see progress at a glance.
+- A finished product patch (M done → release **1.2.0**, etc.) advances MINOR (or MAJOR) per the roadmap release record; until then, keep incrementing the step digit.
+- Capability check `Package / one version everywhere` must stay green after the bump.
+
+
 ## 2. Repository layout is flat — keep it flat
 
 - At most **one level of folders**: `src/`, `tests/`, `docs/`, plus `.github/workflows/` as the single permitted exception. Never create nested folders anywhere else, and never add a new top-level folder without the user's approval.
