@@ -101,6 +101,7 @@ jobs:
           {
           npm run format:check
           npm run size:check
+          npm run quality:static
           } > ci-logs/02-static-quality-gates.log 2>&1
       - name: Build library, CLI and MCP server
         run: |
@@ -110,6 +111,8 @@ jobs:
           {
           npm run build
           } > ci-logs/03-build-library-cli-and-mcp-server.log 2>&1
+      - name: MCP documentation contract
+        run: npm run docs:mcp:check
       - name: Package targets (built tree)
         if: runner.os == 'Linux'
         run: |
