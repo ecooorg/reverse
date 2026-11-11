@@ -351,6 +351,61 @@ check('Legacy Windows', 'detect-only providers register and report unsupported w
     if (r.status === 'unsupported')
         assert.ok((r.limitations || []).length > 0);
 });
+
+check('Execution', 'sandbox refuses execution outside CONTROLLED_EXECUTION', async () => {
+    const { runInSandbox } =
+        await import(pathToFileURL(path.join(DIST, 'execution-sandbox.js')).href);
+    const prev = process.env.REVERSE_MODE;
+    process.env.REVERSE_MODE = 'READ_ONLY';
+    try {
+        let threw = false;
+        try {
+            await runInSandbox({
+                command: process.execPath,
+                args: ['-e', '0'],
+                confirm: true
+            });
+        }
+        catch {
+            threw = true;
+        }
+        assert.equal(threw, true);
+    }
+    finally {
+        if (prev === undefined) delete process.env.REVERSE_MODE;
+        else process.env.REVERSE_MODE = prev;
+    }
+});
+check('Execution', 'sandbox mechanism is reported honestly', async () => {
+    const { detectSandboxMechanism } =
+        await import(pathToFileURL(path.join(DIST, 'execution-sandbox.js')).href);
+    const m = await detectSandboxMechanism();
+    assert.ok(m.id);
+    assert.equal(typeof m.networkIsolated, 'boolean');
+    assert.equal(typeof m.detail, 'string');
+});
+check('Execution', 'works/fails matrix marks absent engines unsupported', async () => {
+    const { runWorksFailsMatrix } =
+        await import(pathToFileURL(path.join(DIST, 'execution-environment.js')).href);
+    const prev = process.env.REVERSE_MODE;
+    const prevPath = process.env.PATH;
+    process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
+    process.env.PATH = '/nonexistent-reverse-path';
+    try {
+        const cells = await runWorksFailsMatrix(['/tmp/fixture.exe'], {
+            confirm: true,
+            limits: { timeoutMs: 2000 }
+        });
+        assert.ok(cells.length >= 1);
+        assert.ok(cells.every(c =>
+            c.outcome === 'unsupported' || c.outcome === 'error'));
+    }
+    finally {
+        process.env.PATH = prevPath;
+        if (prev === undefined) delete process.env.REVERSE_MODE;
+        else process.env.REVERSE_MODE = prev;
+    }
+});
 // ---------------------------------------------------------------- 2. binary analysis
 check('Binary', 'ELF64 little-endian x86_64 header is parsed (arch, bitness, endian, entry point)', async () => {
     const r = await analyzeBinary(await craft('elf64.bin', elf({ cls: 2, le: true, machine: 62, entry: 0x401000n })));
