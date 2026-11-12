@@ -1,0 +1,250 @@
+name: Nightly Full Verification
+
+# Deliberately manual: run from Actions -> Nightly Full Verification -> Run workflow.
+# This replaces the retired Patch N-only golden workflow with one comprehensive verification run.
+# No push, pull_request or schedule trigger is configured.
+
+on:
+  workflow_dispatch:
+    inputs:
+      matrix:
+        description: Cross-platform matrix to run
+        type: choice
+        options: [all, ubuntu-latest, windows-latest, macos-latest]
+        default: all
+      mutation:
+        description: Run the slower Stryker mutation suite
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-full-verification-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verification:
+    name: Full checks (${{ matrix.os }}, Node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(inputs.matrix == 'all' && '["ubuntu-latest","windows-latest","macos-latest"]' || format('["{0}"]', inputs.matrix)) }}
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - name: Install locked dependencies
+        id: install
+        run: |
+          mkdir -p ci-logs
+          npm ci --ignore-scripts --fetch-retries=5 --fetch-timeout=120000 2>&1 | tee ci-logs/npm-ci.log
+      - name: Static quality gates
+        id: static
+        if: always() && steps.install.outcome == 'success'
+        continue-on-error: true
+        run: |
+          mkdir -p ci-logs
+          {
+            npm run format:check
+            npm run size:check
+            npm run quality:static
+            npm run lint
+            npm run dup:check
+          } 2>&1 | tee ci-logs/static-quality.log
+      - name: Build library and test TypeScript
+        id: build
+        if: always() && steps.install.outcome == 'success'
+        continue-on-error: true
+        run: |
+          mkdir -p ci-logs
+          {
+            npm run build
+            npm run docs:mcp:check
+            KNIP_DISABLE_RAW_TRANSFER=1 npm run unused:check
+            npx tsc -p tsconfig.tests.json
+          } 2>&1 | tee ci-logs/build.log
+      - name: Unit tests (Linux runners; cross-platform behavior is covered by capabilities)
+        id: unit
+        if: always() && runner.os == 'Linux' && steps.build.outcome == 'success'
+        continue-on-error: true
+        run: |
+          mkdir -p ci-logs
+          node --test --test-concurrency=1 --test-reporter=spec dist-tests/*.test.js 2>&1 | tee ci-logs/unit-tests.log
+      - name: Capability verification suite
+        id: capabilities
+        if: always() && steps.build.outcome == 'success'
+        continue-on-error: true
+        run: |
+          mkdir -p ci-logs
+          npm run verify 2>&1 | tee ci-logs/capabilities.log
+      - name: Coverage run
+        id: coverage
+        if: always() && runner.os == 'Linux' && steps.build.outcome == 'success'
+        continue-on-error: true
+        run: |
+          mkdir -p ci-logs
+          npm run test:coverage 2>&1 | tee ci-logs/coverage.log
+      - name: Built-tree structure and package targets
+        id: structure
+        if: always() && steps.build.outcome == 'success'
+        continue-on-error: true
+        run: |
+          mkdir -p ci-logs
+          node tests/check-structure.mjs --built 2>&1 | tee ci-logs/structure.log
+      - name: Legacy reference-trial golden test and Android L0 trials
+        id: golden
+        if: always() && steps.build.outcome == 'success'
+        continue-on-error: true
+        run: |
+          mkdir -p ci-logs
+          node --test --test-reporter=spec dist-tests/legacy-reference-trials.test.js dist-tests/legacy-android.test.js 2>&1 | tee ci-logs/reference-golden.log
+      - name: Write verification status table
+        if: always()
+        env:
+          INSTALL: ${{ steps.install.outcome }}
+          STATIC: ${{ steps.static.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          UNIT: ${{ steps.unit.outcome }}
+          RUNNER_OS: ${{ runner.os }}
+          CAPABILITIES: ${{ steps.capabilities.outcome }}
+          COVERAGE: ${{ steps.coverage.outcome }}
+          STRUCTURE: ${{ steps.structure.outcome }}
+          GOLDEN: ${{ steps.golden.outcome }}
+        run: |
+          mkdir -p ci-logs
+          {
+            echo '# Nightly Full Verification'
+            echo
+            echo "Commit: $GITHUB_SHA  "
+            echo "Runner: $RUNNER_OS / Node $(node -v)"
+            echo
+            echo '| Check | Status |'
+            echo '|---|---|'
+            echo "| npm ci | ${INSTALL:-NOT RUN} |"
+            echo "| Static quality + MCP docs | ${STATIC:-NOT RUN} |"
+            echo "| Build + test compilation | ${BUILD:-NOT RUN} |"
+            echo "| Unit tests | ${UNIT:-NOT RUN} |"
+            echo "| Capability suite | ${CAPABILITIES:-NOT RUN} |"
+            echo "| Coverage | ${COVERAGE:-NOT RUN} |"
+            echo "| Built structure | ${STRUCTURE:-NOT RUN} |"
+            echo "| Legacy reference golden trials | ${GOLDEN:-NOT RUN} |"
+          } | tee ci-logs/verification-status.md | tee -a "$GITHUB_STEP_SUMMARY"
+          cp ci-logs/verification-status.md verification-status.md
+      - name: Test diagnostic summary generator
+        if: always() && steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npm run ci:summary:test
+      - name: Generate AI debugging summary
+        if: always() && steps.install.outcome == 'success'
+        env:
+          GITHUB_ACTIONS: "true"
+        run: npm run ci:summary
+      - name: Upload verification logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nightly-verification-${{ matrix.os }}-node${{ matrix.node }}
+          path: |
+            ci-logs/
+            verification-status.md
+            AI-DEBUG-SUMMARY.md
+          retention-days: 30
+          if-no-files-found: warn
+      - name: Enforce required checks
+        if: always()
+        env:
+          INSTALL: ${{ steps.install.outcome }}
+          STATIC: ${{ steps.static.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          UNIT: ${{ steps.unit.outcome }}
+          RUNNER_OS: ${{ runner.os }}
+          CAPABILITIES: ${{ steps.capabilities.outcome }}
+          COVERAGE: ${{ steps.coverage.outcome }}
+          STRUCTURE: ${{ steps.structure.outcome }}
+          GOLDEN: ${{ steps.golden.outcome }}
+        run: |
+          for check in INSTALL STATIC BUILD CAPABILITIES STRUCTURE GOLDEN; do
+            value="${!check}"
+            if [ "$value" != success ]; then
+              echo "::error title=Nightly verification incomplete::$check ended as ${value:-NOT RUN}"
+              failed=1
+            fi
+          done
+          if [ "$RUNNER_OS" = "Linux" ] && [ "$UNIT" != success ]; then
+            echo "::error title=Nightly verification incomplete::UNIT ended as ${UNIT:-NOT RUN}"
+            failed=1
+          fi
+          if [ "$RUNNER_OS" = "Linux" ] && [ "$COVERAGE" != success ]; then
+            echo "::error title=Nightly verification incomplete::COVERAGE ended as ${COVERAGE:-NOT RUN}"
+            failed=1
+          fi
+          exit "${failed:-0}"
+
+  security-and-package:
+    name: Supply-chain and installed-package checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --fetch-retries=5 --fetch-timeout=120000
+      - name: Production dependency audit
+        run: npm audit --omit=dev
+      - name: Verify npm package signatures
+        run: npm audit signatures
+      - name: Generate and validate CycloneDX SBOM
+        run: |
+          npm sbom --sbom-format cyclonedx > reverse.cdx.json
+          node -e "const s=require('./reverse.cdx.json'); if(s.bomFormat!=='CycloneDX'||!String(s.metadata?.component?.purl).startsWith('pkg:npm/reverse-compact@')) process.exit(1)"
+      - name: Build and smoke-test installed package
+        run: |
+          npm run build
+          npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP"
+          mkdir "$RUNNER_TEMP/reverse-consumer"
+          cd "$RUNNER_TEMP/reverse-consumer"
+          npm init -y
+          npm install --ignore-scripts --no-audit --no-fund "$RUNNER_TEMP"/reverse-compact-*.tgz
+          ./node_modules/.bin/reverse --help
+
+  mutation:
+    name: Stryker mutation testing
+    if: inputs.mutation
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --fetch-retries=5 --fetch-timeout=120000
+      - name: Run mutation suite
+        run: npm run mutation
+      - name: Publish mutation summary
+        if: always()
+        run: |
+          mkdir -p ci-logs
+          npm run mutation:summary -- reports/mutation/mutation.json ci-logs/mutation-report.json
+          cat ci-logs/mutation-report.json >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nightly-mutation-report
+          path: |
+            reports/mutation/
+            ci-logs/
+          retention-days: 30
+          if-no-files-found: warn
