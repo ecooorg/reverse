@@ -54,6 +54,7 @@ export * from './legacy-reference-trials.js';
 export { analyzeLegacyLinux } from './legacy-linux.js';
 export { analyzeLegacyMac } from './legacy-mac.js';
 export * from './legacy-mac-calibration.js';
+export * from './legacy-mac-tables.js';
 export type { LegacyLinuxFinding } from './legacy-linux.js';
 export * from './legacy-linux-tables.js';
 export * from './legacy-linux-calibration.js';

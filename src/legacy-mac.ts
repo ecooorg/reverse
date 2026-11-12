@@ -11,6 +11,7 @@ import { result } from './core-types.js';
 import { profileField, type LegacyAuthorization, type TargetProfile } from './legacy-types.js';
 import { assertAuthorizationPresent, requireLegacyGate } from './legacy-gate.js';
 import { parseMachO, parseFat } from './analysis-binary-parse.js';
+import { diagnoseMacFromTables, type MacCompatDiagnosis } from './legacy-mac-tables.js';
 export type { LegacyAuthorization, TargetProfile } from './legacy-types.js';
 type MacExecutableFormat = 'mach-o' | 'fat-mach-o' | 'pef-cfm' | '68k-code';
 type MacContainerFormat = 'appledouble' | 'macbinary' | 'binhex' | 'hfs-volume';
@@ -49,6 +50,8 @@ export interface LegacyMacFinding {
         evidence: string[];
         confidence: number;
     }>;
+    /** Sourced compatibility diagnosis (Patch O step 4). */
+    compatibilityFindings: MacCompatDiagnosis[];
     targetProfile: TargetProfile;
     authorization: LegacyAuthorization;
     sha256: string;
@@ -646,6 +649,17 @@ export async function analyzeLegacyMac(filePath: string, authorization: LegacyAu
             coverageNotes: ['Hints only; host policy is not evaluated.'],
         }),
     };
+    const compatibilityFindings = diagnoseMacFromTables({
+        format,
+        architecture,
+        bitness,
+        dylibs,
+        resourceTypes,
+        containers,
+        creatorType,
+        codeSignaturePresent,
+        structuralDetectorNames: structuralDetectors.map(d => d.name),
+    });
     const finding: LegacyMacFinding = {
         format,
         architecture,
@@ -661,6 +675,7 @@ export async function analyzeLegacyMac(filePath: string, authorization: LegacyAu
         creatorType,
         bundleSummary,
         structuralDetectors,
+        compatibilityFindings,
         targetProfile,
         authorization: auth,
         sha256,
@@ -678,7 +693,7 @@ export async function analyzeLegacyMac(filePath: string, authorization: LegacyAu
             examined: true,
             complete: false,
             notes: [
-                'Patch O steps 1–3 inventory slice: formats, containers, Info.plist keys, Mach-O PIE.',
+                'Patch O steps 1–4: inventory + sourced Mac diagnosis tables.',
                 'Full 68k segment loader, PEF fragment graph and HFS catalog walk remain open.',
             ],
         },
