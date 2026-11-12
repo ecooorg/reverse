@@ -338,3 +338,13 @@ Classic Mac / early macOS static analysis and limited execution adapters are **d
 | AXML minSdk/targetSdk hints | ✅ | Best-effort scan (1.5.1) |
 | Full AXML / resources.arsc decode | 🚧 | later P |
 | Emulator / adb execution | 🚧 | P later steps |
+
+
+### P step 3 (1.5.2)
+
+| Item | Status |
+|---|---|
+| `android-api-behavior` table | ✅ |
+| `android-runtime-models` table | ✅ |
+| `diagnoseAndroidFromTables` | ✅ |
+| Device/emulator execution | 🚧 |
