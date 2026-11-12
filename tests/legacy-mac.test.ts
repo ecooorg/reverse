@@ -181,3 +181,36 @@ test('Mac builtin tables validate', async () => {
     const { assertBuiltinMacTablesValid } = await import('../dist/legacy-mac-tables.js');
     assert.deepEqual(assertBuiltinMacTablesValid(), []);
 });
+test('Mac execution environments register and report absence', async () => {
+    const {
+        bootstrapExecutionEnvironments,
+        listExecutionEnvironments,
+    } = await import('../dist/execution-environment.js');
+    bootstrapExecutionEnvironments();
+    const names = listExecutionEnvironments().map(e => e.name);
+    for (const n of ['basiliskii', 'minivmac', 'sheepshaver', 'qemu-ppc'])
+        assert.ok(names.includes(n), n);
+    const basilisk = listExecutionEnvironments().find(e => e.name === 'basiliskii')!;
+    const available = await basilisk.available();
+    // CI hosts normally lack Basilisk II → must not throw and must fingerprint.
+    const fp = await basilisk.fingerprint();
+    assert.equal(fp.engine, 'basiliskii');
+    assert.equal(typeof available, 'boolean');
+});
+test('PEF section count is reported when header is complete', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'mac-pef2-'));
+    try {
+        const f = path.join(dir, 'x.pef');
+        const b = Buffer.alloc(40 + 28);
+        b.writeUInt32BE(0x4a6f7921, 0);
+        b.write('pwpc', 4);
+        b.writeUInt16BE(1, 32); // sectionCount
+        await writeFile(f, b);
+        const r: any = await analyzeLegacyMac(f, AUTH);
+        assert.equal(r.findings[0].format, 'pef-cfm');
+        assert.ok(r.findings[0].structuralDetectors.some((d: any) => d.name === 'pef-cfm'));
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});

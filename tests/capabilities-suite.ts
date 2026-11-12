@@ -2603,6 +2603,25 @@ check('Legacy Mac', 'Mac sourced diagnosis tables validate and cite entries', as
     assert.ok(diag.some((d: any) => d.tableEntryIds.includes('mac-pef-cfm-needs-classic-or-carbon')));
     assert.ok(diag.some((d: any) => d.tableEntryIds.includes('mac-powerpc-needs-rosetta-or-emulator')));
 });
+
+check('Legacy Mac', 'Mac emulator environments are registered and never simulated', async () => {
+    const envUrl = pathToFileURL(path.join(DIST, 'execution-environment.js')).href;
+    const {
+        bootstrapExecutionEnvironments,
+        listExecutionEnvironments,
+    } = await import(envUrl);
+    bootstrapExecutionEnvironments();
+    const names = listExecutionEnvironments().map((e: any) => e.name);
+    for (const n of ['basiliskii', 'minivmac', 'sheepshaver', 'qemu-ppc'])
+        assert.ok(names.includes(n), n);
+    const qemuPpc = listExecutionEnvironments().find((e: any) => e.name === 'qemu-ppc');
+    assert.ok(qemuPpc);
+    const av = await qemuPpc.available();
+    const fp = await qemuPpc.fingerprint();
+    assert.equal(fp.engine, 'qemu-ppc');
+    assert.equal(typeof av, 'boolean');
+});
+
 check('Legacy Mac', 'analyze_legacy_mac is registered in the MCP tool contract', () => {
     assert.ok(DOCUMENTED_TOOLS.includes('analyze_legacy_mac'));
 });
@@ -2615,7 +2634,7 @@ check('Roadmap', 'M and N status, version and O entry criteria are internally co
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const architecture = readFileSync(path.join(ROOT, 'docs/ARCHITECTURE.md'), 'utf8');
     const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
-    assert.equal(pkg.version, '1.3.16');
+    assert.equal(pkg.version, '1.3.17');
     assert.match(roadmap, /State as of \*\*1\.3\.14\*\*/);
     assert.match(roadmap, /Patch M.*\*\*done\*\*/s);
     assert.match(roadmap, /Patch N.*\*\*done\*\*/s);
