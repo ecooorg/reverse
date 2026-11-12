@@ -78,39 +78,89 @@ function fourcc(b: Buffer, o: number): string {
         return '';
     return b.toString('latin1', o, o + 4).replace(/\0/g, ' ');
 }
+function readCString(b: Buffer, off: number, max = 64): string | null {
+    if (off < 0 || off >= b.length)
+        return null;
+    const end = Math.min(b.length, off + max);
+    let i = off;
+    while (i < end && b[i] !== 0)
+        i++;
+    if (i === off)
+        return null;
+    return b.toString('latin1', off, i);
+}
 function detectPef(b: Buffer): {
     evidence: string;
     architecture: string;
     sectionCount: number | null;
     sectionNames: string[];
+    loaderStrings: string[];
 } | null {
     if (b.length < 40)
         return null;
     if (u32be(b, 0) !== PEF_MAGIC)
         return null;
     // PEF container header (big-endian): magic, arch, version, …
-    // sectionCount at offset 32 (UInt16BE), then section headers follow.
+    // sectionCount at offset 32 (UInt16BE), section headers 28 bytes from 40.
     const archFcc = fourcc(b, 4).trim();
     const architecture = archFcc === 'pwpc' ? 'PowerPC' : archFcc === 'm68k' ? 'm68k' : archFcc || 'unknown';
     const sectionCount = b.length >= 34 ? b.readUInt16BE(32) : null;
     const sectionNames: string[] = [];
-    // Section headers are 28 bytes starting at offset 40; name offset is relative
-    // to a loader-string table — we only capture the raw nameOffset for evidence.
+    const loaderStrings: string[] = [];
+    // Heuristic string-table base: first section's defaultAddress/name area often
+    // places loader strings after all section headers. Resolve nameOffset both as
+    // absolute and as relative to (40 + sectionCount*28).
+    const tableBase = sectionCount != null ? 40 + sectionCount * 28 : 40;
     if (sectionCount != null && sectionCount > 0 && sectionCount <= 64) {
         for (let i = 0; i < sectionCount; i++) {
             const off = 40 + i * 28;
             if (off + 28 > b.length)
                 break;
             const nameOff = u32be(b, off);
-            sectionNames.push(`section[${i}]@nameOff=${nameOff}`);
+            const abs = readCString(b, nameOff);
+            const rel = readCString(b, tableBase + nameOff);
+            const name = abs ?? rel;
+            if (name) {
+                sectionNames.push(name);
+                if (!loaderStrings.includes(name))
+                    loaderStrings.push(name);
+            }
+            else {
+                sectionNames.push(`section[${i}]@nameOff=${nameOff}`);
+            }
+            // defaultAddress (offset +4) and totalSize (+12) retained only as evidence
+            // when we cannot resolve a name.
+        }
+    }
+    // Scan a short window after section headers for printable loader strings.
+    if (tableBase < b.length) {
+        const window = b.subarray(tableBase, Math.min(b.length, tableBase + 512));
+        let i = 0;
+        while (i < window.length && loaderStrings.length < 16) {
+            if (window[i] >= 0x20 && window[i] < 0x7f) {
+                let j = i;
+                while (j < window.length && window[j] >= 0x20 && window[j] < 0x7f)
+                    j++;
+                if (j - i >= 3) {
+                    const s = window.toString('latin1', i, j);
+                    if (!loaderStrings.includes(s))
+                        loaderStrings.push(s);
+                }
+                i = j + 1;
+            }
+            else {
+                i++;
+            }
         }
     }
     return {
         evidence: `PEF magic Joy! architecture=${architecture}`
-            + (sectionCount != null ? ` sections=${sectionCount}` : ''),
+            + (sectionCount != null ? ` sections=${sectionCount}` : '')
+            + (loaderStrings.length ? ` loaderStrings=${loaderStrings.slice(0, 6).join(',')}` : ''),
         architecture,
         sectionCount,
         sectionNames,
+        loaderStrings,
     };
 }
 function parseCodeResourceInventory(b: Buffer): Array<{
@@ -150,6 +200,11 @@ function readHfsMdb(b: Buffer): {
     kind: 'HFS' | 'HFS+' | 'HFSX';
     evidence: string;
     allocationBlockSize?: number;
+    catalogFirstExtent?: {
+        startBlock: number;
+        blockCount: number;
+    };
+    volumeName?: string;
 } | null {
     // Signature alone needs 1026 bytes; allocation block size needs 1024+24.
     if (b.length < 1024 + 2)
@@ -157,18 +212,51 @@ function readHfsMdb(b: Buffer): {
     const sig = b.toString('latin1', 1024, 1026);
     if (sig === 'BD') {
         const alBlkSiz = b.length >= 1024 + 24 ? u32be(b, 1024 + 20) : 0;
+        // Volume name: Pascal string at MDB+36 (length byte + up to 27 chars).
+        let volumeName: string | undefined;
+        if (b.length >= 1024 + 64) {
+            const nlen = b[1024 + 36];
+            if (nlen > 0 && nlen <= 27)
+                volumeName = b.toString('latin1', 1024 + 37, 1024 + 37 + nlen);
+        }
+        // Catalog file first extent: ExtDataRec at MDB+0x5E (startBlock u16, count u16).
+        let catalogFirstExtent: {
+            startBlock: number;
+            blockCount: number;
+        } | undefined;
+        if (b.length >= 1024 + 0x5e + 4) {
+            const startBlock = b.readUInt16BE(1024 + 0x5e);
+            const blockCount = b.readUInt16BE(1024 + 0x5e + 2);
+            if (blockCount > 0)
+                catalogFirstExtent = { startBlock, blockCount };
+        }
+        const parts = [
+            alBlkSiz ? `allocationBlockSize=${alBlkSiz}` : 'allocationBlockSize unread',
+            volumeName ? `volumeName=${volumeName}` : null,
+            catalogFirstExtent
+                ? `catalogExtent=${catalogFirstExtent.startBlock}:${catalogFirstExtent.blockCount}`
+                : null,
+        ].filter(Boolean);
         return {
             kind: 'HFS',
-            evidence: alBlkSiz
-                ? `HFS MDB BD; allocationBlockSize=${alBlkSiz}`
-                : 'HFS MDB BD (truncated; allocationBlockSize not read)',
+            evidence: `HFS MDB BD; ${parts.join('; ')}`,
             allocationBlockSize: alBlkSiz || undefined,
+            catalogFirstExtent,
+            volumeName,
         };
     }
     if (sig === 'H+' || sig === 'HX') {
+        // HFS+ volume header: fileCount at +0x30, folderCount at +0x34 (BE u32)
+        // relative to volume header base (1024).
+        let extra = '';
+        if (b.length >= 1024 + 0x38) {
+            const fileCount = u32be(b, 1024 + 0x30);
+            const folderCount = u32be(b, 1024 + 0x34);
+            extra = `; fileCount=${fileCount}; folderCount=${folderCount}`;
+        }
         return {
             kind: sig === 'HX' ? 'HFSX' : 'HFS+',
-            evidence: `${sig === 'HX' ? 'HFSX' : 'HFS+'} volume header at offset 1024`,
+            evidence: `${sig === 'HX' ? 'HFSX' : 'HFS+'} volume header at offset 1024${extra}`,
         };
     }
     return null;
@@ -530,7 +618,7 @@ export async function analyzeLegacyMac(filePath: string, authorization: LegacyAu
             formatEvidence.push(pef.evidence);
             structuralDetectors.push({
                 name: 'pef-cfm',
-                evidence: [pef.evidence, ...pef.sectionNames.slice(0, 8)],
+                evidence: [pef.evidence, ...pef.sectionNames.slice(0, 6), ...pef.loaderStrings.slice(0, 6)],
                 confidence: 0.9,
             });
         }
@@ -600,6 +688,16 @@ export async function analyzeLegacyMac(filePath: string, authorization: LegacyAu
                 evidence: [hfs.evidence],
                 confidence: 0.9,
             });
+            if ('catalogFirstExtent' in hfs && hfs.catalogFirstExtent) {
+                structuralDetectors.push({
+                    name: 'hfs-catalog-extent',
+                    evidence: [
+                        `startBlock=${hfs.catalogFirstExtent.startBlock}`,
+                        `blockCount=${hfs.catalogFirstExtent.blockCount}`,
+                    ],
+                    confidence: 0.75,
+                });
+            }
         }
     }
     // CODE resource inventory (68k) when markers or AppleDouble present
