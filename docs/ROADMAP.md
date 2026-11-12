@@ -18,18 +18,18 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.5.0** (Patch O closed — Classic Mac / early macOS; post-close maintenance green; 2026-11-12).
+State as of **1.5.1** (Patch O closed — Classic Mac / early macOS; post-close maintenance green; 2026-11-12).
 
 **Verification.** Capability matrix **green** on **1.4.2** (operator-confirmed). Patch O remains closed at **1.4.0**; 1.4.1–1.4.2 are post-close hygiene only.
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.5.0** (Patch P steps 0–1 — legacy Android Target Profile) |
+| What is the product version? | **1.5.1** (Patch P steps 0–1 — legacy Android Target Profile) |
 | What is finished? | The 1.0 foundation (**patches A–L**), **Patch M** (Windows, **1.2.0**), **Patch N** (old Linux, **1.3.5**), and **Patch O** (Classic Mac / early macOS, **1.4.0**). |
-| What is being built? | **Patch P** in progress (legacy Android). Steps 0–1 in **1.5.0**: gate + `analyze_legacy_android` Target Profile. |
+| What is being built? | **Patch P** in progress. Steps 0–2 through **1.5.1**: AXML SDK hints + crafted calibration. |
 | What has not started? | **Patch Q** (newer generations and unified compatibility intelligence). Patch P is the next product unit. |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Patch P step 2 — calibration corpus and deeper static inventory (AXML/minSdk when feasible). |
+| What is the next concrete step? | Patch P step 3 — sourced diagnosis tables / compatibility findings for API-level behavior. |
 | What is open but not blocking? | R-10 residual (`goblin` and later providers), R-11 residual (Mach-O and unified report), F-83 (Linux Node 22 timeout; not reproduced in three consecutive green matrices), F-86 (dev-only moderate advisories), and the low Stryker score on two modules (recorded baseline, floor held). M/N G/H residual scope is itemized below and in `CAPABILITIES.md`. See the [carry-over debt register](#carry-over-debt-register). |
 | What is unverified? | Residual M/N limitations (explicit): no bundled Windows/Linux oracle (preservation stays L0); execution lifecycle lacks snapshot/restore/trace; behavior capture does not cover registry/network/UI/audio/time/randomness or code coverage; no function-level equivalence lab; migration options are limited; similarity BSim is unconfigured; calibration uses small crafted corpora; containers share the host kernel; the verneed summary is a string-residue scan, not a full `SHT_GNU_verneed` walk; `goblin` is not wired; libc/compiler generation heuristics are not calibrated beyond the crafted fixtures. The 1.3.7 manual matrix (Capabilities run 43079862360) stopped at the formatting gate on all six OS/Node cells, before build or capability tests; no cross-platform result is inferred from that run. Capabilities run 43084133732 exposed malformed PowerShell source on Windows (fixed in 1.3.9) and a Windows capability file that finished all 108 checks but did not exit (F-84, fixed in 1.3.10). The full matrix is green on commit `78a47fd` (Capabilities 43172993614, Structure 43173076031, Mutation 43173019792, Golden 43173044415, Supply chain 43173096703). An earlier green matrix on `f85200e` is superseded by this final verification run. The earlier N closure matrix remains recorded for commit `b5ea3fa` (Capabilities 43059743774, Structure 43059819947, Supply chain 43059851184). Windows/macOS hard sandbox isolation remains a recorded limitation from M. |
 
@@ -1195,6 +1195,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.4.1 | Wire diffDiskImageHashes into tests (knip unused export) |
 | 1.4.2 | ROADMAP status table O done; suite no longer expects O in progress |
 | 1.5.0 | **Patch P start** — steps 0–1: `analyze_legacy_android`, Audit 27 debt register |
+| 1.5.1 | P step 2: AXML minSdk/targetSdk hints; android calibration fixtures |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP

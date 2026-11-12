@@ -335,5 +335,6 @@ Classic Mac / early macOS static analysis and limited execution adapters are **d
 | DEX magic / APK ZIP inventory reuse | ✅ | Via `analysis-android` |
 | Target Profile (family Android, ABI, bitness, codeModel) | ✅ | minSdk not decoded |
 | Signing scheme v1 hint | ✅ | META-INF; v2/v3 not parsed |
-| AXML / resources decode | 🚧 | P step 2+ |
+| AXML minSdk/targetSdk hints | ✅ | Best-effort scan (1.5.1) |
+| Full AXML / resources.arsc decode | 🚧 | later P |
 | Emulator / adb execution | 🚧 | P later steps |
