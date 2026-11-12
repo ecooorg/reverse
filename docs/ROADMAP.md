@@ -18,11 +18,11 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.3.18** (O steps 2–3 slice: Mac calibration + expanded inventory; 2026-11-12).
+State as of **1.3.20** (O steps 2–3 slice: Mac calibration + expanded inventory; 2026-11-12).
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.3.18** (O steps 2–3: Mac calibration corpus, MacBinary/BinHex/HFS/archive detectors, Info.plist, Mach-O PIE, property tests) |
+| What is the product version? | **1.3.20** (O steps 2–3: Mac calibration corpus, MacBinary/BinHex/HFS/archive detectors, Info.plist, Mach-O PIE, property tests) |
 | What is finished? | The 1.0 foundation (**patches A–L**) and **Patch M** (Windows compatibility through 2010, release **1.2.0**) and **Patch N** (old Linux compatibility, closed at **1.3.5**). |
 | What is being built? | **Patch O** in progress. Steps 0–4 closed; **step 5 + residual step 3 in 1.3.17** (BasiliskII/Mini vMac/SheepShaver/qemu-ppc detect-only environments; PEF section count; CODE resource inventory scan; HFS MDB fields). Capture/replay and full catalog walk remain. |
 | What has not started? | **Patches P and Q** (legacy Android; newer generations and unified compatibility intelligence). Patch O feature work (steps 1+) is next. Plans: [Detailed plans for patches N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q). |
@@ -1161,6 +1161,8 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.3.16 | O step 4: sourced Mac diagnosis tables (G-01 Mac) | 2026-11-12 |
 | 1.3.17 | O step 5 + residual step 3: Mac emulators detect-only; PEF/CODE/HFS depth; lint/mcp fixes | 2026-11-12 |
 | 1.3.18 | Format gate: TypeScript printer on Mac/env sources; EngineKind split for line length | 2026-11-12 |
+| 1.3.19 | Fix Mach-O endian (CIGAM=LE), MH_PIE flags, HFS signature size threshold |
+| 1.3.20 | Docs/version sync; unique MCP legacy tool sentences; roadmap State as of |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP

@@ -55,8 +55,8 @@ Tool definitions include `title`, `annotations` and an `outputSchema`; command-e
 | `run_validation_fixtures` | `directory` | Run JSON validation fixtures from a directory (command/expected/normalize). |
 | `declare_legacy_authorization` | `session_id`, `basis`, `license_or_consent_reference`, `declared_by` | Declare the operator-reported legal basis for legacy analysis; this is not legal verification. |
 | `analyze_legacy_windows` | `file`, `session_id` | Statically inspect DOS/Windows headers, PE imports and framework signatures. Includes session authorization; never executes the target. |
-| `analyze_legacy_linux` | `file`, `session_id` | Statically inspect a.out/ELF headers, DT_NEEDED, interpreter, libc/GCC markers and sourced Linux diagnosis. Requires session authorization; never executes the target. |
-| `analyze_legacy_mac` | `file`, `session_id` | Statically inspect classic Mac / early macOS formats (Mach-O, fat, PEF, AppleDouble) and fill Mac Target Profile fields. Requires session authorization; never executes the target. |
+| `analyze_legacy_linux` | `file`, `session_id` | Statically inspect a.out/ELF headers, DT_NEEDED, interpreter, libc/GCC markers and sourced Linux diagnosis. Needs research-session authorization; does not execute the target. |
+| `analyze_legacy_mac` | `file`, `session_id` | Statically inspect classic Mac / early macOS formats (Mach-O, fat, PEF, AppleDouble) and fill Mac Target Profile fields. Needs research-session authorization; static only, no execution. |
 | `create_change_workspace` | `path`, `confirm` | Copy target into isolated workspace (CONTROLLED_EXECUTION + confirm:true). |
 | `apply_change` | `workspace_id`, `changeType`, `relativePath`, `confirm` | Apply change only inside workspace workPath. |
 | `rollback_change` | `workspace_id`, `confirm` | Restore workspace workPath from the original copy. |
@@ -148,5 +148,5 @@ The next MCP surface changes follow the single product-patch sequence in [ROADMA
 ## Legacy Mac tools (patch O step 1, in progress)
 
 1. Open a research session and call `declare_legacy_authorization` with an open-source or written-consent basis.
-2. Call `analyze_legacy_mac` with the file path and that `session_id`. Calls without the declaration are refused.
+2. Call `analyze_legacy_mac` with the file path and that `session_id`. Without a prior declaration the tool refuses the call.
 3. Results carry Mac Target Profile fields (`codeModel`, `endianness`, `resourceInventory`, `creatorType`, `bundleLayout`, `rosettaOr32BitDependence`) and format recognition for Mach-O, fat, PEF/CFM and AppleDouble. Deep 68k/PEF/resource-fork/bundle parsers remain later O steps.
