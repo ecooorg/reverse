@@ -18,14 +18,14 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.3.11** (O step 0: F-08 macOS and R-19 macOS; 2026-11-12).
+State as of **1.3.12** (O step 0 closed: F-08 macOS and R-19 macOS; format gate fixed; 2026-11-12).
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.3.11** (O step 0: macOS single-PID `ps -p` fast path and sampling without full-table reads; N remains historically closed at 1.3.5) |
+| What is the product version? | **1.3.12** (O step 0 closed: macOS single-PID `ps -p` / `pgrep -P`; format gate fixed; N remains historically closed at 1.3.5) |
 | What is finished? | The 1.0 foundation (**patches A–L**) and **Patch M** (Windows compatibility through 2010, release **1.2.0**) and **Patch N** (old Linux compatibility, closed at **1.3.5**). |
-| What is being built? | **Patch O** step 0 delivered in **1.3.11**: macOS single-PID inspection via `ps -p` and children via `pgrep -P` (F-08 macOS, R-19 macOS). True libproc is not used (zero runtime native deps); inventory still uses full `ps -ax`. Next: Patch O feature work (Classic Mac / early macOS, target **1.4**), starting at work-order step 1. |
-| What has not started? | **Patches O, P, Q** (Classic Mac/early macOS; legacy Android; newer generations and unified compatibility intelligence). Next is **O**. Plans: [Detailed plans for patches N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q). |
+| What is being built? | **Patch O** is in progress. Step 0 closed in **1.3.11**/**1.3.12** (F-08 macOS, R-19 macOS: `ps -p` single-PID path, `pgrep -P` children; true libproc not used). Format drift fixed in 1.3.12. Next: work-order step 1 (Target Profile and static inventory for Classic Mac / early macOS, target **1.4**). |
+| What has not started? | **Patches P and Q** (legacy Android; newer generations and unified compatibility intelligence). Patch O feature work (steps 1+) is next. Plans: [Detailed plans for patches N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q). |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
 | What is the next concrete step? | Patch O work-order step 1 (Target Profile and static inventory for Classic Mac / early macOS). Optionally raise the Stryker score on `process-parse` and `legacy-linux-packages`. |
 | What is open but not blocking? | R-10 residual (`goblin` and later providers), R-11 residual (Mach-O and unified report), F-83 (Linux Node 22 timeout; not reproduced in three consecutive green matrices), F-86 (dev-only moderate advisories), and the low Stryker score on two modules (recorded baseline, floor held). M/N G/H residual scope is itemized below and in `CAPABILITIES.md`. See the [carry-over debt register](#carry-over-debt-register). |
@@ -68,7 +68,7 @@ One table for every patch. Patches A–L are the completed 1.0 foundation; M–Q
 | L | Agent integration and distribution | 1.x (core in 1.0.0, hygiene in 1.0.1) | D, J | done (full H-09 harness and optional single-file binary remain open) |
 | M | Windows compatibility, DOS through Windows 7-era (up to 2010) | 1.2 | A–L foundation; steps 0–8; reference trials | **done** (1.2.0) |
 | N | Old Linux software | 1.3 | M shared contracts and evidence model | **done** (1.3.5) |
-| O | Classic Mac and early macOS software | 1.4 | N shared contracts and environment/replay foundations | not started |
+| O | Classic Mac and early macOS software | 1.4 | N shared contracts and environment/replay foundations | in progress (step 0 closed in 1.3.12) |
 | P | Legacy Android software | 1.5 | O shared contracts; Android foundations already present in E/J | not started |
 | Q | Newer generations and unified compatibility intelligence | 2.0 | M–P complete | not started |
 
@@ -1153,7 +1153,8 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.3.8 | CI formatting recovery and capability-report aggregation guard | 2026-11-11; local format/quality/structure checks and 123 unit tests; locked toolchain and full `os: all` rerun pending |
 | 1.3.9 | Windows persistent PowerShell helper protocol recovery | 2026-11-11; local helper-script contract test; Windows verified later by the matrix on `f85200e` |
 | 1.3.10 | R-04, R-05, R-01, R-19 Windows, F-80–F-84 closure; documentation sync | 2026-11-12; final green matrix on `78a47fd`: Capabilities 43172993614, Structure 43173076031, Mutation 43173019792 (47.72 %), Golden 43173044415, Supply chain 43173096703 |
-| 1.3.11 | O step 0: F-08 macOS + R-19 macOS (`ps -p` single-PID path, `pgrep -P` children; no native libproc) | 2026-11-12; local Linux verification; macOS path pending matrix |
+| 1.3.11 | O step 0: F-08 macOS + R-19 macOS (`ps -p` single-PID path, `pgrep -P` children; no native libproc) | 2026-11-12; format gate red on first matrix |
+| 1.3.12 | O step 0 format fix; Status/docs aligned to 1.3.12 | 2026-11-12; Capabilities 43195327371 format green, docs checks updated |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP
