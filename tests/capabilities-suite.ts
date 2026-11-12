@@ -1587,6 +1587,18 @@ check('Supply chain', 'GitHub Actions are pinned to full commit SHAs (R-03)', as
     if (unpinned.size)
         c.limit(`${unpinned.size} of ${total} action references are tags, not commit SHAs: ${[...unpinned].sort().join(', ')}`);
 });
+check('Workflows', 'Windows-capable workflows default to bash and never append raw JSON to the step summary', async () => {
+    const dir = path.join(ROOT, '.github', 'workflows');
+    const problems: string[] = [];
+    for (const name of (await readdir(dir)).filter(n => /\.ya?ml$/.test(n))) {
+        const text = await readFile(path.join(dir, name), 'utf8');
+        if (text.includes('windows-latest') && !/^defaults:\s*\n\s+run:\s*\n\s+shell: bash\s*$/m.test(text))
+            problems.push(`${name}: no default bash shell, so run steps use PowerShell on Windows`);
+        if (/\.json\s*>>\s*"?\$GITHUB_STEP_SUMMARY/.test(text))
+            problems.push(`${name}: raw JSON appended to the step summary (1 MiB limit)`);
+    }
+    assert.deepEqual(problems, []);
+});
 check('Source', 'no source or test line exceeds 140 characters, and the gate can fail', async () => {
     const gate = path.join(ROOT, 'tests', 'size-gate.mjs');
     assert.equal(spawnSync(NODE, [gate], { cwd: ROOT, encoding: 'utf8' }).status, 0, 'the repository passes its own gate');
