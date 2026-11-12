@@ -64,12 +64,6 @@ const FAT_CIGAM = 0xbebafeca;
 const PEF_MAGIC = 0x4a6f7921;
 /** AppleDouble magic (network byte order). */
 const APPLEDOUBLE_MAGIC = 0x00051607;
-const CPU_POWERPC = 18;
-const CPU_POWERPC64 = 0x1000012;
-const CPU_I386 = 7;
-const CPU_X86_64 = 0x1000007;
-const CPU_ARM = 12;
-const CPU_ARM64 = 0x100000c;
 function u32be(b: Buffer, o: number): number {
     return b.length >= o + 4 ? b.readUInt32BE(o) : 0;
 }
@@ -80,17 +74,6 @@ function fourcc(b: Buffer, o: number): string {
     if (b.length < o + 4)
         return '';
     return b.toString('latin1', o, o + 4).replace(/\0/g, ' ');
-}
-function cpuName(cpu: number): string {
-    const map: Record<number, string> = {
-        [CPU_I386]: 'x86',
-        [CPU_X86_64]: 'x86_64',
-        [CPU_ARM]: 'ARM',
-        [CPU_ARM64]: 'ARM64',
-        [CPU_POWERPC]: 'PowerPC',
-        [CPU_POWERPC64]: 'PowerPC64',
-    };
-    return map[cpu] ?? `cpu-0x${cpu.toString(16)}`;
 }
 function detectPef(b: Buffer): {
     evidence: string;
