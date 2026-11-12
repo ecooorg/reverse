@@ -20,6 +20,17 @@ await mkdir(outDir, { recursive: true });
 // Generate the single failure brief from whatever logs are present.
 await writeSummary({ logsDir, rootDir: '.', outputPath: join(outDir, 'AI-DEBUG-SUMMARY.md') });
 
+// Run identity next to the brief, so a downloaded artifact can always be tied to its run.
+const e = process.env;
+const runUrl = e.GITHUB_SERVER_URL && e.GITHUB_REPOSITORY && e.GITHUB_RUN_ID
+  ? `${e.GITHUB_SERVER_URL}/${e.GITHUB_REPOSITORY}/actions/runs/${e.GITHUB_RUN_ID}` : null;
+const runInfo = {
+  workflow: e.GITHUB_WORKFLOW ?? null, runId: e.GITHUB_RUN_ID ?? null, runNumber: e.GITHUB_RUN_NUMBER ?? null,
+  attempt: e.GITHUB_RUN_ATTEMPT ?? null, event: e.GITHUB_EVENT_NAME ?? null, ref: e.GITHUB_REF ?? null,
+  commit: e.GITHUB_SHA ?? null, url: runUrl,
+};
+await writeFile(join(outDir, 'RUN-INFO.json'), `${JSON.stringify(runInfo, null, 2)}\n`);
+
 // Nested archive of detailed logs (zip when available, otherwise a tar.gz-compatible folder copy).
 const zipPath = join(outDir, 'detailed-logs.zip');
 const hasZip = spawnSync('zip', ['-v'], { encoding: 'utf8' }).status === 0;

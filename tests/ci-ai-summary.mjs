@@ -215,6 +215,7 @@ function environmentLines(env, host) {
   return [
     `- Workflow: ${value('GITHUB_WORKFLOW')} / job ${value('GITHUB_JOB')}`,
     `- Run: ${value('GITHUB_RUN_ID')} attempt ${value('GITHUB_RUN_ATTEMPT')} (${value('GITHUB_EVENT_NAME')} ${value('GITHUB_REF')})`,
+    `- Run number: #${value('GITHUB_RUN_NUMBER')}`,
     `- Commit: ${value('GITHUB_SHA')}`,
     `- URL: ${runUrl}`,
     `- Runner: ${value('RUNNER_OS')} ${host.arch} Node ${process.version}`,

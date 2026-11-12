@@ -16,6 +16,15 @@ async function fixture(t) {
 const host = { hostname: 'test-runner', platform: 'linux', release: 'test', arch: 'x64', cpuCount: 2, ramGiB: '4.0' };
 const env = { GITHUB_WORKFLOW: 'Test', GITHUB_JOB: 'test', GITHUB_RUN_ID: '123', GITHUB_RUN_ATTEMPT: '1', GITHUB_SHA: 'abc123' };
 
+test('always names the run id, run number and run URL in the brief', async (t) => {
+  const { root, logsDir } = await fixture(t);
+  const runEnv = { ...env, GITHUB_RUN_NUMBER: '42', GITHUB_SERVER_URL: 'https://github.com', GITHUB_REPOSITORY: 'o/r' };
+  const { markdown } = await buildSummary({ rootDir: root, logsDir, env: runEnv, host });
+  assert.match(markdown, /- Run: 123 attempt 1/);
+  assert.match(markdown, /- Run number: #42/);
+  assert.match(markdown, /- URL: https:\/\/github\.com\/o\/r\/actions\/runs\/123/);
+});
+
 test('summarizes a formatter failure with exact path and line even without a known signature', async (t) => {
   const { root, logsDir } = await fixture(t);
   await writeFile(path.join(logsDir, '02-static-quality-gates.log'), '> reverse-compact@1.1.0-beta.1 format:check\n> node tests/format-check.mjs\nTypeScript formatting drift in 1 file(s):\ntests/legacy-windows.test.ts\n');
