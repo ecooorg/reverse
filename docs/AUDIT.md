@@ -1,3 +1,16 @@
+## Audit 30 — 2026-11-12 — CI repair of 1.5.7 (1.5.8)
+
+**Scope.** Close the failures hidden behind the first red gate of Capabilities run #529 and the checks that 1.5.7 never executed.
+
+**Findings (all closed in 1.5.8).**
+- F-89: `src/index.ts`, `src/legacy-android-behavior.ts` and `tests/legacy-android.test.ts` drifted from the TypeScript printer; the multi-line export/import would print as 190/167-character lines, so they were split into two statements.
+- F-90: `DOCUMENTED_TOOLS` in `tests/capabilities-suite.ts` omitted `collect_android_device_observations` (position after `analyze_legacy_android`), failing four MCP and Legacy Android checks (64 ≠ 63).
+- F-91: the device-text assertions in `tests/legacy-android.test.ts` and `tests/capabilities-suite.ts` required length ≤ 4096, contradicting the documented `wrapUntrusted` marker contract (`tests/untrusted.test.ts`). The product is unchanged; the assertions now require exactly 4096 characters plus `…[truncated 904 chars]`, and fail under a deliberate change of the cut length or the marker count.
+
+**Verification.** In the 1.5.8 environment (Linux, Node 22.23, TypeScript 6.0.3 standing in for the locked 5.9 printer, `@types/node` 26; `npm ci` was not possible offline) the package build, the unit suite (160 tests; the two `fast-check` property files could not run), the capability suite (181 checks: 175 verified, 6 documented limitations, 0 drift, 0 failed), MCP docs, source and built structure, size and static-quality checks passed, and the printer reported no drift in 124 files. Biome lint, `jscpd`, `knip`, the property tests, coverage, mutation, the macOS/Windows and Node 24 matrix and the manual `os: all` workflow were not run.
+
+---
+
 ## Audit 29 — 2026-11-12 — Patch P step 6 MCP integration and manual deep verification (1.5.7)
 
 **Scope.** Expose the bounded Android observation helper through the stable MCP contract and consolidate the expensive manual verification workflows without adding automatic triggers.

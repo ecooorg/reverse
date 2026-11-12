@@ -18,15 +18,15 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.5.7** (Patch P in progress — Android device observations exposed through MCP; 2026-11-12).
+State as of **1.5.8** (Patch P in progress — CI repair of the 1.5.7 step: formatter gate, MCP tool list, truncation assertions; 2026-11-12).
 
-**Verification.** `npm ci` timed out after five minutes. The focused MCP integration file passed 3/3 tests using system TypeScript 5.8.3 transpilation; MCP docs, built-tree structure, size and static-quality checks passed. The package build is blocked by missing `@types/node`, and the TypeScript 5.9 printer, full unit suite, capability suite, coverage, mutation and cross-platform matrix remain unverified. The 1.4.2 matrix is historical evidence for Patch O only.
+**Verification.** In the 1.5.8 environment (Linux, Node 22.23, TypeScript 6.0.3 standing in for the locked 5.9 printer, `@types/node` 26; `npm ci` was not possible offline) the package build, the unit suite (160 tests; the two `fast-check` property files could not run), the capability suite (181 checks: 175 verified, 6 documented limitations, 0 drift, 0 failed), MCP docs, source and built structure, size and static-quality checks passed, and the printer reported no drift in 124 files. Biome lint, `jscpd`, `knip`, the property tests, coverage, mutation, the macOS/Windows and Node 24 matrix and the manual `os: all` workflow were not run. The 1.4.2 matrix is historical evidence for Patch O only.
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.5.7** (Patch P step 6 — bounded Android device observations via MCP) |
+| What is the product version? | **1.5.8** (Patch P step 6 — CI repair: formatter gate, MCP tool list, truncation assertions) |
 | What is finished? | The 1.0 foundation (**patches A–L**), **Patch M** (Windows, **1.2.0**), **Patch N** (old Linux, **1.3.5**), and **Patch O** (Classic Mac / early macOS, **1.4.0**). |
-| What is being built? | **Patch P** in progress through **1.5.7**: L0 reference trials and bounded device-side logcat/activity observation via MCP. |
+| What is being built? | **Patch P** in progress through **1.5.8**: L0 reference trials and bounded device-side logcat/activity observation via MCP. |
 | What has not started? | **Patch Q** (newer generations and unified compatibility intelligence). Patch P is the next product unit. |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
 | What is the next concrete step? | Continue Patch P step 6: add UI hierarchy/screenshot capture, seeded input replay and device-side scenario comparison; current observations are read-only. |
@@ -510,6 +510,12 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 - [x] Replace the Patch N-only manual golden workflow with `.github/workflows/nightly-full-verification.yml`.
 - [x] Keep the new verification workflow manual-only (`workflow_dispatch`); it runs the 3-OS × Node 22/24 matrix, quality/build/unit/capability/coverage/structure/reference tests, supply-chain/package checks and optional Stryker mutation testing.
 - [ ] Full Android capture/replay remains open: UI hierarchy/screenshots, seeded input replay, network and persisted-state diffs, Frida and profiler ingestion.
+
+### 1.5.8 — Patch P step 6: CI repair of 1.5.7 (no product behavior change)
+
+- [x] Printer drift closed in `src/index.ts`, `src/legacy-android-behavior.ts` and `tests/legacy-android.test.ts`; long export/import split so the printed lines stay within 140 characters (F-89).
+- [x] `DOCUMENTED_TOOLS` in the capability suite lists `collect_android_device_observations` in `tools/list` order (F-90).
+- [x] Truncation assertions for device text now require exactly 4096 characters plus the `…[truncated N chars]` marker, matching `wrapUntrusted` and `tests/untrusted.test.ts` (F-91).
 
 **Verification workflow policy.** `Nightly Full Verification` is a maintainer-invoked deep run, not a nightly schedule and not a per-patch trigger. The ordinary `Capabilities` workflow remains unchanged for its existing push/PR Linux gate and manual matrix. The retired Patch N Linux golden test remains included in the combined legacy reference test suite.
 
@@ -1011,6 +1017,9 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-86 | `npm ci` reports 4 moderate advisories in the full dependency tree (minimatch via Stryker, qs via typed-rest-client); `npm audit --omit=dev` is clean | open (Low, dev-only); do not change dependencies without maintainer approval |
 | F-87 | CAPABILITIES intro still cited 1.3.10 / `78a47fd` after the 1.4.x releases | **closed in 1.5.0 documentation sync 2026-11-12** (Audit 27); no product code change |
 | F-88 | Maintainer has not yet pasted the `os: all` capability-matrix run ID that closes Patch O | open (Process, Low); record the run ID in CAPABILITIES.md and close |
+| F-89 | 1.5.7 failed the formatter gate (3 files) and its printed form would exceed 140 characters in `src/index.ts` and `tests/legacy-android.test.ts` | **closed in 1.5.8** |
+| F-90 | `DOCUMENTED_TOOLS` in the capability suite lacked `collect_android_device_observations`, failing 4 MCP/Android checks | **closed in 1.5.8** |
+| F-91 | Two device-text assertions required length ≤ 4096 although `wrapUntrusted` appends a truncation marker after 4096 characters | **closed in 1.5.8**; assertion now exact and mutation-checked |
 
 ### Findings (Audit 4, A–D closure review, 2026-11-10)
 
@@ -1225,6 +1234,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.5.5 | P step 6: Android L0 reference trials; replayScenario arg order fix |
 | 1.5.6 | P step 6 slice: bounded adb logcat + activity dumpsys collection; R-02 wrapper and authorization/mode gates |
 | 1.5.7 | P step 6: expose bounded Android device observations through an authorization-gated MCP tool; replace the retired N-only golden workflow with manual Nightly Full Verification |
+| 1.5.8 | P step 6: CI repair of 1.5.7 — formatter gate, MCP tool list in the capability suite, device-text truncation assertions (F-89–F-91) |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP
