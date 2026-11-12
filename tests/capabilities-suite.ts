@@ -2816,6 +2816,18 @@ check('Legacy Android', 'calibration fixtures pass on crafted DEX and AXML', asy
     const report = await runAndroidCalibration();
     assert.equal(report.ok, true);
 });
+check('Legacy Android', 'Android diagnosis tables validate and emit findings', async () => {
+    const url = pathToFileURL(path.join(DIST, 'legacy-android-tables.js')).href;
+    const { assertAndroidTablesValid, diagnoseAndroidFromTables } = await import(url);
+    assertAndroidTablesValid();
+    const d = diagnoseAndroidFromTables({
+        minSdk: 15,
+        targetSdk: 15,
+        abis: ['armeabi'],
+        hasMultidex: false,
+    });
+    assert.ok(d.length >= 1);
+});
 check('Roadmap', 'M and N status, version and O entry criteria are internally consistent', () => {
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const architecture = readFileSync(path.join(ROOT, 'docs/ARCHITECTURE.md'), 'utf8');

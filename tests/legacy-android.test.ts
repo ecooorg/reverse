@@ -5,6 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { analyzeLegacyAndroid, parseAxmlSdkHints } from '../dist/legacy-android.js';
 import { runAndroidCalibration } from '../dist/legacy-android-calibration.js';
+import { diagnoseAndroidFromTables, assertAndroidTablesValid } from '../dist/legacy-android-tables.js';
 import { LegacyAuthorizationError } from '../dist/legacy-gate.js';
 const AUTH = {
     basis: 'open_source' as const,
@@ -54,4 +55,15 @@ test('Android calibration crafted fixtures pass', async () => {
     const report = await runAndroidCalibration();
     assert.equal(report.ok, true);
     assert.ok(report.cases.length >= 2);
+});
+test('Android compatibility tables validate and diagnose 32-bit + low SDK', () => {
+    assertAndroidTablesValid();
+    const d = diagnoseAndroidFromTables({
+        minSdk: 16,
+        targetSdk: 16,
+        abis: ['armeabi-v7a'],
+        hasMultidex: true,
+    });
+    assert.ok(d.length >= 2);
+    assert.ok(d.some(x => x.id.includes('32bit') || x.id.includes('permissions') || x.id.includes('multidex')));
 });
