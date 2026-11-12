@@ -532,6 +532,24 @@ function machOPieFlag(b: Buffer, magic: number): {
 /**
  * Analyze a classic Mac / early macOS binary under the shared legacy authorization gate.
  */
+/** Best-effort 68k A-line Toolbox trap scan (0xA0xx–0xA7xx words, big-endian). */
+function scanToolboxTraps(b: Buffer): {
+    count: number;
+    samples: string[];
+} {
+    const samples: string[] = [];
+    let count = 0;
+    // Walk aligned 16-bit words; classic Mac code is big-endian.
+    for (let i = 0; i + 1 < b.length && count < 512; i += 2) {
+        const w = b.readUInt16BE(i);
+        if (w >= 0xa000 && w <= 0xa7ff) {
+            count++;
+            if (samples.length < 12)
+                samples.push(`0x${w.toString(16)}`);
+        }
+    }
+    return { count, samples };
+}
 export async function analyzeLegacyMac(filePath: string, authorization: LegacyAuthorization | null = null, options: {
     sessionId?: string;
 } = {}) {
@@ -709,6 +727,19 @@ export async function analyzeLegacyMac(filePath: string, authorization: LegacyAu
             confidence: 0.7,
         });
         if (format === 'unknown' || format === 'appledouble')
+            format = '68k-code';
+    }
+    const traps = scanToolboxTraps(b);
+    if (traps.count >= 3) {
+        structuralDetectors.push({
+            name: 'toolbox-traps',
+            evidence: [
+                `A-line trap words=${traps.count}`,
+                ...traps.samples.slice(0, 8),
+            ],
+            confidence: traps.count >= 8 ? 0.7 : 0.5,
+        });
+        if (format === 'unknown')
             format = '68k-code';
     }
     containers = detectArchiveContainers(b);
