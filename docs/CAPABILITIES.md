@@ -250,3 +250,15 @@ The remaining work is one ordered sequence, not parallel capability tracks: M (W
 | HFS MDB allocation block size | ✅ |
 | Full HFS catalog B-tree | 🚧 |
 | PEF loader string / fragment graph | 🚧 |
+
+
+### Capture / replay (O step 6, 1.3.21)
+
+| Item | Status |
+|---|---|
+| Shared capture/replay round-trip (host deterministic scenario) | ✅ |
+| Mac emulator fingerprints in trial limitations | ✅ |
+| Operator ROM/image local SHA-256 | ✅ (never uploaded) |
+| Emulator input injection / screenshot norm | 🚧 |
+| Disk-image snapshot diffs | 🚧 |
+| Toolbox trap tracing | 🚧 |
