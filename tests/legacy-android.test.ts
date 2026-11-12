@@ -6,12 +6,8 @@ import os from 'node:os';
 import { analyzeLegacyAndroid, parseAxmlSdkHints } from '../dist/legacy-android.js';
 import { runAndroidCalibration } from '../dist/legacy-android-calibration.js';
 import { diagnoseAndroidFromTables, assertAndroidTablesValid } from '../dist/legacy-android-tables.js';
-import {
-    runAndroidWorksFailsMatrix,
-    planAndroidControlledInstall,
-    collectAndroidDeviceObservations,
-    wrapAndroidDeviceText
-} from '../dist/legacy-android-behavior.js';
+import { runAndroidWorksFailsMatrix, planAndroidControlledInstall } from '../dist/legacy-android-behavior.js';
+import { collectAndroidDeviceObservations, wrapAndroidDeviceText } from '../dist/legacy-android-behavior.js';
 import { runAndroidReferenceTrials } from '../dist/legacy-android-reference-trials.js';
 import { LegacyAuthorizationError } from '../dist/legacy-gate.js';
 const AUTH = {
@@ -104,7 +100,6 @@ test('Android L0 reference trials pass on crafted fixtures', async () => {
     assert.equal(report.ok, true);
     assert.ok(report.trials.length >= 2);
 });
-
 test('Android device observations require controlled mode and report unsupported without serial', async () => {
     const previousMode = process.env.REVERSE_MODE;
     const previousSerial = process.env.REVERSE_ANDROID_SERIAL;
@@ -131,7 +126,6 @@ test('Android device observations require controlled mode and report unsupported
             process.env.REVERSE_ANDROID_SERIAL = previousSerial;
     }
 });
-
 test('Android device text is marked untrusted and capped', () => {
     const wrapped = wrapAndroidDeviceText({
         serial: 'emulator-5554',
@@ -140,5 +134,5 @@ test('Android device text is marked untrusted and capped', () => {
     });
     assert.ok((wrapped.untrustedContent as any).notice.includes('untrusted data'));
     assert.ok((wrapped.untrustedContent as any).truncatedStrings >= 1);
-    assert.ok((wrapped.activityDump as string).length <= 4096);
+    assert.match(wrapped.activityDump as string, /^x{4096}…\[truncated 904 chars\]$/);
 });

@@ -1874,6 +1874,7 @@ const DOCUMENTED_TOOLS = [
     'analyze_legacy_linux',
     'analyze_legacy_mac',
     'analyze_legacy_android',
+    'collect_android_device_observations',
     'create_change_workspace',
     'apply_change',
     'rollback_change',
@@ -2911,7 +2912,7 @@ check('Legacy Android', 'device observations mark all adb output as untrusted an
     });
     assert.ok((wrapped.untrustedContent as any).notice.includes('untrusted data'));
     assert.ok((wrapped.untrustedContent as any).truncatedStrings >= 1);
-    assert.ok((wrapped.activityDump as string).length <= 4096);
+    assert.match(wrapped.activityDump as string, /^x{4096}…\[truncated 904 chars\]$/);
 });
 check('Legacy Android', 'L0 reference trials pass on crafted fixtures', async () => {
     const url = pathToFileURL(path.join(DIST, 'legacy-android-reference-trials.js')).href;
