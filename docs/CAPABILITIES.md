@@ -1,6 +1,6 @@
 ## Status
 
-Patch **M** closed at **1.2.0** and Patch **N** closed at **1.3.5** (2026-11-11); post-N debt increments through **1.3.10** close R-01, R-04, R-05, R-07, R-19 Windows, F-80, F-81, F-82 and F-84. Full matrix green on commit `78a47fd` (Capabilities 43172993614, Structure 43173076031, Mutation 43173019792, Golden 43173044415, Supply chain 43173096703). Residual limitations listed per row (L0 without oracle; Windows/macOS hard-isolation gaps; no full `SHT_GNU_verneed` walk, no `goblin`; F-08 / R-19 macOS closed in 1.3.11; O step 1 (`analyze_legacy_mac`) in 1.3.13 (`ps -p` / `pgrep -P`; true libproc not used)).
+Patch **M** closed at **1.2.0**, Patch **N** at **1.3.5**, Patch **O** at **1.4.0**, and Patch **P** remains in progress through **1.5.7** (2026-11-12); post-N debt increments through **1.3.10** close R-01, R-04, R-05, R-07, R-19 Windows, F-80, F-81, F-82 and F-84. Full matrix green on commit `78a47fd` (Capabilities 43172993614, Structure 43173076031, Mutation 43173019792, Golden 43173044415, Supply chain 43173096703). Residual limitations listed per row (L0 without oracle; Windows/macOS hard-isolation gaps; no full `SHT_GNU_verneed` walk, no `goblin`; F-08 / R-19 macOS closed in 1.3.11; O step 1 (`analyze_legacy_mac`) in 1.3.13 (`ps -p` / `pgrep -P`; true libproc not used)).
 
 # Capability matrix
 
@@ -193,7 +193,7 @@ The remaining work is one ordered sequence, not parallel capability tracks: M (W
 | R-07 MCP contract-first documentation | ✅ | Generated table from the same built tool registry used by `tools/list`; check runs in `npm run verify` and Capabilities CI |
 | R-19 Windows persistent helper | ✅ | One PowerShell process serves CIM inventory, single-PID inspection, process-tree snapshots and benchmark samples; 1.3.9 fixed script/stdout newline framing (UTF-16LE EncodedCommand), 1.3.10 detaches the idle helper from the event loop (F-84); the lifecycle passes in the full matrix on commit `f85200e` |
 | R-02 Linux untrusted text | ✅ | `analyzeLegacyLinux` applies `wrapUntrusted` at its library boundary; adversarial ELF PT_INTERP fixture verifies marker and truncation |
-| R-15 Linux golden trials | ✅ | Golden manifest and manual `Patch N Linux golden trials` workflow; fixture trials remain L0 without an oracle |
+| R-15 Linux golden trials | ✅ | Golden manifest and legacy reference golden tests are included in the manual `Nightly Full Verification` workflow; fixture trials remain L0 without an oracle |
 
 
 ## Static quality gates and mutation baseline (R-05, R-04, R-01)
@@ -327,7 +327,7 @@ Classic Mac / early macOS static analysis and limited execution adapters are **d
 | Real ROM boot matrix | 🚧 residual (operator media) |
 
 
-## Legacy Android (Patch P steps 0–1, 1.5.0)
+## Legacy Android (Patch P steps 0–1 and 6, 1.5.0–1.5.7)
 
 | Capability | Status | Notes |
 |---|---|---|
@@ -364,6 +364,7 @@ Classic Mac / early macOS static analysis and limited execution adapters are **d
 | Item | Status |
 |---|---|
 | `planAndroidControlledInstall` | ✅ gated (mode + confirm + serial) |
+| `collect_android_device_observations` MCP tool | ✅ session authorization, controlled mode, confirmation, bounded read-only adb; no serial returns unsupported |
 | Host `runAndroidBehaviorRoundTrip` | ✅ via shared capture/replay |
 | Device logcat/uiautomator capture | 🚧 |
 

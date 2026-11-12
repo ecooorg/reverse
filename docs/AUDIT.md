@@ -1,3 +1,19 @@
+## Audit 29 — 2026-11-12 — Patch P step 6 MCP integration and manual deep verification (1.5.7)
+
+**Scope.** Expose the bounded Android observation helper through the stable MCP contract and consolidate the expensive manual verification workflows without adding automatic triggers.
+
+**Delivered.**
+- Added `collect_android_device_observations` to MCP `tools/list` and `tools/call`; it resolves authorization from the research session and preserves `CONTROLLED_EXECUTION`, `confirm=true`, explicit serial, bounded output and read-only adb behavior.
+- Added an MCP end-to-end test that creates a session, declares authorization, discovers the tool and verifies the no-serial refusal path without running adb.
+- Replaced the Patch N-only manual workflow file with `Nightly Full Verification`, a `workflow_dispatch`-only deep gate covering the 3-OS × Node 22/24 matrix, static quality, build, unit tests, capability verification, coverage, structure, reference golden trials, supply-chain/package checks and optional Stryker mutation testing.
+- No `schedule`, `push` or `pull_request` trigger is configured for the new workflow. The existing `Capabilities` workflow is unchanged.
+
+**Remaining.** Android UI hierarchy/screenshots, seeded input replay, network and persisted-state diffs, Frida profiles and simpleperf/Perfetto ingestion remain open under Patch P.
+
+**Verification.** `npm ci --ignore-scripts --fetch-retries=5 --fetch-timeout=120000` timed out after five minutes. The resulting dependency tree is incomplete: `npm run build` stops at TS2688 (missing Node type definitions), and `tests/format-check.mjs` cannot load `typescript-api`. The new MCP server, tool registry and test were transpiled with the system TypeScript 5.8.3 compiler; the focused MCP integration file passed 3/3 tests, including the new authorized no-device path. `tests/mcp-docs.mjs`, `tests/check-structure.mjs --built`, `tests/size-gate.mjs` and `tests/quality-static.mjs` passed. The required TypeScript 5.9 printer, full build, complete unit suite, capability suite, coverage, mutation and cross-platform matrix remain unverified. No green full-matrix result is claimed.
+
+---
+
 ## Audit 28 — 2026-11-12 — Patch P step 6: bounded Android device observations (1.5.6)
 
 **Scope.** Deliver the first device-side capture slice without claiming full scenario replay.

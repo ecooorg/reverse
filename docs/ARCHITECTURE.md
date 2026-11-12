@@ -166,6 +166,8 @@ Reverse
 
 ### Android analysis extension (static inventory in E; adapters delivered in F, G, H and J; parts still planned)
 
+**Patch P status (1.5.7).** The MCP tool `collect_android_device_observations` exposes bounded, read-only `adb logcat` and `dumpsys activity activities` collection. It requires research-session authorization, `CONTROLLED_EXECUTION` and `confirm=true`; missing serials are refused without invoking adb. UI hierarchy, screenshots, seeded input replay and device-side scenario comparison remain planned.
+
 Android packages are treated as analysis targets without expanding the core with heavyweight reverse-engineering engines. The static layer will inventory APK/AAB archives, parse binary `AndroidManifest.xml` (permissions, components, exported components and debug flags), and list `classes*.dex`, `lib/<abi>/*.so`, assets and resources. Dependency analysis will read `build.gradle`, `build.gradle.kts`, `gradle.lockfile` and `libs.versions.toml`, plus available `META-INF` metadata in built APKs.
 
 Static providers: JADX for DEX-to-Java decompilation and Apktool for Smali/resources; Ghidra remains the native `.so` analyzer. Device operations use an ADB provider. Frida supports Java/ART (`Java.perform`) and native hooks, including remote `frida-server` through ADB. Android profiling uses simpleperf for CPU hotspots, Perfetto for system traces, and `dumpsys` for memory/CPU/battery context.

@@ -1,4 +1,4 @@
-The server exposes **63 tools**. The tool table below is generated from the same TypeScript definitions used by `tools/list`; `npm run docs:mcp:check` fails on drift and `npm run docs:mcp:write` regenerates it. The server also exposes prompts and resources methods and an optional HTTP gateway. Sections: the core tool table, optimization-loop tools (patch J), runtime-analyzer tools (patch K), optional HTTP transport (patch K), prompts and resources (patch L), legacy Windows tools (patch M, delivered), legacy Linux analysis (patch N, delivered), classic Mac / early macOS analysis (patch O step 1) and the future plan.
+The server exposes **64 tools**. The tool table below is generated from the same TypeScript definitions used by `tools/list`; `npm run docs:mcp:check` fails on drift and `npm run docs:mcp:write` regenerates it. The server also exposes prompts and resources methods and an optional HTTP gateway. Sections: the core tool table, optimization-loop tools (patch J), runtime-analyzer tools (patch K), optional HTTP transport (patch K), prompts and resources (patch L), legacy Windows tools (patch M, delivered), legacy Linux analysis (patch N, delivered), classic Mac / early macOS analysis (patch O step 1) and the future plan.
 
 
 Transport: newline-delimited JSON-RPC 2.0 over stdin/stdout (MCP stdio). Supported methods: `initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`, `prompts/list`, `prompts/get`, `resources/list`, `resources/read`.
@@ -58,6 +58,7 @@ Tool definitions include `title`, `annotations` and an `outputSchema`; command-e
 | `analyze_legacy_linux` | `file`, `session_id` | Statically inspect a.out/ELF headers, DT_NEEDED, interpreter, libc/GCC markers and sourced Linux diagnosis. Needs research-session authorization; does not execute the target. |
 | `analyze_legacy_mac` | `file`, `session_id` | Statically inspect classic Mac / early macOS formats (Mach-O, fat, PEF, AppleDouble) and fill Mac Target Profile fields. Needs research-session authorization; static only, no execution. |
 | `analyze_legacy_android` | `file`, `session_id` | Statically inventory APK/AAB/DEX for legacy Android Target Profile fields (ABI, dex, signing hints). Needs research-session authorization; does not decode AXML or execute the app. |
+| `collect_android_device_observations` | `session_id`, `confirm` | Collect bounded read-only Android logcat and activity diagnostics from an authorized device. Requires CONTROLLED_EXECUTION, confirm=true, and a declared research-session authorization. |
 | `create_change_workspace` | `path`, `confirm` | Copy target into isolated workspace (CONTROLLED_EXECUTION + confirm:true). |
 | `apply_change` | `workspace_id`, `changeType`, `relativePath`, `confirm` | Apply change only inside workspace workPath. |
 | `rollback_change` | `workspace_id`, `confirm` | Restore workspace workPath from the original copy. |
@@ -153,8 +154,21 @@ The next MCP surface changes follow the single product-patch sequence in [ROADMA
 3. Results carry Mac Target Profile fields (`codeModel`, `endianness`, `resourceInventory`, `creatorType`, `bundleLayout`, `rosettaOr32BitDependence`) and format recognition for Mach-O, fat, PEF/CFM and AppleDouble. Deep 68k/PEF/resource-fork/bundle parsers remain later O steps.
 
 
-## Legacy Android tools (patch P steps 0–1, 1.5.0)
+## Legacy Android tools (patch P steps 0–1 and 6, 1.5.0–1.5.7)
 
 1. `declare_legacy_authorization` on a research session.
 2. Call `analyze_legacy_android` with the file path and that `session_id`.
 3. Binary AXML is not decoded in this step; minSdk/targetSdk stay unknown until a later P step.
+
+
+### Bounded device observations (Patch P, 1.5.7)
+
+After declaring authorization in a research session, call `collect_android_device_observations`
+with `session_id` and `confirm: true`. The server must be started with
+`REVERSE_MODE=CONTROLLED_EXECUTION`. An optional `serial` overrides
+`REVERSE_ANDROID_SERIAL`; `logcat_lines` is clamped to 1–2000. The operation
+only reads bounded `adb logcat` and `dumpsys activity activities` output.
+It does not install, launch, clear, tap or otherwise change the device.
+Missing/invalid serial returns `unsupported` without invoking adb. Device
+output is untrusted and may include sensitive diagnostics. UI hierarchy,
+screenshots and input replay remain planned.

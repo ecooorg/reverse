@@ -18,18 +18,18 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.5.6** (Patch P in progress — bounded Android device observation slice; 2026-11-12).
+State as of **1.5.7** (Patch P in progress — Android device observations exposed through MCP; 2026-11-12).
 
-**Verification.** This 1.5.6 increment is not yet verified: dependency installation timed out in the local environment. The 1.4.2 matrix is historical evidence for Patch O only; rerun build, tests, capability and full `os: all` gates before claiming a green 1.5.6 matrix.
+**Verification.** `npm ci` timed out after five minutes. The focused MCP integration file passed 3/3 tests using system TypeScript 5.8.3 transpilation; MCP docs, built-tree structure, size and static-quality checks passed. The package build is blocked by missing `@types/node`, and the TypeScript 5.9 printer, full unit suite, capability suite, coverage, mutation and cross-platform matrix remain unverified. The 1.4.2 matrix is historical evidence for Patch O only.
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.5.6** (Patch P step 6 slice — bounded Android device observations) |
+| What is the product version? | **1.5.7** (Patch P step 6 — bounded Android device observations via MCP) |
 | What is finished? | The 1.0 foundation (**patches A–L**), **Patch M** (Windows, **1.2.0**), **Patch N** (old Linux, **1.3.5**), and **Patch O** (Classic Mac / early macOS, **1.4.0**). |
-| What is being built? | **Patch P** in progress through **1.5.6**: L0 reference trials and bounded device-side logcat/activity observation. |
+| What is being built? | **Patch P** in progress through **1.5.7**: L0 reference trials and bounded device-side logcat/activity observation via MCP. |
 | What has not started? | **Patch Q** (newer generations and unified compatibility intelligence). Patch P is the next product unit. |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Continue Patch P step 6: expose the observation API through the stable MCP contract, then add UI hierarchy/screenshot capture, seeded input replay and device-side scenario comparison; current observations are read-only. |
+| What is the next concrete step? | Continue Patch P step 6: add UI hierarchy/screenshot capture, seeded input replay and device-side scenario comparison; current observations are read-only. |
 | What is open but not blocking? | R-10 residual (`goblin` and later providers), R-11 residual (Mach-O and unified report), F-83 (Linux Node 22 timeout; not reproduced in three consecutive green matrices), F-86 (dev-only moderate advisories), and the low Stryker score on two modules (recorded baseline, floor held). M/N G/H residual scope is itemized below and in `CAPABILITIES.md`. See the [carry-over debt register](#carry-over-debt-register). |
 | What is unverified? | Residual M/N limitations (explicit): no bundled Windows/Linux oracle (preservation stays L0); execution lifecycle lacks snapshot/restore/trace; behavior capture does not cover registry/network/UI/audio/time/randomness or code coverage; no function-level equivalence lab; migration options are limited; similarity BSim is unconfigured; calibration uses small crafted corpora; containers share the host kernel; the verneed summary is a string-residue scan, not a full `SHT_GNU_verneed` walk; `goblin` is not wired; libc/compiler generation heuristics are not calibrated beyond the crafted fixtures. The 1.3.7 manual matrix (Capabilities run 43079862360) stopped at the formatting gate on all six OS/Node cells, before build or capability tests; no cross-platform result is inferred from that run. Capabilities run 43084133732 exposed malformed PowerShell source on Windows (fixed in 1.3.9) and a Windows capability file that finished all 108 checks but did not exit (F-84, fixed in 1.3.10). The full matrix is green on commit `78a47fd` (Capabilities 43172993614, Structure 43173076031, Mutation 43173019792, Golden 43173044415, Supply chain 43173096703). An earlier green matrix on `f85200e` is superseded by this final verification run. The earlier N closure matrix remains recorded for commit `b5ea3fa` (Capabilities 43059743774, Structure 43059819947, Supply chain 43059851184). Windows/macOS hard sandbox isolation remains a recorded limitation from M. |
 
@@ -305,7 +305,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 - [x] R-19 Windows part: persistent helper for process inventory, single-PID inspection, process-tree snapshots and benchmark samples (1.3.6); protocol fixed in 1.3.9 and idle-helper exit fixed in 1.3.10; Windows verified by the full matrix on commit `f85200e`.
 - [x] R-04: hostile-input property tests (`fast-check`, fixed seed) for the a.out, ELF and archive parsers and for `summarizeVerneed`: `tests/legacy-linux-property.test.ts` (1.3.10).
 - [x] R-02 (N/Linux): `analyzeLegacyLinux` wraps its result at the library boundary; hostile ELF PT_INTERP fixture verifies untrusted marker and string truncation (1.3.6).
-- [x] R-15 (N/Linux): checked-in golden expectations for both reference trials and manual `Patch N Linux golden trials` workflow (1.3.6).
+- [x] R-15 (N/Linux): checked-in golden expectations for both reference trials (1.3.6); the dedicated manual workflow was consolidated into `Nightly Full Verification` (1.5.7).
 - [x] Record a green manual `os: all` run with its run ID (step 8). Closed by Capabilities 43172993614 on `78a47fd` (and N closure 43059743774).
 - Tracked by boxes in the sections above: R-11 ELF part and R-10 (`readelf`, `objdump`, `lief`/`goblin`) in section 1; the N share of G-01…G-10, H-03…H-08 and H-10 in sections 1–7.
 
@@ -501,6 +501,19 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 - [x] Unit and capability checks cover the no-serial refusal path and adversarial untrusted text.
 - [ ] Full Android capture/replay remains open: UI hierarchy/screenshots, seeded input replay, network and persisted-state diffs, Frida and profiler ingestion.
 
+### 1.5.7 — Patch P step 6: stable MCP observation surface
+
+- [x] Add `collect_android_device_observations` to `tools/list` and `tools/call`.
+- [x] Resolve authorization from the supplied research session; retain `CONTROLLED_EXECUTION` and `confirm=true` gates.
+- [x] Keep the operation read-only and bounded; missing/invalid serial must not invoke adb.
+- [x] Add MCP end-to-end coverage for session authorization, tool discovery and no-device refusal.
+- [x] Replace the Patch N-only manual golden workflow with `.github/workflows/nightly-full-verification.yml`.
+- [x] Keep the new verification workflow manual-only (`workflow_dispatch`); it runs the 3-OS × Node 22/24 matrix, quality/build/unit/capability/coverage/structure/reference tests, supply-chain/package checks and optional Stryker mutation testing.
+- [ ] Full Android capture/replay remains open: UI hierarchy/screenshots, seeded input replay, network and persisted-state diffs, Frida and profiler ingestion.
+
+**Verification workflow policy.** `Nightly Full Verification` is a maintainer-invoked deep run, not a nightly schedule and not a per-patch trigger. The ordinary `Capabilities` workflow remains unchanged for its existing push/PR Linux gate and manual matrix. The retired Patch N Linux golden test remains included in the combined legacy reference test suite.
+
+
 ### Patch Q working plan — Newer generations and unified compatibility intelligence (target release 2.0, not started)
 
 **Outcome.** The workflow proven for Windows, Linux, Classic Mac/early macOS and legacy Android is extended to newer generations (post-2010 Windows, newer Linux, macOS from 10.7 to current, Android 6.0 to current) **and** unified: one Target Profile, one compatibility knowledge base, one evidence and confidence model, one environment matrix and one preservation/migration report across every supported platform. Q is not a fifth platform wave: it generalizes M–P and finishes the product. Release 2.0 is the first release that may claim the whole product outcome (analyze, reverse-engineer, find resource-use causes, optimize and prove, diagnose and restore old software) across all supported families.
@@ -626,7 +639,7 @@ Approved tasks that are **not** closed, collected from the backlog, the patch re
 | R-11 | Hardening-flag report (PIE, NX, RELRO, canary, CFG, ASLR) | E (done) | **Partial:** PE DllCharacteristics flags in M step 3; ELF PIE/NX/RELRO hints in N; Mach-O and unified multi-family report remain | *Approved:* PE closed in M; ELF partial in N; Mach-O in O step 3; all families in Q step 4 |
 | R-10 | Opt-in providers: lief/goblin, objdump/readelf, capa, yara-x, diec, syft, osv-scanner, cargo-auditable, Go build info | E, F, H (done) | **Partial:** detect-only `diec`/`yara-x`/`capa` (M), `readelf`/`objdump`/`lief` (N) registered; `goblin` and the Q-era providers remain open | *Approved:* M/N subsets closed as detect-only; remainder in Q step 4 or explicit won't-do |
 | R-12 | Profile ingestion in standard formats (perf, pprof, `.cpuprofile`, Speedscope, Firefox Profiler); eBPF via bpftrace | H (done) | Export shape closed in 0.2.0-beta.6; ingestion: no implementation found | *Approved:* Android formats in P step 6; the other formats, ETW and network I/O in Q step 6 |
-| R-15 | Golden results and the three reference trials as manual CI jobs | J (done) | N/Linux golden manifest and manual workflow delivered in 1.3.6; M/O/P and Q remainder still due | *Approved:* M step 8, each later patch step 8; N/Linux portion closed in 1.3.6; remaining portions due in their patch steps |
+| R-15 | Golden results and the three reference trials as manual CI jobs | J (done) | N/Linux golden manifest and expectations delivered in 1.3.6; unified manual verification workflow replaces the N-only workflow in 1.5.7; M/O/P and Q golden remainder still due | *Approved:* M step 8, each later patch step 8; N/Linux portion closed in 1.3.6; remaining portions due in their patch steps |
 | R-01 | Mutation testing (Stryker) on pure modules | D (done) | Stryker baseline recorded in 1.3.10: 47.72 % on four pure modules (floor 45 %) | *Approved:* N step 0; **closed in 1.3.10** |
 | R-04 | Fuzz and property tests (`fast-check`) for parsers | D (done) | Partial: deterministic hostile process-parser corpus; `fast-check` property tests for a.out/ELF/archive parsers closed in 1.3.10; parsers of O, P and Q remain in their steps | *Approved:* step 3 of M, N, O and P for the parsers each patch adds (boxes in sections 1 or 8 of those plans); newer-generation parsers in Q step 4 |
 | R-05 | Linter, `knip`, `jscpd`, own-line size gate | C (done) | Done in 1.3.10: Biome linter, `jscpd` and `knip` join the format/size gates and `quality:static` in CI | *Approved:* N step 0; **closed in 1.3.10** |
@@ -1211,6 +1224,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.5.4 | P step 5: planAndroidControlledInstall + host behavior round-trip; knip type |
 | 1.5.5 | P step 6: Android L0 reference trials; replayScenario arg order fix |
 | 1.5.6 | P step 6 slice: bounded adb logcat + activity dumpsys collection; R-02 wrapper and authorization/mode gates |
+| 1.5.7 | P step 6: expose bounded Android device observations through an authorization-gated MCP tool; replace the retired N-only golden workflow with manual Nightly Full Verification |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP
