@@ -296,3 +296,12 @@ The remaining work is one ordered sequence, not parallel capability tracks: M (W
 | Full PEF fragment/import graph | 🚧 |
 | Emulator works/fails with operator ROM | 🚧 |
 | Patch O closed at 1.4.0 | 🚧 |
+
+
+### Size gate & works/fails (1.3.25)
+
+| Item | Status |
+|---|---|
+| `legacy-mac.ts` ≤1000 lines via `legacy-mac-parsers.ts` | ✅ |
+| Mac works/fails matrix API | ✅ (unsupported without ROM/emulator) |
+| Real boot under Basilisk/SheepShaver | 🚧 operator ROM required |
