@@ -116,3 +116,64 @@ export async function runMacBehaviorRoundTrip(scenario: BehaviorScenario | undef
         roms,
     };
 }
+/**
+ * Compare two operator-supplied disk image / folder trees by file hashes.
+ * Used as a stand-in for emulator disk-image snapshot diffs when the operator
+ * exports before/after trees. Does not mount or mutate images.
+ */
+export async function diffDiskImageHashes(beforeRoot: string, afterRoot: string): Promise<{
+    equal: boolean;
+    onlyBefore: string[];
+    onlyAfter: string[];
+    changed: string[];
+}> {
+    const { createHash } = await import('node:crypto');
+    const { readdir, readFile, stat } = await import('node:fs/promises');
+    const { join, relative } = await import('node:path');
+    async function walk(root: string): Promise<Record<string, string>> {
+        const out: Record<string, string> = {};
+        async function rec(dir: string): Promise<void> {
+            let entries: string[];
+            try {
+                entries = await readdir(dir);
+            }
+            catch {
+                return;
+            }
+            for (const name of entries) {
+                const full = join(dir, name);
+                const st = await stat(full);
+                if (st.isDirectory())
+                    await rec(full);
+                else if (st.isFile()) {
+                    const rel = relative(root, full).replace(/\\/g, '/');
+                    const buf = await readFile(full);
+                    out[rel] = createHash('sha256').update(buf).digest('hex');
+                }
+            }
+        }
+        await rec(root);
+        return out;
+    }
+    const a = await walk(beforeRoot);
+    const b = await walk(afterRoot);
+    const onlyBefore: string[] = [];
+    const onlyAfter: string[] = [];
+    const changed: string[] = [];
+    for (const k of Object.keys(a)) {
+        if (!(k in b))
+            onlyBefore.push(k);
+        else if (a[k] !== b[k])
+            changed.push(k);
+    }
+    for (const k of Object.keys(b)) {
+        if (!(k in a))
+            onlyAfter.push(k);
+    }
+    return {
+        equal: onlyBefore.length === 0 && onlyAfter.length === 0 && changed.length === 0,
+        onlyBefore,
+        onlyAfter,
+        changed,
+    };
+}

@@ -533,22 +533,134 @@ function machOPieFlag(b: Buffer, magic: number): {
  * Analyze a classic Mac / early macOS binary under the shared legacy authorization gate.
  */
 /** Best-effort 68k A-line Toolbox trap scan (0xA0xx–0xA7xx words, big-endian). */
+/** Common Toolbox / OS trap names (selected; not a full Inside Macintosh index). */
+const TOOLBOX_TRAP_NAMES: Record<number, string> = {
+    0xa000: 'Open', 0xa001: 'Close', 0xa002: 'Read', 0xa003: 'Write',
+    0xa009: 'GetFileInfo', 0xa00c: 'FlushVol', 0xa011: 'GetEOF',
+    0xa029: 'HFSDispatch', 0xa146: 'GetMenuBar', 0xa1ad: 'GetNextEvent',
+    0xa9eb: 'WaitNextEvent', 0xa9f4: 'ExitToShell', 0xa9ff: 'Unimplemented',
+    0xa8bd: 'DrawString', 0xa8a6: 'NewPtr', 0xa8a7: 'DisposePtr',
+    0xa9a0: 'GetResource', 0xa9a2: 'LoadResource', 0xa9a3: 'ReleaseResource',
+    0xa9c9: 'SetTrapAddress', 0xa9c8: 'GetTrapAddress',
+};
+/** Best-effort 68k A-line Toolbox trap scan (0xA0xx–0xA7xx / 0xA8xx–0xABxx). */
 function scanToolboxTraps(b: Buffer): {
     count: number;
     samples: string[];
+    named: string[];
 } {
     const samples: string[] = [];
+    const named: string[] = [];
+    const seen = new Set<number>();
     let count = 0;
-    // Walk aligned 16-bit words; classic Mac code is big-endian.
     for (let i = 0; i + 1 < b.length && count < 512; i += 2) {
         const w = b.readUInt16BE(i);
-        if (w >= 0xa000 && w <= 0xa7ff) {
-            count++;
-            if (samples.length < 12)
+        if (w < 0xa000 || w > 0xabff)
+            continue;
+        count++;
+        if (!seen.has(w)) {
+            seen.add(w);
+            const nm = TOOLBOX_TRAP_NAMES[w];
+            if (nm)
+                named.push(`${nm}(0x${w.toString(16)})`);
+            else if (samples.length < 12)
                 samples.push(`0x${w.toString(16)}`);
         }
     }
-    return { count, samples };
+    return { count, samples, named };
+}
+/** Parse 68k CODE segment jump-table / near-header hints from a buffer. */
+function parseCodeSegments(b: Buffer): Array<{
+    id: number;
+    kind: string;
+    detail: string;
+}> {
+    const out: Array<{
+        id: number;
+        kind: string;
+        detail: string;
+    }> = [];
+    // Jump table header pattern: first word often 0x3F3C (move.w #n,-(SP)) sequences
+    // or classic jt entry size 8. Best-effort: count CODE resource inventory + size.
+    const inv = parseCodeResourceInventory(b);
+    for (const c of inv.slice(0, 16)) {
+        out.push({
+            id: c.id,
+            kind: c.id === 0 ? 'jump-table-candidate' : 'code-segment-candidate',
+            detail: `sizeHint=${c.size}`,
+        });
+    }
+    return out;
+}
+/**
+ * Classic HFS catalog B-tree: follow MDB extent to first catalog nodes and
+ * collect leaf key name strings (read-only, bounded).
+ */
+function walkHfsCatalogLeaves(b: Buffer, mdb: {
+    allocationBlockSize?: number;
+    catalogFirstExtent?: {
+        startBlock: number;
+        blockCount: number;
+    };
+}): {
+    nodeCount: number;
+    names: string[];
+    evidence: string[];
+} {
+    const names: string[] = [];
+    const evidence: string[] = [];
+    const alBlk = mdb.allocationBlockSize ?? 0;
+    const ext = mdb.catalogFirstExtent;
+    if (!alBlk || !ext || ext.blockCount < 1) {
+        return { nodeCount: 0, names, evidence: ['catalog walk skipped: missing alBlkSiz or extent'] };
+    }
+    // HFS allocation blocks start after 2 reserved sectors relative to volume;
+    // for a raw image with MDB at 1024 we treat startBlock * alBlk as file offset
+    // into the catalog fork (approximation for crafted fixtures).
+    const catOff = ext.startBlock * alBlk;
+    if (catOff + 512 > b.length) {
+        return {
+            nodeCount: 0,
+            names,
+            evidence: [`catalog extent startBlock=${ext.startBlock} past EOF (off=${catOff})`],
+        };
+    }
+    let nodeCount = 0;
+    const maxNodes = Math.min(ext.blockCount, 8);
+    for (let n = 0; n < maxNodes; n++) {
+        const off = catOff + n * Math.min(alBlk, 512);
+        if (off + 14 > b.length)
+            break;
+        // Node descriptor: ndType at offset 8 (signed byte): 0=index, 1=header, 2=map, -1=leaf
+        const ndType = b.readInt8(off + 8);
+        const ndNRecs = b.readUInt16BE(off + 10);
+        nodeCount++;
+        evidence.push(`node[${n}] type=${ndType} records=${ndNRecs} off=${off}`);
+        if (ndType !== -1 && ndType !== 0xff)
+            continue; // leaf is -1 (0xFF)
+        // Leaf: scan for Pascal strings in record area (best-effort names)
+        const window = b.subarray(off + 14, Math.min(b.length, off + Math.min(alBlk, 512)));
+        for (let i = 0; i + 1 < window.length && names.length < 32; i++) {
+            const len = window[i];
+            if (len < 1 || len > 31 || i + 1 + len > window.length)
+                continue;
+            let ok = true;
+            for (let k = 0; k < len; k++) {
+                const c = window[i + 1 + k];
+                if (c < 0x20 || c > 0x7e) {
+                    ok = false;
+                    break;
+                }
+            }
+            if (ok) {
+                const s = window.toString('latin1', i + 1, i + 1 + len);
+                if (!names.includes(s))
+                    names.push(s);
+                i += len;
+            }
+        }
+    }
+    return { nodeCount, names, evidence };
 }
 export async function analyzeLegacyMac(filePath: string, authorization: LegacyAuthorization | null = null, options: {
     sessionId?: string;
@@ -639,6 +751,17 @@ export async function analyzeLegacyMac(filePath: string, authorization: LegacyAu
                 evidence: [pef.evidence, ...pef.sectionNames.slice(0, 6), ...pef.loaderStrings.slice(0, 6)],
                 confidence: 0.9,
             });
+            const importRe = /Lib|Interface|Carbon|StdC|Threads|MathLib|\.o$/i;
+            const imports = pef.loaderStrings
+                .filter(s => importRe.test(s) || s.length >= 4)
+                .slice(0, 16);
+            if (imports.length) {
+                structuralDetectors.push({
+                    name: 'pef-imports',
+                    evidence: imports.map(s => `import=${s}`),
+                    confidence: 0.6,
+                });
+            }
         }
     }
     if (format === 'unknown') {
@@ -715,6 +838,22 @@ export async function analyzeLegacyMac(filePath: string, authorization: LegacyAu
                     ],
                     confidence: 0.75,
                 });
+                const walk = walkHfsCatalogLeaves(b, {
+                    allocationBlockSize: 'allocationBlockSize' in hfs
+                        ? hfs.allocationBlockSize
+                        : undefined,
+                    catalogFirstExtent: hfs.catalogFirstExtent,
+                });
+                if (walk.nodeCount > 0 || walk.names.length) {
+                    structuralDetectors.push({
+                        name: 'hfs-catalog-btree',
+                        evidence: [
+                            ...walk.evidence.slice(0, 6),
+                            ...walk.names.slice(0, 12).map(n => `name=${n}`),
+                        ],
+                        confidence: walk.names.length ? 0.7 : 0.45,
+                    });
+                }
             }
         }
     }
@@ -735,12 +874,21 @@ export async function analyzeLegacyMac(filePath: string, authorization: LegacyAu
             name: 'toolbox-traps',
             evidence: [
                 `A-line trap words=${traps.count}`,
-                ...traps.samples.slice(0, 8),
+                ...traps.named.slice(0, 8),
+                ...traps.samples.slice(0, 4),
             ],
             confidence: traps.count >= 8 ? 0.7 : 0.5,
         });
         if (format === 'unknown')
             format = '68k-code';
+    }
+    const codeSegs = parseCodeSegments(b);
+    if (codeSegs.length) {
+        structuralDetectors.push({
+            name: 'code-segments',
+            evidence: codeSegs.slice(0, 12).map(s => `CODE ${s.id} ${s.kind} ${s.detail}`),
+            confidence: 0.65,
+        });
     }
     containers = detectArchiveContainers(b);
     for (const c of containers) {
