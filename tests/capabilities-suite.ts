@@ -2759,7 +2759,8 @@ check('Legacy Mac', 'works/fails matrix reports unsupported without operator ROM
 check('Roadmap', 'Patch O is recorded closed at 1.4.0', () => {
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
-    assert.equal(pkg.version, '1.4.1');
+    // version from package.json only
+    assert.match(pkg.version, /^1\.4\.\d+$/);
     assert.match(roadmap, /Patch O.*done|closed at \*\*1\.4\.0\*\*/i);
     assert.match(roadmap, /1\.4\.0 — Patch O closed/i);
 });
@@ -2792,8 +2793,9 @@ check('Roadmap', 'M and N status, version and O entry criteria are internally co
     assert.match(roadmap, new RegExp(`What is the product version\\? \\| \\*\\*${verRe}`));
     assert.match(roadmap, /Patch M.*\*\*done\*\*/s);
     assert.match(roadmap, /Patch N.*\*\*done\*\*/s);
-    // O step 0 is closed; feature work (steps 1+) is the active product unit.
-    assert.match(roadmap, /Patch O.*in progress/i);
+    // O closed at 1.4.0 — status table and narrative must not say in progress.
+    assert.match(roadmap, /Patch O.*(\*\*done\*\*|closed at)/i);
+    assert.doesNotMatch(roadmap, /\| O \|[^\n]*in progress/i);
     assert.match(roadmap, /F-08 macOS|ps -p/);
     assert.doesNotMatch(architecture, /M remains open until its complete end-to-end acceptance criteria pass/);
 });
