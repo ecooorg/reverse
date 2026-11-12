@@ -211,3 +211,28 @@ test('PEF section count is reported when header is complete', async () => {
         await rm(dir, { recursive: true, force: true });
     }
 });
+test('Mac behavior round-trip reuses capture/replay under CONTROLLED_EXECUTION', async () => {
+    const prev = process.env.REVERSE_MODE;
+    process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
+    try {
+        const { runMacBehaviorRoundTrip } = await import('../dist/legacy-mac-behavior.js');
+        const r = await runMacBehaviorRoundTrip(undefined, AUTH);
+        assert.equal(r.equal, true);
+        assert.ok(r.record);
+        assert.ok(r.environments.length >= 4);
+        assert.ok(r.limitations.some((l: string) => /emulator|PATH|licensing/i.test(l)));
+    }
+    finally {
+        if (prev === undefined)
+            delete process.env.REVERSE_MODE;
+        else
+            process.env.REVERSE_MODE = prev;
+    }
+});
+test('fingerprintMacRoms reports missing paths as limitations', async () => {
+    const { fingerprintMacRoms } = await import('../dist/legacy-mac-behavior.js');
+    const r = await fingerprintMacRoms(['/no/such/rom.bin']);
+    assert.equal(r.length, 1);
+    assert.equal(r[0].sha256, null);
+    assert.ok(r[0].limitation);
+});
