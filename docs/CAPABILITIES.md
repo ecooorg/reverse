@@ -262,3 +262,14 @@ The remaining work is one ordered sequence, not parallel capability tracks: M (W
 | Emulator input injection / screenshot norm | 🚧 |
 | Disk-image snapshot diffs | 🚧 |
 | Toolbox trap tracing | 🚧 |
+
+
+### Inventory residual (1.3.22)
+
+| Item | Status |
+|---|---|
+| PEF loader string scan | ✅ best-effort |
+| HFS volume name (Pascal) | ✅ |
+| HFS catalog first extent | ✅ |
+| HFS catalog B-tree walk | 🚧 |
+| PEF fragment / import graph | 🚧 |
