@@ -97,7 +97,7 @@ The server writes protocol messages to stdout. Do not add logging to stdout; dia
 
 - **Done:** patches **A–K** and **L** are the 1.0 baseline (process State as of **1.5.5** (Patch O closed — Classic Mac / early macOS; post-close maintenance green; 2026-11-12).
 
-**Verification.** Capability matrix **green** on **1.4.2** (operator-confirmed). Patch O remains closed at **1.4.0**; 1.4.1–1.4.2 are post-close hygiene only.
+- **Verification.** Capability matrix **green** on **1.4.2** (operator-confirmed). Patch O remains closed at **1.4.0**; 1.4.1–1.4.2 are post-close hygiene only.
 
 | Question | Answer |
 |---|---|
