@@ -18,13 +18,13 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.3.22** (O steps 2–3 slice: Mac calibration + expanded inventory; 2026-11-12).
+State as of **1.3.23** (O steps 2–3 slice: Mac calibration + expanded inventory; 2026-11-12).
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.3.22** (O steps 2–3: Mac calibration corpus, MacBinary/BinHex/HFS/archive detectors, Info.plist, Mach-O PIE, property tests) |
+| What is the product version? | **1.3.23** (O steps 2–3: Mac calibration corpus, MacBinary/BinHex/HFS/archive detectors, Info.plist, Mach-O PIE, property tests) |
 | What is finished? | The 1.0 foundation (**patches A–L**) and **Patch M** (Windows compatibility through 2010, release **1.2.0**) and **Patch N** (old Linux compatibility, closed at **1.3.5**). |
-| What is being built? | **Patch O** in progress. Steps 0–6 slices closed through **1.3.22** (PEF loader strings, HFS catalog first extent + volume name). Residual: full HFS B-tree walk, PEF fragment graph, real emulator works/fails. |
+| What is being built? | **Patch O** in progress through **1.3.23** (Toolbox A-line trap scan). Residual: full HFS B-tree walk, PEF fragment graph, real emulator works/fails. |
 | What has not started? | **Patches P and Q** (legacy Android; newer generations and unified compatibility intelligence). Patch O feature work (steps 1+) is next. Plans: [Detailed plans for patches N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q). |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
 | What is the next concrete step? | Full HFS catalog B-tree walk, PEF fragment/import graph, operator-media works/fails under real emulators. |
@@ -336,7 +336,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 | 0 | Debts due: F-08 macOS part (single-PID fast path) and R-19 macOS part (`libproc`-based sampling) | F-08, R-19 (macOS) | macOS inspection and sampling no longer read the full process table; checks prove it |
 | 1 | Classic and early-macOS fields in the shared Target Profile (code model, endianness, OS era, resource inventory, creator/type, bundle layout, Rosetta/32-bit dependence) | Section 1 | **Done in 1.3.13** (no second schema; bundle layout still null until step 3) |
 | 2 | Ground-truth corpus and calibration: crafted 68k, PEF and Mach-O fixtures, resource-fork fixtures, open-source or consented samples | H-08 for O | **Done in 1.3.14** (crafted fixtures + precision/recall; operator hash manifests supported) |
-| 3 | Static inventory: 68k `CODE`/segment parser, PEF container and `cfrg` parser, Mach-O and fat parser (load commands, dylibs, minimum OS version, code signature presence), resource-fork parser (via AppleDouble, MacBinary, extended attributes, native fork where the host exposes it), BinHex/StuffIt/Compact Pro container recognition, HFS/HFS+ image reading, bundle and `Info.plist` readers, Toolbox trap and Carbon/Cocoa API usage inventory, support-matrix rows, hostile-input property tests | G-02 (Mac), G-09 (Mac), R-04 (Mac parsers), R-11 (Mach-O flags) | **Mostly closed through 1.3.22:** PEF section count + loader string scan, CODE resource id scan, HFS MDB + catalog first extent + volume name. Open residual: full segment loader, PEF fragment graph, HFS catalog B-tree walk, Toolbox trap inventory |
+| 3 | Static inventory: 68k `CODE`/segment parser, PEF container and `cfrg` parser, Mach-O and fat parser (load commands, dylibs, minimum OS version, code signature presence), resource-fork parser (via AppleDouble, MacBinary, extended attributes, native fork where the host exposes it), BinHex/StuffIt/Compact Pro container recognition, HFS/HFS+ image reading, bundle and `Info.plist` readers, Toolbox trap and Carbon/Cocoa API usage inventory, support-matrix rows, hostile-input property tests | G-02 (Mac), G-09 (Mac), R-04 (Mac parsers), R-11 (Mach-O flags) | **Mostly closed through 1.3.22:** PEF section count + loader string scan, CODE resource id scan, HFS MDB + catalog first extent + volume name. Open residual: full segment loader, PEF fragment graph, HFS catalog B-tree walk; Toolbox trap **scan delivered in 1.3.23** (inventory depth still limited) |
 | 4 | Sourced compatibility tables (Toolbox and Carbon availability by OS version, QuickDraw/QuickTime/Classic/Rosetta/32-bit removal points, Cocoa API deprecations, resource and filesystem behavior) and diagnosis: CFM versus Mach-O, PowerPC on Intel, 32-bit-only, removed Classic, resource-fork loss during copy, creator/type reliance, endianness, handle and addressing assumptions, path-separator and name-length issues, code signing and notarization effects | G-01 (Mac) | **Done in 1.3.16** (documentary tables; each finding cites table id + source) |
 | 5 | Environments: 68k emulators (Basilisk II, Mini vMac class), PowerPC Mac OS emulation (SheepShaver, QEMU `mac99` class), early Mac OS X images under QEMU where legally runnable; user-supplied ROMs, system software and installers hashed in the fingerprint; the host-licensing limitation for Apple operating systems is recorded for the operator | G-03 (Mac) | **Detect-only closed in 1.3.17** (BasiliskII/Mini vMac/SheepShaver/qemu-ppc). Real works/fails matrix needs operator ROM/image (recorded limitation) |
 | 6 | Capture/replay: emulator-level input injection, screenshot normalization, disk-image snapshots and diffs (the way to observe file and resource-fork changes), emulator clock control, Toolbox-trap tracing where the emulator exposes hooks (otherwise a recorded limitation) | G-04 (Mac) | **Partial in 1.3.21:** shared capture/replay round-trip + ROM hash helper + emulator fingerprints as limitations. Open: input injection, screenshot norm, disk-image snapshots, trap tracing |
@@ -1165,6 +1165,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.3.20 | Docs/version sync; unique MCP legacy tool sentences; roadmap State as of |
 | 1.3.21 | O step 6 slice: Mac behavior capture/replay; ROM fingerprint; AGENTS CI anti-regression |
 | 1.3.22 | Residual O inventory: PEF loader strings; HFS catalog extent; dynamic Roadmap version check |
+| 1.3.23 | Toolbox A-line trap detector; fix Mac tests using non-exported formatEvidence |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP

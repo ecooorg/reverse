@@ -273,3 +273,11 @@ The remaining work is one ordered sequence, not parallel capability tracks: M (W
 | HFS catalog first extent | ✅ |
 | HFS catalog B-tree walk | 🚧 |
 | PEF fragment / import graph | 🚧 |
+
+
+### Toolbox traps (1.3.23)
+
+| Item | Status |
+|---|---|
+| A-line trap word scan (0xA000–0xA7FF) | ✅ best-effort detector `toolbox-traps` |
+| Named trap inventory / dispatch table | 🚧 |
