@@ -18,16 +18,16 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.3.12** (O step 0 closed: F-08 macOS and R-19 macOS; format gate fixed; 2026-11-12).
+State as of **1.3.13** (O step 1: Mac Target Profile + initial format inventory; 2026-11-12).
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.3.12** (O step 0 closed: macOS single-PID `ps -p` / `pgrep -P`; format gate fixed; N remains historically closed at 1.3.5) |
+| What is the product version? | **1.3.13** (O step 1: `analyze_legacy_mac`, Mac Target Profile fields, Mach-O/PEF/AppleDouble recognition) |
 | What is finished? | The 1.0 foundation (**patches A–L**) and **Patch M** (Windows compatibility through 2010, release **1.2.0**) and **Patch N** (old Linux compatibility, closed at **1.3.5**). |
-| What is being built? | **Patch O** is in progress. Step 0 closed in **1.3.11**/**1.3.12** (F-08 macOS, R-19 macOS: `ps -p` single-PID path, `pgrep -P` children; true libproc not used). Format drift fixed in 1.3.12. Next: work-order step 1 (Target Profile and static inventory for Classic Mac / early macOS, target **1.4**). |
+| What is being built? | **Patch O** in progress. Step 0 closed (1.3.11–1.3.12). **Step 1 delivered in 1.3.13:** shared Target Profile Mac fields (`codeModel`, `endianness`, `resourceInventory`, `creatorType`, `bundleLayout`, `rosettaOr32BitDependence`) and `analyzeLegacyMac` / MCP `analyze_legacy_mac` recognizing Mach-O, fat, PEF/CFM and AppleDouble. Next: step 2 calibration corpus, then deeper parsers (step 3). |
 | What has not started? | **Patches P and Q** (legacy Android; newer generations and unified compatibility intelligence). Patch O feature work (steps 1+) is next. Plans: [Detailed plans for patches N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q). |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Patch O work-order step 1 (Target Profile and static inventory for Classic Mac / early macOS). Optionally raise the Stryker score on `process-parse` and `legacy-linux-packages`. |
+| What is the next concrete step? | Patch O step 2 (ground-truth corpus and calibration for Mac detectors) and/or step 3 deeper inventory (68k CODE, full PEF, resource-fork, bundle/Info.plist). |
 | What is open but not blocking? | R-10 residual (`goblin` and later providers), R-11 residual (Mach-O and unified report), F-83 (Linux Node 22 timeout; not reproduced in three consecutive green matrices), F-86 (dev-only moderate advisories), and the low Stryker score on two modules (recorded baseline, floor held). M/N G/H residual scope is itemized below and in `CAPABILITIES.md`. See the [carry-over debt register](#carry-over-debt-register). |
 | What is unverified? | Residual M/N limitations (explicit): no bundled Windows/Linux oracle (preservation stays L0); execution lifecycle lacks snapshot/restore/trace; behavior capture does not cover registry/network/UI/audio/time/randomness or code coverage; no function-level equivalence lab; migration options are limited; similarity BSim is unconfigured; calibration uses small crafted corpora; containers share the host kernel; the verneed summary is a string-residue scan, not a full `SHT_GNU_verneed` walk; `goblin` is not wired; libc/compiler generation heuristics are not calibrated beyond the crafted fixtures. The 1.3.7 manual matrix (Capabilities run 43079862360) stopped at the formatting gate on all six OS/Node cells, before build or capability tests; no cross-platform result is inferred from that run. Capabilities run 43084133732 exposed malformed PowerShell source on Windows (fixed in 1.3.9) and a Windows capability file that finished all 108 checks but did not exit (F-84, fixed in 1.3.10). The full matrix is green on commit `78a47fd` (Capabilities 43172993614, Structure 43173076031, Mutation 43173019792, Golden 43173044415, Supply chain 43173096703). An earlier green matrix on `f85200e` is superseded by this final verification run. The earlier N closure matrix remains recorded for commit `b5ea3fa` (Capabilities 43059743774, Structure 43059819947, Supply chain 43059851184). Windows/macOS hard sandbox isolation remains a recorded limitation from M. |
 
@@ -313,7 +313,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 
 **N is done when** section 8 (the debts) and the definition of done for N, O, P and Q holds for the Linux family and the release has its release record. **Recorded:** closed at **1.3.5** (the release line 1.3.x; see [1.3.5 — Patch N closed](#135--patch-n-closed-old-linux-compatibility)). The original 1.3.5 close left R-01, R-05, R-07, R-19 (Windows), and `fast-check` for R-04 open. Post-closure maintenance 1.3.6 closes R-07 and the N/Linux portions of R-02 and R-15; R-19 Windows is implemented but pending Windows CI verification. R-01, R-05 and `fast-check` remain open.
 
-### Patch O working plan — Classic Mac and early macOS software (target release 1.4, not started)
+### Patch O working plan — Classic Mac and early macOS software (target release 1.4, **in progress**)
 
 **Outcome.** Reverse can take a classic Mac OS or early Mac OS X program (roughly System 1 in 1984 through Mac OS X 10.6 in 2009–2010) and (a) identify its code model, resources and bundle layout, (b) name the concrete causes it fails on a current Mac, (c) run it in a suitable emulator or virtual machine under a sandbox, (d) capture and replay deterministic scenarios, (e) validate a repaired, repackaged or rebuilt version against the original, and (f) rank migration options.
 
@@ -334,7 +334,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 | Step | Work | Closes | Exit criteria |
 |---|---|---|---|
 | 0 | Debts due: F-08 macOS part (single-PID fast path) and R-19 macOS part (`libproc`-based sampling) | F-08, R-19 (macOS) | macOS inspection and sampling no longer read the full process table; checks prove it |
-| 1 | Classic and early-macOS fields in the shared Target Profile (code model, endianness, OS era, resource inventory, creator/type, bundle layout, Rosetta/32-bit dependence) | Section 1 | No second schema |
+| 1 | Classic and early-macOS fields in the shared Target Profile (code model, endianness, OS era, resource inventory, creator/type, bundle layout, Rosetta/32-bit dependence) | Section 1 | **Done in 1.3.13** (no second schema; bundle layout still null until step 3) |
 | 2 | Ground-truth corpus and calibration: crafted 68k, PEF and Mach-O fixtures, resource-fork fixtures, open-source or consented samples | H-08 for O | Precision and recall reported per detector |
 | 3 | Static inventory: 68k `CODE`/segment parser, PEF container and `cfrg` parser, Mach-O and fat parser (load commands, dylibs, minimum OS version, code signature presence), resource-fork parser (via AppleDouble, MacBinary, extended attributes, native fork where the host exposes it), BinHex/StuffIt/Compact Pro container recognition, HFS/HFS+ image reading, bundle and `Info.plist` readers, Toolbox trap and Carbon/Cocoa API usage inventory, support-matrix rows, hostile-input property tests | G-02 (Mac), G-09 (Mac), R-04 (Mac parsers), R-11 (Mach-O flags) | Every field has evidence; unsupported compression or encrypted archives are reported, not guessed |
 | 4 | Sourced compatibility tables (Toolbox and Carbon availability by OS version, QuickDraw/QuickTime/Classic/Rosetta/32-bit removal points, Cocoa API deprecations, resource and filesystem behavior) and diagnosis: CFM versus Mach-O, PowerPC on Intel, 32-bit-only, removed Classic, resource-fork loss during copy, creator/type reliance, endianness, handle and addressing assumptions, path-separator and name-length issues, code signing and notarization effects | G-01 (Mac) | Each finding cites a table entry and a target fact |
@@ -1155,6 +1155,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.3.10 | R-04, R-05, R-01, R-19 Windows, F-80–F-84 closure; documentation sync | 2026-11-12; final green matrix on `78a47fd`: Capabilities 43172993614, Structure 43173076031, Mutation 43173019792 (47.72 %), Golden 43173044415, Supply chain 43173096703 |
 | 1.3.11 | O step 0: F-08 macOS + R-19 macOS (`ps -p` single-PID path, `pgrep -P` children; no native libproc) | 2026-11-12; format gate red on first matrix |
 | 1.3.12 | O step 0 format fix; Status/docs aligned to 1.3.12 | 2026-11-12; Capabilities 43195327371 format green, docs checks updated |
+| 1.3.13 | O step 1: Mac Target Profile fields + analyze_legacy_mac (Mach-O/PEF/AppleDouble) | 2026-11-12 |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP

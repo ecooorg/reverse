@@ -1,6 +1,6 @@
 ## Status
 
-Patch **M** closed at **1.2.0** and Patch **N** closed at **1.3.5** (2026-11-11); post-N debt increments through **1.3.10** close R-01, R-04, R-05, R-07, R-19 Windows, F-80, F-81, F-82 and F-84. Full matrix green on commit `78a47fd` (Capabilities 43172993614, Structure 43173076031, Mutation 43173019792, Golden 43173044415, Supply chain 43173096703). Residual limitations listed per row (L0 without oracle; Windows/macOS hard-isolation gaps; no full `SHT_GNU_verneed` walk, no `goblin`; F-08 / R-19 macOS closed in 1.3.11 (`ps -p` / `pgrep -P`; true libproc not used)).
+Patch **M** closed at **1.2.0** and Patch **N** closed at **1.3.5** (2026-11-11); post-N debt increments through **1.3.10** close R-01, R-04, R-05, R-07, R-19 Windows, F-80, F-81, F-82 and F-84. Full matrix green on commit `78a47fd` (Capabilities 43172993614, Structure 43173076031, Mutation 43173019792, Golden 43173044415, Supply chain 43173096703). Residual limitations listed per row (L0 without oracle; Windows/macOS hard-isolation gaps; no full `SHT_GNU_verneed` walk, no `goblin`; F-08 / R-19 macOS closed in 1.3.11; O step 1 (`analyze_legacy_mac`) in 1.3.13 (`ps -p` / `pgrep -P`; true libproc not used)).
 
 # Capability matrix
 
@@ -199,3 +199,16 @@ The remaining work is one ordered sequence, not parallel capability tracks: M (W
 ## Static quality gates and mutation baseline (R-05, R-04, R-01)
 
 `npm run quality:static`, the format check and the own-line size gate (1.3.6) are joined in 1.3.10 by `npm run lint` (Biome, `src` and `tests/*.ts`, warnings are errors), `npm run dup:check` (`jscpd`, 0.83 % baseline, threshold 1.5 %) and `npm run unused:check` (`knip`). Lint and duplication run in the Capabilities workflow static gates step; `knip` runs right after the build (it follows the tests' imports of `dist`); all are in `npm run quality`. `tests/legacy-linux-property.test.ts` adds `fast-check` property tests (fixed seed) for the a.out, ELF and archive parsers and `summarizeVerneed`. `npm run mutation` and the manual `Mutation testing` workflow run Stryker on four pure modules; Stryker baseline (Linux, Node 22, command runner, 679 mutants in `benchmark-stats`, `process-parse`, `legacy-linux-symver` and `legacy-linux-packages`): **47.72 %** (316 killed, 8 timed out, 355 survived); per module 67.95 / 22.27 / 65.09 / 31.07 %. Floor `thresholds.break` = 45. The same 47.72 % was reproduced by the manual workflow in CI. The score is a recorded baseline, not a quality claim: two modules (`process-parse`, `legacy-linux-packages`) have many surviving mutants. The `.mjs` CI helpers are outside the lint scope.
+
+
+## Classic Mac / early macOS (Patch O step 1, 1.3.13)
+
+| Capability | Status | Notes |
+|---|---|---|
+| `analyzeLegacyMac` Mach-O / fat recognition | ✅ | Reuses bounded Mach-O load-command walk; dylibs, min OS, code-signature presence |
+| PEF/CFM magic (`Joy!`) | ✅ | Architecture from header fourcc (`pwpc` / `m68k`) |
+| AppleDouble resource-fork container | ✅ | Finder type/creator; scanned resource type fourccs when present |
+| Mac Target Profile fields | ✅ | `codeModel`, `endianness`, `resourceInventory`, `creatorType`, `bundleLayout` (null), `rosettaOr32BitDependence` |
+| MCP `analyze_legacy_mac` | ✅ | Session authorization required |
+| 68k CODE deep parser, HFS images, `.app` / Info.plist | 🚧 | O step 3 |
+| Calibration corpus | 🚧 | O step 2 |
