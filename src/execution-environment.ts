@@ -9,7 +9,9 @@ import { runInSandbox, type SandboxLimits, type SandboxRunResult } from './execu
 import { operatingMode } from './benchmark-gate.js';
 import { requireLegacyGate } from './legacy-gate.js';
 import type { LegacyAuthorization } from './legacy-types.js';
-export type EngineKind = 'wine' | 'dosbox' | 'qemu' | 'native' | 'chroot' | 'qemu-user' | 'oss-shim';
+export type EngineKind =
+    | 'wine' | 'dosbox' | 'qemu' | 'native' | 'chroot' | 'qemu-user' | 'oss-shim'
+    | 'basiliskii' | 'minivmac' | 'sheepshaver' | 'qemu-ppc';
 export interface EnvironmentFingerprint {
     engine: EngineKind;
     binary: string | null;
@@ -265,6 +267,43 @@ export function registerExecutionEnvironment(env: ExecutionEnvironment): void {
 export function listExecutionEnvironments(): readonly ExecutionEnvironment[] {
     return registry;
 }
+
+/** Basilisk II class — 68k Mac OS emulator. Detect-only when absent. */
+export function createBasiliskIiEnvironment(): ExecutionEnvironment {
+    return createPathEngine({
+        name: 'basiliskii',
+        kind: 'basiliskii',
+        binaries: ['BasiliskII', 'basiliskii', 'basiliskii.exe'],
+        buildArgs: (target, args) => args.length ? args : ['--config', target],
+    });
+}
+/** Mini vMac class — compact 68k Mac emulator. */
+export function createMiniVmacEnvironment(): ExecutionEnvironment {
+    return createPathEngine({
+        name: 'minivmac',
+        kind: 'minivmac',
+        binaries: ['minivmac', 'Mini vMac', 'minivmac.exe'],
+        buildArgs: (target, args) => [target, ...args],
+    });
+}
+/** SheepShaver — PowerPC Mac OS emulator. */
+export function createSheepShaverEnvironment(): ExecutionEnvironment {
+    return createPathEngine({
+        name: 'sheepshaver',
+        kind: 'sheepshaver',
+        binaries: ['SheepShaver', 'sheepshaver', 'sheepshaver.exe'],
+        buildArgs: (target, args) => args.length ? args : ['--config', target],
+    });
+}
+/** QEMU PowerPC system emulator (mac99 class). Needs operator-supplied ROM/image. */
+export function createQemuPpcEnvironment(): ExecutionEnvironment {
+    return createPathEngine({
+        name: 'qemu-ppc',
+        kind: 'qemu-ppc',
+        binaries: ['qemu-system-ppc', 'qemu-system-ppc64'],
+        buildArgs: (_target, args) => (args.length ? args : ['--version']),
+    });
+}
 export function bootstrapExecutionEnvironments(): void {
     registerExecutionEnvironment(createWineEnvironment());
     registerExecutionEnvironment(createDosboxEnvironment());
@@ -272,6 +311,10 @@ export function bootstrapExecutionEnvironments(): void {
     registerExecutionEnvironment(createQemuUserEnvironment());
     registerExecutionEnvironment(createChrootEnvironment());
     registerExecutionEnvironment(createOssShimEnvironment());
+    registerExecutionEnvironment(createBasiliskIiEnvironment());
+    registerExecutionEnvironment(createMiniVmacEnvironment());
+    registerExecutionEnvironment(createSheepShaverEnvironment());
+    registerExecutionEnvironment(createQemuPpcEnvironment());
 }
 export interface WorksFailsCell {
     target: string;

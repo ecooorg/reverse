@@ -81,18 +81,89 @@ function fourcc(b: Buffer, o: number): string {
 function detectPef(b: Buffer): {
     evidence: string;
     architecture: string;
+    sectionCount: number | null;
+    sectionNames: string[];
 } | null {
     if (b.length < 40)
         return null;
     if (u32be(b, 0) !== PEF_MAGIC)
         return null;
-    // PEF header: magic, architecture ('pwpc' / 'm68k'), …
+    // PEF container header (big-endian): magic, arch, version, …
+    // sectionCount at offset 32 (UInt16BE), then section headers follow.
     const archFcc = fourcc(b, 4).trim();
     const architecture = archFcc === 'pwpc' ? 'PowerPC' : archFcc === 'm68k' ? 'm68k' : archFcc || 'unknown';
+    const sectionCount = b.length >= 34 ? b.readUInt16BE(32) : null;
+    const sectionNames: string[] = [];
+    // Section headers are 28 bytes starting at offset 40; name offset is relative
+    // to a loader-string table — we only capture the raw nameOffset for evidence.
+    if (sectionCount != null && sectionCount > 0 && sectionCount <= 64) {
+        for (let i = 0; i < sectionCount; i++) {
+            const off = 40 + i * 28;
+            if (off + 28 > b.length)
+                break;
+            const nameOff = u32be(b, off);
+            sectionNames.push(`section[${i}]@nameOff=${nameOff}`);
+        }
+    }
     return {
-        evidence: `PEF magic Joy! (4a 6f 79 21) architecture=${architecture}`,
+        evidence: `PEF magic Joy! architecture=${architecture}`
+            + (sectionCount != null ? ` sections=${sectionCount}` : ''),
         architecture,
+        sectionCount,
+        sectionNames,
     };
+}
+function parseCodeResourceInventory(b: Buffer): Array<{ id: number; size: number }> {
+    // Best-effort scan for classic Resource Manager type list entries for CODE.
+    // Looks for the fourcc CODE followed by a count and id/offset pairs.
+    const out: Array<{ id: number; size: number }> = [];
+    for (let i = 0; i + 8 < b.length; i++) {
+        if (b[i] === 0x43 && b[i + 1] === 0x4f && b[i + 2] === 0x44 && b[i + 3] === 0x45) {
+            // Possible type-list: CODE (4) + count-1 as Int16BE
+            if (i + 6 >= b.length)
+                continue;
+            const countMinus1 = b.readInt16BE(i + 4);
+            if (countMinus1 < 0 || countMinus1 > 255)
+                continue;
+            const count = countMinus1 + 1;
+            let p = i + 6;
+            for (let n = 0; n < count && p + 8 <= b.length && out.length < 64; n++) {
+                const id = b.readInt16BE(p);
+                // next 2 reserved, then 4-byte offset into resource data
+                const sizeHint = b.readUInt16BE(p + 2);
+                out.push({ id, size: sizeHint });
+                p += 8;
+            }
+            if (out.length)
+                break;
+        }
+    }
+    return out;
+}
+function readHfsMdb(b: Buffer): {
+    kind: 'HFS' | 'HFS+' | 'HFSX';
+    evidence: string;
+    allocationBlockSize?: number;
+} | null {
+    if (b.length < 1024 + 64)
+        return null;
+    const sig = b.toString('latin1', 1024, 1026);
+    if (sig === 'BD') {
+        // HFS MDB: alBlkSiz at offset 1024+20
+        const alBlkSiz = u32be(b, 1024 + 20);
+        return {
+            kind: 'HFS',
+            evidence: `HFS MDB BD; allocationBlockSize=${alBlkSiz}`,
+            allocationBlockSize: alBlkSiz || undefined,
+        };
+    }
+    if (sig === 'H+' || sig === 'HX') {
+        return {
+            kind: sig === 'HX' ? 'HFSX' : 'HFS+',
+            evidence: `${sig === 'HX' ? 'HFSX' : 'HFS+'} volume header at offset 1024`,
+        };
+    }
+    return null;
 }
 function detectAppleDouble(b: Buffer): {
     evidence: string;
@@ -149,9 +220,13 @@ function detectAppleDouble(b: Buffer): {
 function scanClassicCodeMarkers(b: Buffer): string[] {
     const hits: string[] = [];
     const text = b.toString('latin1');
-    if (/\x00CODE\x00|\x01CODE|CODE\x00\x00/.test(text))
+    // Avoid control escapes in regex (biome noControlCharactersInRegex).
+    if (text.includes('CODE') && (text.includes('\0CODE') || text.includes('CODE\0')))
         hits.push('CODE resource fourcc');
-    if (/\x00cfrg|\x01cfrg|cfrg\x00/.test(text))
+    // Also accept bare CODE fourcc near resource-map patterns.
+    if (/(?:^|[^A-Za-z])CODE(?:[^A-Za-z]|$)/.test(text) && !hits.includes('CODE resource fourcc'))
+        hits.push('CODE resource fourcc');
+    if (text.includes('cfrg'))
         hits.push('cfrg (Code Fragment Manager) resource');
     if (/CarbonLib|InterfaceLib|StdCLib|AppleDouble/.test(text))
         hits.push('classic/Carbon library name string');
@@ -437,7 +512,7 @@ export async function analyzeLegacyMac(filePath: string, authorization: LegacyAu
             formatEvidence.push(pef.evidence);
             structuralDetectors.push({
                 name: 'pef-cfm',
-                evidence: [pef.evidence],
+                evidence: [pef.evidence, ...pef.sectionNames.slice(0, 8)],
                 confidence: 0.9,
             });
         }
@@ -497,13 +572,28 @@ export async function analyzeLegacyMac(filePath: string, authorization: LegacyAu
         }
     }
     if (format === 'unknown') {
-        const hfs = detectHfsVolume(b);
+        const hfs = readHfsMdb(b) ?? detectHfsVolume(b);
         if (hfs) {
             format = 'hfs-volume';
             endian = 'big';
             formatEvidence.push(hfs.evidence);
-            structuralDetectors.push({ name: 'hfs-volume', evidence: [hfs.evidence], confidence: 0.9 });
+            structuralDetectors.push({
+                name: 'hfs-volume',
+                evidence: [hfs.evidence],
+                confidence: 0.9,
+            });
         }
+    }
+    // CODE resource inventory (68k) when markers or AppleDouble present
+    const codeResources = parseCodeResourceInventory(b);
+    if (codeResources.length) {
+        structuralDetectors.push({
+            name: 'code-resource-inventory',
+            evidence: codeResources.slice(0, 12).map(c => `CODE id=${c.id} sizeHint=${c.size}`),
+            confidence: 0.7,
+        });
+        if (format === 'unknown' || format === 'appledouble')
+            format = '68k-code';
     }
     containers = detectArchiveContainers(b);
     for (const c of containers) {

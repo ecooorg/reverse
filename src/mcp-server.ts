@@ -176,27 +176,27 @@ async function call(name: string, a: any, signal?: AbortSignal) {
         case 'analyze_legacy_linux': {
             return analyzeLegacyLinux(a.file, null, { sessionId: a.session_id });
         }
-        case 'analyze_legacy_mac':
-            {
-                return analyzeLegacyMac(a.file, null, { sessionId: a.session_id });
-            }
-            ;
+        case 'analyze_legacy_mac': {
+            return analyzeLegacyMac(a.file, null, { sessionId: a.session_id });
+        }
+        case 'add_research_hypothesis':
+            return new EvidenceEngine().addHypothesis(a.session_id, {
+                statement: a.statement, provenance: a.provenance, confidence: a.confidence
+            });
+        case 'promote_research_hypothesis':
+            return new EvidenceEngine().updateHypothesis(a.session_id, a.hypothesis_id, a.status, a.evidence_id);
+        case 'add_research_event':
+            return new EvidenceEngine().addSessionEvent(a.session_id, a.event, a.payload ?? {});
+        case 'add_research_evidence':
+            return new EvidenceEngine().addEvidence(a.session_id, {
+                type: a.type, source: a.source, measurement: a.measurement,
+                confidence: a.confidence, limitations: a.limitations
+            });
+        case 'link_research_artifacts':
+            return new EvidenceEngine().link(a.session_id, a.relation, a.ids);
+        default:
+            throw new ProtocolError(-32602, `Unknown tool: ${name}`);
     }
-    'add_research_hypothesis';
-    return new EvidenceEngine().addHypothesis(a.session_id, {
-        statement: a.statement, provenance: a.provenance, confidence: a.confidence
-    });
-    'promote_research_hypothesis';
-    return new EvidenceEngine().updateHypothesis(a.session_id, a.hypothesis_id, a.status, a.evidence_id);
-    'add_research_event';
-    return new EvidenceEngine().addSessionEvent(a.session_id, a.event, a.payload ?? {});
-    'add_research_evidence';
-    return new EvidenceEngine().addEvidence(a.session_id, {
-        type: a.type, source: a.source, measurement: a.measurement, confidence: a.confidence, limitations: a.limitations
-    });
-    'link_research_artifacts';
-    return new EvidenceEngine().link(a.session_id, a.relation, a.ids);
-    throw new ProtocolError(-32602, `Unknown tool: ${name}`);
 }
 // Versions whose tools/call result shape this server satisfies. A client asking for one of them gets it back; otherwise the newest is
 // offered.
