@@ -68,4 +68,4 @@ export { diffDiskImageHashes, runMacWorksFailsMatrix, runMacBehaviorRoundTrip } 
 export { analyzeLegacyAndroid, parseAxmlSdkHints } from './legacy-android.js';
 export { runAndroidCalibration } from './legacy-android-calibration.js';
 export * from './legacy-android-tables.js';
-export { runAndroidWorksFailsMatrix } from './legacy-android-behavior.js';
+export { runAndroidWorksFailsMatrix, planAndroidControlledInstall, runAndroidBehaviorRoundTrip } from './legacy-android-behavior.js';

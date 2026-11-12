@@ -13,11 +13,6 @@ const AUTH: LegacyAuthorization = {
     declaredBy: 'legacy-android-calibration',
     declaredAt: new Date().toISOString(),
 };
-export interface AndroidCalibrationCase {
-    id: string;
-    expectFormat: string;
-    expectFamily: string;
-}
 export interface AndroidCalibrationReport {
     cases: Array<{
         id: string;
