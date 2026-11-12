@@ -219,7 +219,9 @@ function parsePe(b: Buffer, fileSize: number): BinaryFinding {
     return f;
 }
 function parseMachO(b: Buffer, fileSize: number, magic: number): BinaryFinding {
-    const le = magic === 0xfeedface || magic === 0xfeedfacf;
+    // Callers pass magic as a big-endian uint32 of the first four file bytes.
+    // CIGAM values mean the object file is little-endian.
+    const le = magic === 0xcefaedfe || magic === 0xcffaedfe;
     const is64 = magic === 0xfeedfacf || magic === 0xcffaedfe;
     const hdrNeed = is64 ? 32 : 28;
     if (b.length < hdrNeed) {

@@ -151,15 +151,17 @@ function readHfsMdb(b: Buffer): {
     evidence: string;
     allocationBlockSize?: number;
 } | null {
-    if (b.length < 1024 + 64)
+    // Signature alone needs 1026 bytes; allocation block size needs 1024+24.
+    if (b.length < 1024 + 2)
         return null;
     const sig = b.toString('latin1', 1024, 1026);
     if (sig === 'BD') {
-        // HFS MDB: alBlkSiz at offset 1024+20
-        const alBlkSiz = u32be(b, 1024 + 20);
+        const alBlkSiz = b.length >= 1024 + 24 ? u32be(b, 1024 + 20) : 0;
         return {
             kind: 'HFS',
-            evidence: `HFS MDB BD; allocationBlockSize=${alBlkSiz}`,
+            evidence: alBlkSiz
+                ? `HFS MDB BD; allocationBlockSize=${alBlkSiz}`
+                : 'HFS MDB BD (truncated; allocationBlockSize not read)',
             allocationBlockSize: alBlkSiz || undefined,
         };
     }
@@ -248,7 +250,9 @@ function machODetails(b: Buffer, magic: number): {
     codeSignaturePresent: boolean;
 } {
     const parsed = parseMachO(b, b.length, magic);
-    const le = magic === MH_MAGIC || magic === MH_MAGIC_64;
+    // Magic is interpreted as big-endian uint32 from the file bytes.
+    // MH_MAGIC/MH_MAGIC_64 → big-endian object file; MH_CIGAM/*_64 → little-endian.
+    const le = magic === MH_CIGAM || magic === MH_CIGAM_64;
     const is64 = magic === MH_MAGIC_64 || magic === MH_CIGAM_64;
     const loadCommands = parsed.loadCommands ?? [];
     const dylibs = parsed.imports ?? [];
@@ -367,8 +371,8 @@ function detectHfsVolume(b: Buffer): {
     evidence: string;
     kind: 'HFS' | 'HFS+';
 } | null {
-    // MDB / volume header sits at sector 2 (offset 1024)
-    if (b.length < 1024 + 16)
+    // MDB / volume header sits at sector 2 (offset 1024); signature is 2 bytes.
+    if (b.length < 1024 + 2)
         return null;
     const sig = b.toString('latin1', 1024, 1026);
     if (sig === 'BD')
@@ -421,17 +425,20 @@ function machOPieFlag(b: Buffer, magic: number): {
     pie: boolean | null;
     evidence: string[];
 } {
-    const le = magic === MH_MAGIC || magic === MH_MAGIC_64;
-    const is64 = magic === MH_MAGIC_64 || magic === MH_CIGAM_64;
-    const flagsOff = is64 ? 24 : 24;
+    // Same endian rule as machODetails: BE-read CIGAM ⇒ little-endian header fields.
+    const le = magic === MH_CIGAM || magic === MH_CIGAM_64;
+    const flagsOff = 24; // flags at +24 in both mach_header and mach_header_64
     if (b.length < flagsOff + 4)
-        return { pie: null, evidence: [] };
+        return { pie: null, evidence: ['Mach-O header too short for flags'] };
     const flags = le ? u32le(b, flagsOff) : u32be(b, flagsOff);
     // MH_PIE = 0x200000
     const pie = (flags & 0x200000) !== 0;
     return {
         pie,
-        evidence: [`Mach-O flags=0x${flags.toString(16)}; MH_PIE=${pie ? 'set' : 'clear'}`],
+        evidence: [
+            `Mach-O flags=0x${flags.toString(16)} endian=${le ? 'le' : 'be'}; `
+                + `MH_PIE=${pie ? 'set' : 'clear'}`,
+        ],
     };
 }
 /**
@@ -468,6 +475,8 @@ export async function analyzeLegacyMac(filePath: string, authorization: LegacyAu
     let machOFlags: LegacyMacFinding['machOFlags'] = { pie: null, evidence: [] };
     let containers: string[] = [];
     let bundleSummary: string | null = null;
+    // Always interpret the first 4 bytes as big-endian for magic classification
+    // (Apple: MH_CIGAM on a BE read means a little-endian object file).
     const magic = b.length >= 4 ? u32be(b, 0) : 0;
     const magicLe = b.length >= 4 ? u32le(b, 0) : 0;
     // Fat / universal first (cafebabe collides with Java; require nfat_arch sanity).
@@ -486,9 +495,11 @@ export async function analyzeLegacyMac(filePath: string, authorization: LegacyAu
             });
         }
     }
-    if (format === 'unknown' && (magic === MH_MAGIC || magic === MH_CIGAM || magic === MH_MAGIC_64
-        || magic === MH_CIGAM_64 || magicLe === MH_MAGIC || magicLe === MH_MAGIC_64)) {
-        const m = [MH_MAGIC, MH_CIGAM, MH_MAGIC_64, MH_CIGAM_64].includes(magic) ? magic : magicLe;
+    const isMachOMagic = (v: number) => v === MH_MAGIC || v === MH_CIGAM
+        || v === MH_MAGIC_64 || v === MH_CIGAM_64;
+    if (format === 'unknown' && (isMachOMagic(magic) || isMachOMagic(magicLe))) {
+        // Prefer the BE-read value when it is a known constant; otherwise LE-read.
+        const m = isMachOMagic(magic) ? magic : magicLe;
         const details = machODetails(b, m);
         format = 'mach-o';
         architecture = details.architecture;
@@ -499,7 +510,8 @@ export async function analyzeLegacyMac(filePath: string, authorization: LegacyAu
         minimumOsVersion = details.minimumOsVersion;
         codeSignaturePresent = details.codeSignaturePresent;
         machOFlags = machOPieFlag(b, m);
-        formatEvidence.push(`Mach-O magic 0x${m.toString(16)} arch=${architecture} bitness=${bitness}`);
+        formatEvidence.push(`Mach-O magicBE=0x${magic.toString(16)} magicLE=0x${magicLe.toString(16)} `
+            + `chosen=0x${m.toString(16)} endian=${endian} arch=${architecture} bitness=${bitness}`);
         structuralDetectors.push({
             name: 'mach-o',
             evidence: [...formatEvidence.slice(), ...machOFlags.evidence],
