@@ -18,7 +18,9 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.4.2** (Patch O closed — Classic Mac / early macOS; 2026-11-12).
+State as of **1.4.2** (Patch O closed — Classic Mac / early macOS; post-close maintenance green; 2026-11-12).
+
+**Verification.** Capability matrix **green** on **1.4.2** (operator-confirmed). Patch O remains closed at **1.4.0**; 1.4.1–1.4.2 are post-close hygiene only.
 
 | Question | Answer |
 |---|---|
@@ -395,6 +397,14 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 **O is done when** section 8 (the debts) and the definition of done for N, O, P and Q holds for the Mac family and the release is **1.4.0** with its release record. **Recorded:** closed at **1.4.0** (2026-11-12). Residuals (full PEF symbol tables, emulator input injection/screenshots, real ROM works/fails, native resource-fork writes) are explicit limitations in CAPABILITIES.md — not ❌ for in-scope delivered surface.
 
 
+
+### 1.4.2 — post-close hygiene (green matrix)
+
+**Date.** 2026-11-12.
+
+**Changes.** Status table O row set to **done (1.4.0)**; capability suite asserts O closed (not `in progress`); `diffDiskImageHashes` retained as a used export (1.4.1). No new Mac product surface.
+
+**Verification.** All CI checks green on 1.4.2 (operator-confirmed).
 
 ## 1.4.0 — Patch O closed (Classic Mac / early macOS)
 

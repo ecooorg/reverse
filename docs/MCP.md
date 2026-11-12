@@ -145,7 +145,7 @@ The analyzer recognizes DOS MZ, Windows NE/LE/LX and PE headers, and scans at mo
 
 The next MCP surface changes follow the single product-patch sequence in [ROADMAP.md](ROADMAP.md): M completes Windows through 2010; N adds old Linux; O adds Classic Mac/early macOS; P adds legacy Android; Q extends newer generations and unifies compatibility intelligence. Each patch documents its complete tool contract here; do not create separate MCP roadmaps for platform waves or cross-cutting subsystems.
 
-## Legacy Mac tools (patch O, closed at 1.4.0)
+## Legacy Mac tools (patch O, closed at 1.4.0; matrix green on 1.4.2)
 
 1. Open a research session and call `declare_legacy_authorization` with an open-source or written-consent basis.
 2. Call `analyze_legacy_mac` with the file path and that `session_id`. Without a prior declaration the tool refuses the call.

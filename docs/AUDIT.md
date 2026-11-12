@@ -1,3 +1,26 @@
+## Audit 26 — 2026-11-12 — Patch O closed; green matrix on 1.4.2 (documentation)
+
+**Scope.** Record the closure of Patch O (Classic Mac / early macOS) at **1.4.0** and the post-close maintenance line **1.4.1–1.4.2** after a green Capabilities matrix. Documentation-only; no product code change in this entry.
+
+**Product outcome.**
+
+| Item | Status |
+|---|---|
+| Patch O (Classic Mac / early macOS) | **Closed at 1.4.0** with release record in ROADMAP |
+| Post-close 1.4.1 | knip: wire `diffDiskImageHashes` into tests and public index export |
+| Post-close 1.4.2 | ROADMAP M–Q status table O = **done**; capability suite no longer expects O `in progress` |
+| Capability matrix | **Green** on 1.4.2 (operator-confirmed) |
+
+**Delivered surface (O).** `analyze_legacy_mac` + session authorization; Mach-O/fat, PEF, AppleDouble, MacBinary, BinHex, HFS MDB + bounded catalog leaf walk; PEF imports and best-effort fragment graph; named Toolbox A-line traps; CODE segment candidates; sourced Mac diagnosis tables; calibration harness; detect-only BasiliskII / Mini vMac / SheepShaver / qemu-ppc; works/fails matrix (unsupported without operator ROM); host capture/replay round-trip; ROM local hashing; disk-image hash diff; two reference trials at L0.
+
+**Explicit residuals (CAPABILITIES.md, not ❌ for delivered scope).** Full PEF export/import symbol tables; emulator input injection and screenshot normalization; real ROM boot works/fails only when the operator supplies ROM/image and an emulator on PATH; native resource-fork write paths.
+
+**Next product unit.** Patch P (legacy Android) — not started; entry criteria = O released as 1.4.0.
+
+**Verification.** Operator reports all CI checks green on the 1.4.2 tree. Maintainer should record the final `os: all` run ID in the ROADMAP release notes when available.
+
+---
+
 ## Audit 25 — 2026-11-12 — O step 0: macOS single-PID process path (1.3.11)
 
 **Scope.** Close F-08 macOS and R-19 macOS before Patch O feature work. No Classic Mac format work is included.

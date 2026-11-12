@@ -130,7 +130,7 @@ The hypothesis ledger is implemented in research sessions: hypotheses are tagged
 
 ## Remaining product plan (planned, patches O–Q)
 
-The remaining work is one ordered sequence, not parallel capability tracks: M (Windows through 2010) and N (old Linux) are closed; O delivers Classic Mac/early macOS end-to-end; P delivers legacy Android end-to-end; Q extends the workflow to newer generations and unifies compatibility intelligence. Each patch includes the relevant Target Profile, sourced diagnosis, execution, behavior capture/replay, validation and migration reporting. Residual M/N limitations (no function-level equivalence lab, no full environment lifecycle snapshot/restore/trace, unconfigured BSim corpus, small calibration corpora, L0 without oracle) are recorded per row above and in the debt register. See [ROADMAP.md](ROADMAP.md).
+The remaining work is one ordered sequence, not parallel capability tracks: M (Windows through 2010), N (old Linux) and **O (Classic Mac / early macOS, closed at 1.4.0)** are closed; **P** delivers legacy Android end-to-end; **Q** extends the workflow to newer generations and unifies compatibility intelligence. Each patch includes the relevant Target Profile, sourced diagnosis, execution, behavior capture/replay, validation and migration reporting. Residual M/N limitations (no function-level equivalence lab, no full environment lifecycle snapshot/restore/trace, unconfigured BSim corpus, small calibration corpora, L0 without oracle) are recorded per row above and in the debt register. See [ROADMAP.md](ROADMAP.md).
 
 
 ## Legacy Linux (Patch N)
@@ -201,7 +201,7 @@ The remaining work is one ordered sequence, not parallel capability tracks: M (W
 `npm run quality:static`, the format check and the own-line size gate (1.3.6) are joined in 1.3.10 by `npm run lint` (Biome, `src` and `tests/*.ts`, warnings are errors), `npm run dup:check` (`jscpd`, 0.83 % baseline, threshold 1.5 %) and `npm run unused:check` (`knip`). Lint and duplication run in the Capabilities workflow static gates step; `knip` runs right after the build (it follows the tests' imports of `dist`); all are in `npm run quality`. `tests/legacy-linux-property.test.ts` adds `fast-check` property tests (fixed seed) for the a.out, ELF and archive parsers and `summarizeVerneed`. `npm run mutation` and the manual `Mutation testing` workflow run Stryker on four pure modules; Stryker baseline (Linux, Node 22, command runner, 679 mutants in `benchmark-stats`, `process-parse`, `legacy-linux-symver` and `legacy-linux-packages`): **47.72 %** (316 killed, 8 timed out, 355 survived); per module 67.95 / 22.27 / 65.09 / 31.07 %. Floor `thresholds.break` = 45. The same 47.72 % was reproduced by the manual workflow in CI. The score is a recorded baseline, not a quality claim: two modules (`process-parse`, `legacy-linux-packages`) have many surviving mutants. The `.mjs` CI helpers are outside the lint scope.
 
 
-## Classic Mac / early macOS (Patch O step 1, 1.3.13)
+## Classic Mac / early macOS (Patch O, closed at 1.4.0; surface grown through 1.4.2)
 
 | Capability | Status | Notes |
 |---|---|---|
@@ -210,10 +210,10 @@ The remaining work is one ordered sequence, not parallel capability tracks: M (W
 | AppleDouble resource-fork container | ✅ | Finder type/creator; scanned resource type fourccs when present |
 | Mac Target Profile fields | ✅ | `codeModel`, `endianness`, `resourceInventory`, `creatorType`, `bundleLayout` (null), `rosettaOr32BitDependence` |
 | MCP `analyze_legacy_mac` | ✅ | Session authorization required |
-| 68k CODE deep parser, HFS images, `.app` / Info.plist | 🚧 | O step 3 |
+| 68k CODE deep parser, HFS images, `.app` / Info.plist | partial | Info.plist + CODE candidates + HFS leaf walk delivered; full segment loader residual |
 | Calibration corpus + precision/recall | ✅ | Crafted fixtures (1.3.14); operator hash manifests |
 | MacBinary II / BinHex 4.0 | ✅ | Header recognition |
-| HFS / HFS+ volume signature at offset 1024 | ✅ | Catalog walk not implemented |
+| HFS / HFS+ volume signature at offset 1024 | ✅ | Bounded catalog leaf walk (`hfs-catalog-btree`) |
 | StuffIt / disk-image container markers | ✅ | Detection only |
 | Info.plist CFBundle* summary | ✅ | When path basename is Info.plist |
 | Mach-O MH_PIE flag | ✅ | R-11 Mach-O partial |
