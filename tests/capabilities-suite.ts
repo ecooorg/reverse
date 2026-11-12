@@ -2736,6 +2736,26 @@ check('Legacy Mac', 'HFS catalog btree detector fires on crafted extent data', a
         await rm(dir, { recursive: true, force: true });
     }
 });
+check('Legacy Mac', 'works/fails matrix reports unsupported without operator ROM', async () => {
+    const prev = process.env.REVERSE_MAC_ROM;
+    delete process.env.REVERSE_MAC_ROM;
+    try {
+        const url = pathToFileURL(path.join(DIST, 'legacy-mac-behavior.js')).href;
+        const { runMacWorksFailsMatrix } = await import(url);
+        const cells = await runMacWorksFailsMatrix(['/tmp/no-such'], {
+            basis: 'open_source',
+            licenseOrConsentReference: 'cap',
+            declaredBy: 'cap',
+            declaredAt: new Date().toISOString(),
+        });
+        assert.ok(cells.length >= 4);
+        assert.ok(cells.every((c: any) => c.outcome === 'unsupported'));
+    }
+    finally {
+        if (prev !== undefined)
+            process.env.REVERSE_MAC_ROM = prev;
+    }
+});
 check('Roadmap', 'M and N status, version and O entry criteria are internally consistent', () => {
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const architecture = readFileSync(path.join(ROOT, 'docs/ARCHITECTURE.md'), 'utf8');

@@ -349,3 +349,17 @@ test('named Toolbox traps appear in detector evidence', async () => {
         await rm(dir, { recursive: true, force: true });
     }
 });
+test('Mac works/fails matrix reports unsupported without ROM', async () => {
+    const prev = process.env.REVERSE_MAC_ROM;
+    delete process.env.REVERSE_MAC_ROM;
+    try {
+        const { runMacWorksFailsMatrix } = await import('../dist/legacy-mac-behavior.js');
+        const cells = await runMacWorksFailsMatrix(['/tmp/no-such-target'], AUTH, { confirm: false });
+        assert.ok(cells.length >= 4);
+        assert.ok(cells.every((c: any) => c.outcome === 'unsupported'));
+    }
+    finally {
+        if (prev !== undefined)
+            process.env.REVERSE_MAC_ROM = prev;
+    }
+});
