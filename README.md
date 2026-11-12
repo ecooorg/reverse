@@ -96,16 +96,16 @@ The server writes protocol messages to stdout. Do not add logging to stdout; dia
 ## Project status
 
 - **Done:** patches **A–L** are the 1.0 baseline, **M** (Windows, 1.2.0), **N** (old Linux, 1.3.5), and **O** (Classic Mac / early macOS, 1.4.0).
-- **In progress:** **Patch P** (legacy Android), version **1.5.8**. Bounded read-only device observations are now available through MCP.
+- **In progress:** **Patch P** (legacy Android), version **1.5.9**. Bounded read-only device observations are now available through MCP.
 - **Not started:** **Patch Q** (newer generations and unified compatibility intelligence).
 
-**Verification:** In the 1.5.8 environment (Linux, Node 22.23, TypeScript 6.0.3 standing in for the locked 5.9 printer, `@types/node` 26; `npm ci` was not possible offline) the package build, the unit suite (160 tests; the two `fast-check` property files could not run), the capability suite (181 checks: 175 verified, 6 documented limitations, 0 drift, 0 failed), MCP docs, source and built structure, size and static-quality checks passed, and the printer reported no drift in 124 files. Biome lint, `jscpd`, `knip`, the property tests, coverage, mutation, the macOS/Windows and Node 24 matrix and the manual `os: all` workflow were not run. The 1.4.2 matrix is historical evidence for Patch O only.
+**Verification:** In the 1.5.9 environment (Linux, Node 22.23, TypeScript 6.0.3 standing in for the locked 5.9 printer, `@types/node` 26; `npm ci` was not possible offline) the package build, the unit suite (160 tests; the two `fast-check` property files could not run), the capability suite (182 checks: 176 verified, 6 documented limitations, 0 drift, 0 failed), MCP docs, source and built structure, size and static-quality checks passed, and the printer reported no drift in 124 files. The Windows failures of Nightly Full Verification #2 were diagnosed from the run annotations and the workflow file (step logs require a sign-in); the fix is pending verification on Windows. Biome lint, `jscpd`, `knip`, the property tests, coverage, mutation, the macOS and Node 24 matrix and the manual `os: all` run were not run here. The 1.4.2 matrix is historical evidence for Patch O only.
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.5.8** (Patch P step 6 — CI repair: formatter gate, MCP tool list, truncation assertions) |
+| What is the product version? | **1.5.9** (Patch P step 6 — CI repair: nightly workflow shell and mutation summary) |
 | What is finished? | The 1.0 foundation (**patches A–L**), **Patch M** (Windows, **1.2.0**), **Patch N** (old Linux, **1.3.5**), and **Patch O** (Classic Mac / early macOS, **1.4.0**). |
-| What is being built? | **Patch P** in progress through **1.5.8**: L0 reference trials and bounded device-side logcat/activity observation via MCP. |
+| What is being built? | **Patch P** in progress through **1.5.9**: L0 reference trials and bounded device-side logcat/activity observation via MCP. |
 | What has not started? | **Patch Q** (newer generations and unified compatibility intelligence). |
 
 - **Where to start (people and AI assistants):** read [AGENTS.md](AGENTS.md), then the *Status at a glance* section of [docs/ROADMAP.md](docs/ROADMAP.md). See also [docs/CAPABILITIES.md](docs/CAPABILITIES.md), [docs/SECURITY.md](docs/SECURITY.md) and [docs/AUDIT.md](docs/AUDIT.md).
