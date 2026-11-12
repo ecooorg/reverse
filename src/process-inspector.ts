@@ -99,6 +99,43 @@ async function linuxInfo(pid: number): Promise<ProcessInfo | null> {
         return null;
     }
 }
+/**
+ * Single-PID macOS/BSD path (F-08 / R-19 macOS). Uses `ps -p` so sampling does not read the full
+ * process table. Children come from `pgrep -P` when available. True libproc is not used: the
+ * project has zero runtime native dependencies.
+ */
+async function macOsInfo(pid: number): Promise<ProcessInfo | null> {
+    const opts = { timeout: execTimeoutMs(10000), maxBuffer: 2 * 1024 * 1024 };
+    try {
+        const [table, argv] = await Promise.all([
+            exec('ps', ['-p', String(pid), '-o', MAC_PS_FIELDS.join(',')], opts),
+            exec('ps', ['-p', String(pid), '-o', MAC_PS_ARGS_FIELDS.join(',')], opts),
+        ]);
+        const rows = parseMacPs(table.stdout, argv.stdout);
+        const one = rows.find(x => x.pid === pid);
+        if (!one)
+            return null;
+        let children: number[] = [];
+        try {
+            const { stdout } = await exec('pgrep', ['-P', String(pid)], {
+                timeout: execTimeoutMs(5000),
+                maxBuffer: 1024 * 1024,
+            });
+            children = stdout
+                .split(/\s+/)
+                .map(Number)
+                .filter(n => Number.isInteger(n) && n > 0 && n !== pid);
+        }
+        catch {
+            // pgrep absent or no children
+        }
+        return { ...one, children };
+    }
+    catch {
+        // ps -p exits non-zero when the PID is gone
+        return null;
+    }
+}
 async function enumerate(): Promise<{
     rows: ProcessInfo[];
     limitations: string[];
@@ -204,6 +241,22 @@ export async function inspectProcess(pid: number) {
                 });
         }
         catch { /* fall back to the full enumeration */ }
+    }
+    if (process.platform === 'darwin') {
+        const p = await macOsInfo(pid);
+        return p ? result<ProcessInfo>(String(pid), 'process_inspection', [p], {
+            coverage: {
+                examined: true,
+                complete: false,
+                notes: [
+                    'Single-PID ps -p fast path (F-08 / R-19 macOS); does not read the full process table. '
+                    + 'Children via pgrep -P when available. True libproc is not used (zero runtime native deps). '
+                    + 'Identity token is pid + lstart. PID can still race between an OS read and a subsequent operation.',
+                ],
+            },
+        }) : result<ProcessInfo>(String(pid), 'process_inspection', [], {
+            status: 'partial', limitations: ['Process does not exist or is not visible.'],
+        });
     }
     const { rows, limitations } = await enumerate();
     const p = rows.find(x => x.pid === pid);
