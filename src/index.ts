@@ -64,3 +64,4 @@ export { createReadelfProvider, createObjdumpProvider } from './providers-detect
 export { createQemuUserEnvironment, createChrootEnvironment, createOssShimEnvironment } from './execution-environment.js';
 export * from './legacy-linux-reference-trials.js';
 export * from './legacy-linux-behavior.js';
+export { diffDiskImageHashes, runMacWorksFailsMatrix, runMacBehaviorRoundTrip } from './legacy-mac-behavior.js';
