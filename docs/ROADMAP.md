@@ -933,7 +933,7 @@ Closes audit tasks R-08 and R-18 (core) and quality debts R-03 / F-16 / R-05 (pa
 
 Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **approved project task**. Each belongs to exactly one patch (or is already closed). A patch is not done until its rows here are closed and the matching findings in [AUDIT.md](AUDIT.md) carry `Status: closed in <version>`. The capability suite checks that every ID of the audit appears in this table. New audits append their IDs here in the same way. In rows and audits written before the consolidation, the label **M1** is a historical name for the early increments of Patch M (1.1.0-beta.1 and .2); it is not a separate patch.
 
-### Findings (Audit 1, approved 2026-11-09, plus the later findings F-50 to F-86; sorted by ID — F-18 to F-41 follow in the tables of Audits 4 to 6)
+### Findings (Audit 1, approved 2026-11-09, plus the later findings F-50 to F-88; sorted by ID — F-18 to F-41 follow in the tables of Audits 4 to 6)
 
 | ID | Task | Patch / status |
 |---|---|---|
@@ -988,6 +988,8 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-84 | Idle persistent PowerShell helper kept the Windows host process alive, so a capability file that finished all checks did not exit and hit the 240 s timeout (run 43105112195) | **closed in 1.3.10** (`detachFromEventLoop`: `unref`); verified by Capabilities 43172993614 on `78a47fd` |
 | F-85 | Documentation drift after 1.3.10: CAPABILITIES still labelled Patch M in progress, ROADMAP debt register had a contradictory G-01…G-10 row, Status at a glance cited superseded run IDs, MCP/ARCHITECTURE/README/SECURITY carried stale M-in-progress and sandbox wording | **closed in documentation sync 2026-11-12** (Audit 24); no product code change |
 | F-86 | `npm ci` reports 4 moderate advisories in the full dependency tree (minimatch via Stryker, qs via typed-rest-client); `npm audit --omit=dev` is clean | open (Low, dev-only); do not change dependencies without maintainer approval |
+| F-87 | CAPABILITIES intro still cited 1.3.10 / `78a47fd` after the 1.4.x releases | **closed in 1.5.0 documentation sync 2026-11-12** (Audit 27); no product code change |
+| F-88 | Maintainer has not yet pasted the `os: all` capability-matrix run ID that closes Patch O | open (Process, Low); record the run ID in CAPABILITIES.md and close |
 
 ### Findings (Audit 4, A–D closure review, 2026-11-10)
 
