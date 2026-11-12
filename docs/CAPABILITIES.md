@@ -366,3 +366,11 @@ Classic Mac / early macOS static analysis and limited execution adapters are **d
 | `planAndroidControlledInstall` | ✅ gated (mode + confirm + serial) |
 | Host `runAndroidBehaviorRoundTrip` | ✅ via shared capture/replay |
 | Device logcat/uiautomator capture | 🚧 |
+
+
+### P step 6 (1.5.5)
+
+| Item | Status |
+|---|---|
+| `runAndroidReferenceTrials` (L0) | ✅ crafted DEX + diagnosis + auth provenance |
+| Operator APK oracle / higher L | 🚧 |
