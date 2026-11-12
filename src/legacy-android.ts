@@ -322,6 +322,12 @@ export async function analyzeLegacyAndroid(filePath: string, authorization: Lega
             complete: format !== 'unknown',
         }),
     };
+    const compatibilityFindings = diagnoseAndroidFromTables({
+        minSdk,
+        targetSdk,
+        abis,
+        hasMultidex,
+    });
     const finding: LegacyAndroidFinding = {
         format,
         abis,
@@ -336,6 +342,7 @@ export async function analyzeLegacyAndroid(filePath: string, authorization: Lega
         runtimeHints,
         obfuscationIndicators: obfuscation.slice(0, 50),
         structuralDetectors,
+        compatibilityFindings,
         targetProfile,
         authorization: auth,
         sha256,

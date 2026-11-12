@@ -11,7 +11,8 @@ import { requireLegacyGate } from './legacy-gate.js';
 import type { LegacyAuthorization } from './legacy-types.js';
 type WindowsEngineKind = 'wine' | 'dosbox' | 'qemu' | 'native' | 'chroot' | 'qemu-user' | 'oss-shim';
 type MacEngineKind = 'basiliskii' | 'minivmac' | 'sheepshaver' | 'qemu-ppc';
-export type EngineKind = WindowsEngineKind | MacEngineKind;
+type AndroidEngineKind = 'adb' | 'emulator';
+export type EngineKind = WindowsEngineKind | MacEngineKind | AndroidEngineKind;
 export interface EnvironmentFingerprint {
     engine: EngineKind;
     binary: string | null;
@@ -303,6 +304,24 @@ export function createQemuPpcEnvironment(): ExecutionEnvironment {
         buildArgs: (_target, args) => (args.length ? args : ['--version']),
     });
 }
+/** adb — host bridge to device/AVD. Detect-only when absent. */
+export function createAdbEnvironment(): ExecutionEnvironment {
+    return createPathEngine({
+        name: 'adb',
+        kind: 'adb',
+        binaries: ['adb', 'adb.exe'],
+        buildArgs: (_target, args) => (args.length ? args : ['devices']),
+    });
+}
+/** Android emulator binary (AVD manager companion). Detect-only when absent. */
+export function createAndroidEmulatorEnvironment(): ExecutionEnvironment {
+    return createPathEngine({
+        name: 'emulator',
+        kind: 'emulator',
+        binaries: ['emulator', 'emulator.exe'],
+        buildArgs: (_target, args) => (args.length ? args : ['-list-avds']),
+    });
+}
 export function bootstrapExecutionEnvironments(): void {
     registerExecutionEnvironment(createWineEnvironment());
     registerExecutionEnvironment(createDosboxEnvironment());
@@ -314,6 +333,8 @@ export function bootstrapExecutionEnvironments(): void {
     registerExecutionEnvironment(createMiniVmacEnvironment());
     registerExecutionEnvironment(createSheepShaverEnvironment());
     registerExecutionEnvironment(createQemuPpcEnvironment());
+    registerExecutionEnvironment(createAdbEnvironment());
+    registerExecutionEnvironment(createAndroidEmulatorEnvironment());
 }
 export interface WorksFailsCell {
     target: string;
