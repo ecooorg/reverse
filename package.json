@@ -38,7 +38,8 @@
     "lint": "biome lint --error-on-warnings",
     "dup:check": "jscpd",
     "unused:check": "knip",
-    "mutation": "npm run build && tsc -p tsconfig.tests.json && stryker run"
+    "mutation": "npm run build && tsc -p tsconfig.tests.json && stryker run",
+    "mutation:summary": "node tests/mutation-summary.mjs"
   },
   "engines": {
     "node": ">=22"
