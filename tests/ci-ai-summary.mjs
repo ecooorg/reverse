@@ -41,6 +41,9 @@ function classifyFailure(name, content) {
   if (/(?:^|\n)\s*✖\s|not ok \d+|assertionerror|testcodefailure|test failed|tests? failed|failed test cases?|reverse capability failed/.test(text)) return 'Test / capability suite failure';
   if (/line length|too long|characters?\)/.test(text)) return 'Line-length / size gate';
   if (/format:check|formatter|formatting drift|typescript format check failed/.test(text)) return 'Formatting gate';
+  if (/\bbiome\b|lint\/[a-z]+\/|npm run lint\b/.test(text)) return 'Lint gate';
+  if (/\bjscpd\b|clones? found|npm run dup:check/.test(text)) return 'Duplication gate';
+  if (/\bknip\b|unused (?:files|exports|dependencies|devdependencies)|npm run unused:check/.test(text)) return 'Unused-code gate';
   if (/npm err!|npm ci|eresolve|enoent|cannot find package|module_not_found/.test(text)) return 'Dependency / package setup';
   if (/timed? ?out|timeout|signal: sigterm|job was cancelled/.test(text)) return 'Timeout / cancellation';
   if (/structure check|import graph|markdown link|unexpected file|layout/.test(text)) return 'Repository structure';

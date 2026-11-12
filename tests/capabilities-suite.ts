@@ -2139,7 +2139,7 @@ check('Benchmark', 'children receive an allowlisted environment: secrets of the 
     try {
         const r: any = await runBenchmark({
             command: NODE,
-            args: nodeEval('process.stdout.write(String(process.env.REVERSE_TEST_SECRET)+\"|\"+process.env.REVERSE_TEST_PASS)'),
+            args: nodeEval('process.stdout.write(String(process.env.REVERSE_TEST_SECRET)+"|"+process.env.REVERSE_TEST_PASS)'),
             repetitions: 1
         });
         assert.equal(r.findings[0].runs[0].stdout, 'undefined|visible');
@@ -2543,8 +2543,8 @@ check('Roadmap', 'M and N status, version and O entry criteria are internally co
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const architecture = readFileSync(path.join(ROOT, 'docs/ARCHITECTURE.md'), 'utf8');
     const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
-    assert.equal(pkg.version, '1.3.9');
-    assert.match(roadmap, /State as of \*\*1\.3\.9\*\*/);
+    assert.equal(pkg.version, '1.3.10');
+    assert.match(roadmap, /State as of \*\*1\.3\.10\*\*/);
     assert.match(roadmap, /Patch M.*\*\*done\*\*/s);
     assert.match(roadmap, /Patch N.*\*\*done\*\*/s);
     assert.match(roadmap, /Patch O.*not started/i);

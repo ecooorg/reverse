@@ -9,7 +9,7 @@ import path from 'node:path';
 
 const built = process.argv.includes('--built');
 const errors = [];
-const IGNORE = new Set(['node_modules', '.git', 'dist', 'dist-tests', '.reverse', 'coverage', 'ci-logs', '.tmp-pack', '.tmp-consumer']);
+const IGNORE = new Set(['node_modules', '.git', 'dist', 'dist-tests', '.reverse', 'coverage', 'ci-logs', '.tmp-pack', '.tmp-consumer', 'reports', '.stryker-tmp']);
 
 function walk(dir, depth, acc) {
   for (const e of readdirSync(dir, { withFileTypes: true })) {
