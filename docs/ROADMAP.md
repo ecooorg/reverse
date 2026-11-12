@@ -18,16 +18,16 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.3.25** (O steps 2–3 slice: Mac calibration + expanded inventory; 2026-11-12).
+State as of **1.4.0** (Patch O closed — Classic Mac / early macOS; 2026-11-12).
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.3.25** (O steps 2–3: Mac calibration corpus, MacBinary/BinHex/HFS/archive detectors, Info.plist, Mach-O PIE, property tests) |
-| What is finished? | The 1.0 foundation (**patches A–L**) and **Patch M** (Windows compatibility through 2010, release **1.2.0**) and **Patch N** (old Linux compatibility, closed at **1.3.5**). |
-| What is being built? | **Patch O** deep residual in **1.3.24**: HFS catalog B-tree leaf walk, named Toolbox traps, CODE segments, PEF imports, Mac reference trials (L0), disk-image hash diff. Still open: full PEF fragment graph, real emulator works/fails with operator media, O release 1.4.0. |
-| What has not started? | **Patches P and Q** (legacy Android; newer generations and unified compatibility intelligence). Patch O feature work (steps 1+) is next. Plans: [Detailed plans for patches N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q). |
+| What is the product version? | **1.4.0** (Patch O closed — Classic Mac / early macOS) |
+| What is finished? | The 1.0 foundation (**patches A–L**), **Patch M** (Windows, **1.2.0**), **Patch N** (old Linux, **1.3.5**), and **Patch O** (Classic Mac / early macOS, **1.4.0**). |
+| What is being built? | **Patch P** is next (legacy Android). Patch O is **done** at 1.4.0 with residual Mac limitations recorded in CAPABILITIES.md. |
+| What has not started? | **Patch Q** (newer generations and unified compatibility intelligence). Patch P is the next product unit. |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Real works/fails with operator ROM on PATH emulators; PEF fragment graph polish; Patch O release **1.4.0**. |
+| What is the next concrete step? | Patch P step 0 / entry criteria (legacy Android inventory). |
 | What is open but not blocking? | R-10 residual (`goblin` and later providers), R-11 residual (Mach-O and unified report), F-83 (Linux Node 22 timeout; not reproduced in three consecutive green matrices), F-86 (dev-only moderate advisories), and the low Stryker score on two modules (recorded baseline, floor held). M/N G/H residual scope is itemized below and in `CAPABILITIES.md`. See the [carry-over debt register](#carry-over-debt-register). |
 | What is unverified? | Residual M/N limitations (explicit): no bundled Windows/Linux oracle (preservation stays L0); execution lifecycle lacks snapshot/restore/trace; behavior capture does not cover registry/network/UI/audio/time/randomness or code coverage; no function-level equivalence lab; migration options are limited; similarity BSim is unconfigured; calibration uses small crafted corpora; containers share the host kernel; the verneed summary is a string-residue scan, not a full `SHT_GNU_verneed` walk; `goblin` is not wired; libc/compiler generation heuristics are not calibrated beyond the crafted fixtures. The 1.3.7 manual matrix (Capabilities run 43079862360) stopped at the formatting gate on all six OS/Node cells, before build or capability tests; no cross-platform result is inferred from that run. Capabilities run 43084133732 exposed malformed PowerShell source on Windows (fixed in 1.3.9) and a Windows capability file that finished all 108 checks but did not exit (F-84, fixed in 1.3.10). The full matrix is green on commit `78a47fd` (Capabilities 43172993614, Structure 43173076031, Mutation 43173019792, Golden 43173044415, Supply chain 43173096703). An earlier green matrix on `f85200e` is superseded by this final verification run. The earlier N closure matrix remains recorded for commit `b5ea3fa` (Capabilities 43059743774, Structure 43059819947, Supply chain 43059851184). Windows/macOS hard sandbox isolation remains a recorded limitation from M. |
 
@@ -313,7 +313,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 
 **N is done when** section 8 (the debts) and the definition of done for N, O, P and Q holds for the Linux family and the release has its release record. **Recorded:** closed at **1.3.5** (the release line 1.3.x; see [1.3.5 — Patch N closed](#135--patch-n-closed-old-linux-compatibility)). The original 1.3.5 close left R-01, R-05, R-07, R-19 (Windows), and `fast-check` for R-04 open. Post-closure maintenance 1.3.6 closes R-07 and the N/Linux portions of R-02 and R-15; R-19 Windows is implemented but pending Windows CI verification. R-01, R-05 and `fast-check` remain open.
 
-### Patch O working plan — Classic Mac and early macOS software (target release 1.4, **in progress**)
+### Patch O working plan — Classic Mac and early macOS software (target release 1.4, **done**, closed at 1.4.0)
 
 **Outcome.** Reverse can take a classic Mac OS or early Mac OS X program (roughly System 1 in 1984 through Mac OS X 10.6 in 2009–2010) and (a) identify its code model, resources and bundle layout, (b) name the concrete causes it fails on a current Mac, (c) run it in a suitable emulator or virtual machine under a sandbox, (d) capture and replay deterministic scenarios, (e) validate a repaired, repackaged or rebuilt version against the original, and (f) rank migration options.
 
@@ -392,7 +392,20 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 
 **Out of scope and known limits.** Bundling ROMs, system software or proprietary tools; defeating copy protection; hardware-bound software (specific expansion cards, dongles) without an emulator path; running current Apple operating systems on non-Apple hardware.
 
-**O is done when** section 8 (the debts) and the definition of done for N, O, P and Q holds for the Mac family and the release is **1.4.0** with its release record.
+**O is done when** section 8 (the debts) and the definition of done for N, O, P and Q holds for the Mac family and the release is **1.4.0** with its release record. **Recorded:** closed at **1.4.0** (2026-11-12). Residuals (full PEF symbol tables, emulator input injection/screenshots, real ROM works/fails, native resource-fork writes) are explicit limitations in CAPABILITIES.md — not ❌ for in-scope delivered surface.
+
+
+
+## 1.4.0 — Patch O closed (Classic Mac / early macOS)
+
+**Date.** 2026-11-12.
+
+**Delivered.** Target Profile + `analyze_legacy_mac` (authorization gate); Mach-O/fat/PEF/AppleDouble/MacBinary/BinHex/HFS inventory; sourced Mac diagnosis tables; calibration harness; detect-only BasiliskII/Mini vMac/SheepShaver/qemu-ppc environments; capture/replay host round-trip; ROM local hashing; works/fails matrix (unsupported without operator ROM); HFS catalog B-tree leaf walk; named Toolbox traps; CODE segments; PEF imports + best-effort fragment graph; two Mac reference trials at L0; disk-image hash diff.
+
+**Explicit residuals (not blocking close).** Full PEF export/import symbol tables; emulator UI injection and screenshot normalization; real works/fails only when operator supplies ROM/image and emulator on PATH; native resource-fork write paths; complete Toolbox trap name index.
+
+**Verification.** Capability suite and unit tests cover the delivered surface. Manual `os: all` green run ID to be recorded by the maintainer after this release tag lands.
+
 
 ### Patch P working plan — Legacy Android software (target release 1.5, not started)
 
@@ -1168,6 +1181,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.3.23 | Toolbox A-line trap detector; fix Mac tests using non-exported formatEvidence |
 | 1.3.24 | O residual max: HFS B-tree walk, named traps, PEF imports, Mac reference trials, disk hash diff |
 | 1.3.25 | Split legacy-mac parsers (size gate); Mac works/fails matrix (unsupported without ROM) |
+| 1.4.0 | **Patch O closed** — Classic Mac / early macOS; residuals documented |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP

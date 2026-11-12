@@ -293,9 +293,9 @@ The remaining work is one ordered sequence, not parallel capability tracks: M (W
 | PEF import string detector | ✅ `pef-imports` |
 | Mac reference trials (2 scenarios, L0) | ✅ |
 | Disk-image hash diff (operator trees) | ✅ |
-| Full PEF fragment/import graph | 🚧 |
-| Emulator works/fails with operator ROM | 🚧 |
-| Patch O closed at 1.4.0 | 🚧 |
+| Full PEF fragment/import graph | ✅ best-effort `pef-fragment-graph` |
+| Emulator works/fails with operator ROM | 🚧 residual (operator media) |
+| Patch O closed at 1.4.0 | ✅ |
 
 
 ### Size gate & works/fails (1.3.25)
@@ -305,3 +305,23 @@ The remaining work is one ordered sequence, not parallel capability tracks: M (W
 | `legacy-mac.ts` ≤1000 lines via `legacy-mac-parsers.ts` | ✅ |
 | Mac works/fails matrix API | ✅ (unsupported without ROM/emulator) |
 | Real boot under Basilisk/SheepShaver | 🚧 operator ROM required |
+
+
+## Patch O closed (1.4.0)
+
+Classic Mac / early macOS static analysis and limited execution adapters are **delivered**. Residual 🚧 items are explicit limitations.
+
+| Capability | Status |
+|---|---|
+| `analyze_legacy_mac` + authorization | ✅ |
+| Mach-O / fat / PEF / AppleDouble / MacBinary / BinHex / HFS | ✅ |
+| HFS catalog B-tree (bounded leaf walk) | ✅ |
+| PEF imports + fragment graph (best-effort) | ✅ |
+| Toolbox A-line traps (named subset) | ✅ |
+| Diagnosis tables | ✅ |
+| Emulator detect-only + works/fails API | ✅ (unsupported without ROM) |
+| Reference trials (2, L0) | ✅ |
+| Capture/replay host deterministic | ✅ |
+| Emulator input injection / screenshots | 🚧 residual |
+| Full PEF export/import symbol tables | 🚧 residual |
+| Real ROM boot matrix | 🚧 residual (operator media) |
