@@ -1,6 +1,7 @@
 /**
- * Classic Mac / early macOS static analysis (Patch O step 1 + initial inventory).
- * Recognizes Mach-O / fat, PEF/CFM, AppleDouble resource forks and selected markers.
+ * Classic Mac / early macOS static analysis (Patch O steps 1–3 inventory slice).
+ * Recognizes Mach-O / fat, PEF/CFM, AppleDouble, MacBinary, BinHex, HFS headers,
+ * selected archive/disk-image magics, Info.plist bundle fields and Mach-O PIE flag.
  * Never executes the target. Requires legacy authorization (same gate as M/N).
  */
 import { readFile, stat } from 'node:fs/promises';
@@ -11,7 +12,9 @@ import { profileField, type LegacyAuthorization, type TargetProfile } from './le
 import { assertAuthorizationPresent, requireLegacyGate } from './legacy-gate.js';
 import { parseMachO, parseFat } from './analysis-binary-parse.js';
 export type { LegacyAuthorization, TargetProfile } from './legacy-types.js';
-export type MacCodeModel = 'mach-o' | 'fat-mach-o' | 'pef-cfm' | '68k-code' | 'appledouble' | 'unknown';
+type MacExecutableFormat = 'mach-o' | 'fat-mach-o' | 'pef-cfm' | '68k-code';
+type MacContainerFormat = 'appledouble' | 'macbinary' | 'binhex' | 'hfs-volume';
+export type MacCodeModel = MacExecutableFormat | MacContainerFormat | 'unknown';
 export interface LegacyMacFinding {
     format: MacCodeModel;
     architecture: string;
@@ -27,11 +30,20 @@ export interface LegacyMacFinding {
     minimumOsVersion: string | null;
     /** Code-signature load command presence (not validity). */
     codeSignaturePresent: boolean;
-    /** Creator/type codes when found in AppleDouble or classic headers. */
+    /** Mach-O header flags of interest (PIE when known). */
+    machOFlags: {
+        pie: boolean | null;
+        evidence: string[];
+    };
+    /** Container / archive hints (StuffIt, Compact Pro, disk image, …). */
+    containers: string[];
+    /** Creator/type codes when found in AppleDouble, MacBinary or classic headers. */
     creatorType: {
         creator: string;
         type: string;
     } | null;
+    /** Bundle Info.plist summary when the path is an Info.plist. */
+    bundleSummary: string | null;
     structuralDetectors: Array<{
         name: string;
         evidence: string[];
@@ -245,6 +257,116 @@ function eraFromSignals(args: {
         return { family: 'macOS', era: 'Mach-O (era not pinned)' };
     return { family: 'Mac', era: null };
 }
+function detectMacBinary(b: Buffer): {
+    evidence: string;
+    creatorType: {
+        creator: string;
+        type: string;
+    } | null;
+    fileName: string | null;
+} | null {
+    // MacBinary II: byte0=0, nameLen 1..63, byte 122 = 129 (0x81)
+    if (b.length < 128)
+        return null;
+    if (b[0] !== 0)
+        return null;
+    const nameLen = b[1];
+    if (nameLen < 1 || nameLen > 63)
+        return null;
+    if (b[122] !== 129 && b[122] !== 130)
+        return null;
+    const fileName = b.toString('latin1', 2, 2 + nameLen).replace(/\0/g, '');
+    const type = fourcc(b, 65);
+    const creator = fourcc(b, 69);
+    return {
+        evidence: `MacBinary II header nameLen=${nameLen} versionByte=${b[122]}`,
+        creatorType: (type.trim() || creator.trim())
+            ? { type: type.trimEnd(), creator: creator.trimEnd() }
+            : null,
+        fileName: fileName || null,
+    };
+}
+function detectBinHex(b: Buffer): {
+    evidence: string;
+} | null {
+    const head = b.subarray(0, Math.min(b.length, 128)).toString('latin1');
+    if (/This file must be converted with BinHex/i.test(head) || head.startsWith('(This file must be converted'))
+        return { evidence: 'BinHex 4.0 banner at start of file' };
+    if (b.length >= 2 && b[0] === 0x0d && head.includes('BinHex'))
+        return { evidence: 'BinHex marker after CR' };
+    return null;
+}
+function detectHfsVolume(b: Buffer): {
+    evidence: string;
+    kind: 'HFS' | 'HFS+';
+} | null {
+    // MDB / volume header sits at sector 2 (offset 1024)
+    if (b.length < 1024 + 16)
+        return null;
+    const sig = b.toString('latin1', 1024, 1026);
+    if (sig === 'BD')
+        return { evidence: 'HFS Master Directory Block signature BD at offset 1024', kind: 'HFS' };
+    if (sig === 'H+')
+        return { evidence: 'HFS+ volume header signature H+ at offset 1024', kind: 'HFS+' };
+    if (sig === 'HX')
+        return { evidence: 'HFSX volume header signature HX at offset 1024', kind: 'HFS+' };
+    return null;
+}
+function detectArchiveContainers(b: Buffer): string[] {
+    const out: string[] = [];
+    if (b.length >= 4) {
+        const fcc = fourcc(b, 0);
+        if (fcc === 'SIT!' || fcc === 'SIT5')
+            out.push('StuffIt');
+        if (fcc === 'Pack' || (b[0] === 0x1a && b[1] === 0xff))
+            out.push('Compact Pro candidate');
+        // NDIF / UDIF disk image
+        if (fcc === 'koly' || (b.length >= 512 && fourcc(b, b.length >= 512 ? b.length - 512 : 0) === 'koly'))
+            out.push('UDIF disk image (koly)');
+        if (b.length >= 4 && b[0] === 0x78 && (b[1] === 0x01 || b[1] === 0x9c || b[1] === 0xda))
+            out.push('zlib-compressed payload candidate');
+    }
+    const head = b.subarray(0, Math.min(64, b.length)).toString('latin1');
+    if (/StuffIt|Stuffit/i.test(head))
+        out.push('StuffIt string marker');
+    return [...new Set(out)];
+}
+function parseInfoPlistSummary(text: string): string | null {
+    // Minimal XML plist field grab; not a full parser.
+    const grab = (key: string): string | null => {
+        const re = new RegExp(`<key>${key}<\\/key>\\s*<string>([^<]+)<\\/string>`, 'i');
+        const m = text.match(re);
+        return m ? m[1].trim() : null;
+    };
+    const id = grab('CFBundleIdentifier');
+    const exe = grab('CFBundleExecutable');
+    const name = grab('CFBundleName');
+    const min = grab('LSMinimumSystemVersion') || grab('MinimumSystemVersion');
+    const parts = [
+        id ? `id=${id}` : null,
+        exe ? `exe=${exe}` : null,
+        name ? `name=${name}` : null,
+        min ? `minOS=${min}` : null,
+    ].filter(Boolean);
+    return parts.length ? parts.join('; ') : null;
+}
+function machOPieFlag(b: Buffer, magic: number): {
+    pie: boolean | null;
+    evidence: string[];
+} {
+    const le = magic === MH_MAGIC || magic === MH_MAGIC_64;
+    const is64 = magic === MH_MAGIC_64 || magic === MH_CIGAM_64;
+    const flagsOff = is64 ? 24 : 24;
+    if (b.length < flagsOff + 4)
+        return { pie: null, evidence: [] };
+    const flags = le ? u32le(b, flagsOff) : u32be(b, flagsOff);
+    // MH_PIE = 0x200000
+    const pie = (flags & 0x200000) !== 0;
+    return {
+        pie,
+        evidence: [`Mach-O flags=0x${flags.toString(16)}; MH_PIE=${pie ? 'set' : 'clear'}`],
+    };
+}
 /**
  * Analyze a classic Mac / early macOS binary under the shared legacy authorization gate.
  */
@@ -276,6 +398,9 @@ export async function analyzeLegacyMac(filePath: string, authorization: LegacyAu
     let creatorType: LegacyMacFinding['creatorType'] = null;
     const structuralDetectors: LegacyMacFinding['structuralDetectors'] = [];
     const formatEvidence: string[] = [];
+    let machOFlags: LegacyMacFinding['machOFlags'] = { pie: null, evidence: [] };
+    let containers: string[] = [];
+    let bundleSummary: string | null = null;
     const magic = b.length >= 4 ? u32be(b, 0) : 0;
     const magicLe = b.length >= 4 ? u32le(b, 0) : 0;
     // Fat / universal first (cafebabe collides with Java; require nfat_arch sanity).
@@ -306,12 +431,15 @@ export async function analyzeLegacyMac(filePath: string, authorization: LegacyAu
         dylibs = details.dylibs;
         minimumOsVersion = details.minimumOsVersion;
         codeSignaturePresent = details.codeSignaturePresent;
+        machOFlags = machOPieFlag(b, m);
         formatEvidence.push(`Mach-O magic 0x${m.toString(16)} arch=${architecture} bitness=${bitness}`);
         structuralDetectors.push({
             name: 'mach-o',
-            evidence: formatEvidence.slice(),
+            evidence: [...formatEvidence.slice(), ...machOFlags.evidence],
             confidence: 0.95,
         });
+        if (machOFlags.pie)
+            structuralDetectors.push({ name: 'mach-o-pie', evidence: machOFlags.evidence, confidence: 0.9 });
     }
     if (format === 'unknown') {
         const pef = detectPef(b);
@@ -358,6 +486,63 @@ export async function analyzeLegacyMac(filePath: string, authorization: LegacyAu
             format = '68k-code';
         if (format === 'unknown' && /cfrg/.test(h))
             format = 'pef-cfm';
+    }
+    if (format === 'unknown') {
+        const mb = detectMacBinary(b);
+        if (mb) {
+            format = 'macbinary';
+            endian = 'big';
+            if (mb.creatorType)
+                creatorType = mb.creatorType;
+            formatEvidence.push(mb.evidence);
+            structuralDetectors.push({
+                name: 'macbinary',
+                evidence: [mb.evidence, mb.fileName ? `name=${mb.fileName}` : 'unnamed'].filter(Boolean) as string[],
+                confidence: 0.85,
+            });
+        }
+    }
+    if (format === 'unknown') {
+        const bh = detectBinHex(b);
+        if (bh) {
+            format = 'binhex';
+            formatEvidence.push(bh.evidence);
+            structuralDetectors.push({ name: 'binhex', evidence: [bh.evidence], confidence: 0.9 });
+        }
+    }
+    if (format === 'unknown') {
+        const hfs = detectHfsVolume(b);
+        if (hfs) {
+            format = 'hfs-volume';
+            endian = 'big';
+            formatEvidence.push(hfs.evidence);
+            structuralDetectors.push({ name: 'hfs-volume', evidence: [hfs.evidence], confidence: 0.9 });
+        }
+    }
+    containers = detectArchiveContainers(b);
+    for (const c of containers) {
+        structuralDetectors.push({
+            name: 'container',
+            evidence: [c],
+            confidence: 0.7,
+        });
+    }
+    // Info.plist path → bundle summary
+    if (path.basename(abs).toLowerCase() === 'info.plist') {
+        const text = b.toString('utf8');
+        bundleSummary = parseInfoPlistSummary(text);
+        if (bundleSummary) {
+            structuralDetectors.push({
+                name: 'info-plist',
+                evidence: [bundleSummary],
+                confidence: 0.85,
+            });
+            if (!minimumOsVersion) {
+                const m = bundleSummary.match(/minOS=([0-9.]+)/);
+                if (m)
+                    minimumOsVersion = m[1];
+            }
+        }
     }
     const hasCarbon = dylibs.some(d => /Carbon|ApplicationServices|CoreServices/i.test(d))
         || classicHits.some(h => /Carbon/i.test(h));
@@ -462,11 +647,13 @@ export async function analyzeLegacyMac(filePath: string, authorization: LegacyAu
             complete: !!creatorType,
         }),
         bundleLayout: profileField({
-            value: null,
-            evidence: [],
-            confidence: 0,
-            complete: false,
-            coverageNotes: ['.app / Info.plist readers are O step 3.'],
+            value: bundleSummary,
+            evidence: bundleSummary ? [bundleSummary] : [],
+            confidence: bundleSummary ? 0.85 : 0.15,
+            complete: !!bundleSummary,
+            coverageNotes: bundleSummary
+                ? ['Parsed selected CFBundle* keys from Info.plist XML.']
+                : ['Pass an Info.plist path for bundle summary; full .app tree walk not implemented.'],
         }),
         rosettaOr32BitDependence: profileField({
             value: rosettaNotes.slice(),
@@ -486,7 +673,10 @@ export async function analyzeLegacyMac(filePath: string, authorization: LegacyAu
         resourceTypes,
         minimumOsVersion,
         codeSignaturePresent,
+        machOFlags,
+        containers,
         creatorType,
+        bundleSummary,
         structuralDetectors,
         targetProfile,
         authorization: auth,
@@ -505,8 +695,8 @@ export async function analyzeLegacyMac(filePath: string, authorization: LegacyAu
             examined: true,
             complete: false,
             notes: [
-                'Patch O step 1 Target Profile fields + initial format inventory.',
-                '68k CODE / PEF deep parsers, HFS images and bundle readers remain step 3.',
+                'Patch O steps 1–3 inventory slice: formats, containers, Info.plist keys, Mach-O PIE.',
+                'Full 68k segment loader, PEF fragment graph and HFS catalog walk remain open.',
             ],
         },
     });
