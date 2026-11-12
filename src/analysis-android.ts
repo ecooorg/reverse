@@ -11,6 +11,8 @@ export interface AndroidFinding {
     hasAndroidManifest: boolean;
     hasResourcesArsc: boolean;
     hasClassesJar: boolean;
+    /** META-INF/*.RSA|DSA|EC or MANIFEST.MF present. */
+    hasV1Signing: boolean;
     obfuscationIndicators: string[];
     manifestNotes: string[];
     gradleLockNotes: string[];
@@ -101,6 +103,7 @@ export async function analyzeAndroid(file: string) {
     let hasManifest = false;
     let hasArsc = false;
     let hasClassesJar = false;
+    let hasV1Signing = false;
     for (const n of names) {
         const ln = n.replace(/\\/g, '/');
         if (ln === 'AndroidManifest.xml' || ln.endsWith('/AndroidManifest.xml'))
@@ -117,6 +120,8 @@ export async function analyzeAndroid(file: string) {
         }
         if (/classes\.jar$/i.test(ln))
             hasClassesJar = true;
+        if (/^META-INF\//i.test(ln) && (/\.(RSA|DSA|EC)$/i.test(ln) || /MANIFEST\.MF$/i.test(ln)))
+            hasV1Signing = true;
         if (/proguard|r8|mapping\.txt|seeds\.txt|usage\.txt/i.test(ln)) {
             obfuscation.push(ln);
         }
@@ -158,6 +163,7 @@ export async function analyzeAndroid(file: string) {
         hasAndroidManifest: hasManifest,
         hasResourcesArsc: hasArsc,
         hasClassesJar,
+        hasV1Signing,
         obfuscationIndicators: [...new Set(obfuscation)].slice(0, 50),
         manifestNotes,
         gradleLockNotes,

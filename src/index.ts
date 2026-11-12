@@ -65,3 +65,4 @@ export { createQemuUserEnvironment, createChrootEnvironment, createOssShimEnviro
 export * from './legacy-linux-reference-trials.js';
 export * from './legacy-linux-behavior.js';
 export { diffDiskImageHashes, runMacWorksFailsMatrix, runMacBehaviorRoundTrip } from './legacy-mac-behavior.js';
+export { analyzeLegacyAndroid } from './legacy-android.js';

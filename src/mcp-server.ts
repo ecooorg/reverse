@@ -16,6 +16,7 @@ import { analyzeDotnet } from './analysis-dotnet.js';
 import { analyzeWasm } from './analysis-wasm.js';
 import { analyzeLegacyWindows } from './legacy-windows.js';
 import { analyzeLegacyLinux } from './legacy-linux.js';
+import { analyzeLegacyAndroid } from './legacy-android.js';
 import { analyzeLegacyMac } from './legacy-mac.js';
 import { listProcesses, inspectProcess, getProcessMetrics, getProcessTree } from './process-inspector.js';
 import { analyzeMemory, analyzeCpu, analyzeIo } from './process-inspector.js';
@@ -175,6 +176,9 @@ async function call(name: string, a: any, signal?: AbortSignal) {
         }
         case 'analyze_legacy_linux': {
             return analyzeLegacyLinux(a.file, null, { sessionId: a.session_id });
+        }
+        case 'analyze_legacy_android': {
+            return analyzeLegacyAndroid(a.file, null, { sessionId: a.session_id });
         }
         case 'analyze_legacy_mac': {
             return analyzeLegacyMac(a.file, null, { sessionId: a.session_id });
