@@ -2787,6 +2787,9 @@ check('Legacy Mac', 'diffDiskImageHashes reports tree drift', async () => {
 check('Legacy Android', 'analyze_legacy_android is registered in the MCP tool contract', () => {
     assert.ok(DOCUMENTED_TOOLS.includes('analyze_legacy_android'));
 });
+check('Legacy Android', 'bounded device observations are exposed through the MCP tool contract', () => {
+    assert.ok(DOCUMENTED_TOOLS.includes('collect_android_device_observations'));
+});
 check('Legacy Android', 'analyzeLegacyAndroid fills Android Target Profile on DEX', async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), 'cap-la-'));
     try {
@@ -2898,7 +2901,6 @@ check('Legacy Android', 'device observation is authorization-gated and never run
             process.env.REVERSE_ANDROID_SERIAL = previousSerial;
     }
 });
-
 check('Legacy Android', 'device observations mark all adb output as untrusted and cap long strings', async () => {
     const url = pathToFileURL(path.join(DIST, 'legacy-android-behavior.js')).href;
     const { wrapAndroidDeviceText } = await import(url);
@@ -2911,7 +2913,6 @@ check('Legacy Android', 'device observations mark all adb output as untrusted an
     assert.ok((wrapped.untrustedContent as any).truncatedStrings >= 1);
     assert.ok((wrapped.activityDump as string).length <= 4096);
 });
-
 check('Legacy Android', 'L0 reference trials pass on crafted fixtures', async () => {
     const url = pathToFileURL(path.join(DIST, 'legacy-android-reference-trials.js')).href;
     const { runAndroidReferenceTrials } = await import(url);

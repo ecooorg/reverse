@@ -117,6 +117,74 @@ test('MCP: baseline suites and hash-chained research-session tools work end-to-e
         await rm(home, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
     }
 });
+test('MCP: Android device observations use session authorization and refuse missing serial', async () => {
+    const home = await mkdtemp(path.join(os.tmpdir(), 'reverse-mcp-android-'));
+    const child = spawn(process.execPath, [server], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: {
+            ...process.env,
+            REVERSE_HOME: home,
+            REVERSE_MODE: 'CONTROLLED_EXECUTION',
+            REVERSE_ANDROID_SERIAL: ''
+        }
+    });
+    const rl = readline.createInterface({ input: child.stdout! });
+    let nextId = 0;
+    const pending = new Map<number, (value: any) => void>();
+    rl.on('line', line => {
+        const message = JSON.parse(line);
+        if (pending.has(message.id)) {
+            pending.get(message.id)!(message);
+            pending.delete(message.id);
+        }
+    });
+    const request = (method: string, params: unknown) => new Promise<any>((resolve, reject) => {
+        const id = ++nextId;
+        pending.set(id, resolve);
+        child.stdin!.write(`${JSON.stringify({ jsonrpc: '2.0', id, method, params })}\n`);
+        setTimeout(() => {
+            if (pending.delete(id))
+                reject(new Error(`MCP request timed out: ${method}`));
+        }, 30000).unref();
+    });
+    const call = async (name: string, args: unknown) => {
+        const response = await request('tools/call', { name, arguments: args });
+        assert.equal(response.error, undefined, name);
+        if (response.result.isError)
+            throw new Error(response.result.content[0].text);
+        return JSON.parse(response.result.content[0].text);
+    };
+    try {
+        await request('initialize', {
+            protocolVersion: '2025-11-25',
+            capabilities: {},
+            clientInfo: { name: 'test', version: '1' }
+        });
+        const session = await call('create_research_session', { target_id: 'android-device-fixture' });
+        await call('declare_legacy_authorization', {
+            session_id: session.session_id,
+            basis: 'open_source',
+            license_or_consent_reference: 'fixture-only',
+            declared_by: 'mcp-new-tools.test'
+        });
+        const report = await call('collect_android_device_observations', {
+            session_id: session.session_id,
+            confirm: true
+        });
+        assert.equal(report.status, 'unsupported');
+        assert.equal(report.logcat, null);
+        assert.equal(report.activityDump, null);
+        assert.ok(report.limitations.some((item: string) => item.includes('no adb command was run')));
+        const listed = await request('tools/list', {});
+        assert.ok(listed.result.tools.some((tool: any) => tool.name === 'collect_android_device_observations'));
+    }
+    finally {
+        child.stdin!.end();
+        child.kill();
+        await new Promise(resolve => child.once('close', resolve));
+        await rm(home, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    }
+});
 test('MCP full schema profile recursively rejects undeclared object properties', async () => {
     const child = spawn(process.execPath, [server], {
         stdio: [
