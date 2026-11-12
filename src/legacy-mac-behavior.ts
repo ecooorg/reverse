@@ -177,3 +177,76 @@ export async function diffDiskImageHashes(beforeRoot: string, afterRoot: string)
         changed,
     };
 }
+/**
+ * Works/fails matrix over Mac emulator engines for a fixture path.
+ * Absent engines or ROMs → outcome unsupported (never simulated).
+ * Set REVERSE_MAC_ROM to a ROM path to record its hash in fingerprints.
+ */
+export async function runMacWorksFailsMatrix(targets: string[], auth: LegacyAuthorization, opts: {
+    confirm?: boolean;
+    romPaths?: string[];
+} = {}): Promise<Array<{
+    target: string;
+    engine: string;
+    outcome: "works" | "fails" | "unsupported" | "error";
+    detail: string;
+}>> {
+    const { runWorksFailsMatrix, bootstrapExecutionEnvironments, listExecutionEnvironments } = await import("./execution-environment.js");
+    bootstrapExecutionEnvironments();
+    const roms = await fingerprintMacRoms(opts.romPaths ?? (process.env.REVERSE_MAC_ROM ? [process.env.REVERSE_MAC_ROM] : []));
+    const cells: Array<{
+        target: string;
+        engine: string;
+        outcome: "works" | "fails" | "unsupported" | "error";
+        detail: string;
+    }> = [];
+    const mac = listExecutionEnvironments().filter(e => ["basiliskii", "minivmac", "sheepshaver", "qemu-ppc"].includes(e.kind));
+    for (const target of targets) {
+        for (const env of mac) {
+            const available = await env.available();
+            if (!available) {
+                cells.push({
+                    target,
+                    engine: env.name,
+                    outcome: "unsupported",
+                    detail: `${env.name} not on PATH`,
+                });
+                continue;
+            }
+            // Without operator ROM most Mac emulators cannot boot; treat as unsupported
+            // unless REVERSE_MAC_ROM is set and readable.
+            const romOk = roms.some(r => r.sha256);
+            if (!romOk) {
+                cells.push({
+                    target,
+                    engine: env.name,
+                    outcome: "unsupported",
+                    detail: "No operator ROM/image (set REVERSE_MAC_ROM); never simulated",
+                });
+                continue;
+            }
+            try {
+                const result = await env.run(target, {
+                    confirm: opts.confirm === true,
+                    authorization: auth,
+                });
+                const outcome = result.exitCode === 0 ? "works" : result.timedOut ? "fails" : "fails";
+                cells.push({
+                    target,
+                    engine: env.name,
+                    outcome,
+                    detail: result.stderr?.slice(0, 200) || `exit=${result.exitCode}`,
+                });
+            }
+            catch (e) {
+                cells.push({
+                    target,
+                    engine: env.name,
+                    outcome: "error",
+                    detail: e instanceof Error ? e.message : String(e),
+                });
+            }
+        }
+    }
+    return cells;
+}
