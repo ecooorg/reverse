@@ -55,7 +55,6 @@ export async function fileEvidence(file: string) {
         }
     };
 }
-export function safeNumber(n: unknown): number | undefined { return typeof n === 'number' && Number.isFinite(n) ? n : undefined; }
 /** Timeout for helper executables (ps, tasklist, powershell). Override with REVERSE_EXEC_TIMEOUT_MS (1..120000). */
 export const execTimeoutMs = (fallback: number) => {
     const v = Number(process.env.REVERSE_EXEC_TIMEOUT_MS);

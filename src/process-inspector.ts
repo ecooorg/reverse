@@ -34,7 +34,7 @@ let linuxConstants: Promise<{
     bootTime: number;
 }> | undefined;
 function getLinuxConstants() {
-    return linuxConstants ??= (async () => {
+    linuxConstants ??= (async () => {
         const [page, ticks, raw] = await Promise.all([
             exec('getconf', ['PAGESIZE'], {
                 timeout: 2000
@@ -48,6 +48,7 @@ function getLinuxConstants() {
             bootTime: Number(raw.match(/^btime (\d+)/m)?.[1] ?? 0)
         };
     })();
+    return linuxConstants;
 }
 async function linuxInfo(pid: number): Promise<ProcessInfo | null> {
     const base = `${proc}/${pid}`;

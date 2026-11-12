@@ -1,3 +1,4 @@
+import type { Dirent, Stats } from 'node:fs';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { result } from './core-types.js';
@@ -8,7 +9,7 @@ async function walk(dir: string, out: string[], budget: {
 }) {
     if (budget.n <= 0)
         return;
-    let entries;
+    let entries: Dirent[];
     try {
         entries = await readdir(dir, { withFileTypes: true });
     }
@@ -33,7 +34,7 @@ async function walk(dir: string, out: string[], budget: {
 }
 /** Static inventory for JS/TS and Electron-ish trees. */
 export async function analyzeJavascript(target: string) {
-    let st;
+    let st: Stats;
     try {
         st = await stat(target);
     }

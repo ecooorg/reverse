@@ -64,7 +64,7 @@ export async function setupAgent(opts: {
             'args = ["mcp"]',
             ''
         ].join('\n');
-        after = before && before.includes('[mcp_servers.reverse]')
+        after = before?.includes('[mcp_servers.reverse]')
             ? before
             : (before ?? '') + snippet;
     }

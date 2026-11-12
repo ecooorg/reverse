@@ -307,7 +307,7 @@ export async function analyzeDependencies(root: string) {
         const nodes = goSum ? parseGoSum(goSum) : new Map();
         if (goMod) {
             for (const line of goMod.split(/\r?\n/)) {
-                const m = line.match(/^\s*([A-Za-z0-9._\/\-]+)\s+v([0-9][^\s]*)/);
+                const m = line.match(/^\s*([A-Za-z0-9._/-]+)\s+v([0-9][^\s]*)/);
                 if (m) {
                     const n = m[1];
                     findings.push({

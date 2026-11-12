@@ -41,8 +41,7 @@ export function summarizeVerneed(buf: Buffer): VerneedSummary {
     ];
     for (const { re, label, conf } of patterns) {
         re.lastIndex = 0;
-        let m: RegExpExecArray | null;
-        while ((m = re.exec(text)) !== null) {
+        for (let m = re.exec(text); m !== null; m = re.exec(text)) {
             const name = m[0];
             if (!found.has(name)) {
                 found.set(name, {

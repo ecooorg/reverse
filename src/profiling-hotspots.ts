@@ -132,7 +132,7 @@ export async function getHotspots(pid: number, opts?: {
 export async function getProcessIo(pid: number) {
     const limitations: string[] = [];
     let disk: Record<string, number> | null = null;
-    let network: Record<string, number> | null = null;
+    const network: Record<string, number> | null = null;
     if (platform() === 'linux') {
         try {
             const { readFile } = await import('node:fs/promises');

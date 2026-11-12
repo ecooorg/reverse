@@ -92,7 +92,7 @@ export async function listProvidersProbed(): Promise<ProviderListEntry[]> {
             continue;
         }
         let available = false;
-        castDetail: try {
+        try {
             available = await Promise.race([
                 p.available(),
                 new Promise<boolean>(resolve => setTimeout(() => resolve(false), 8000))

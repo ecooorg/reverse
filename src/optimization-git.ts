@@ -69,7 +69,7 @@ export async function createGitWorktreeWorkspace(originalPath: string, perm: Cha
     try {
         await execFileAsync(git.path, ['-C', repoRoot, 'worktree', 'add', '-b', branch, workPath], { timeout: 60000 });
     }
-    catch (e: any) {
+    catch {
         // Fallback: worktree from current HEAD without new branch name conflict
         try {
             await execFileAsync(git.path, ['-C', repoRoot, 'worktree', 'add', '--detach', workPath], { timeout: 60000 });

@@ -85,7 +85,7 @@ export function computePreservationLevel(input: {
     const limitations: string[] = [];
     for (const c of input.comparisons)
         limitations.push(...c.limitations);
-    if (!input.oracle || !input.oracle.available) {
+    if (!input.oracle?.available) {
         limitations.push('No available oracle: preservation level is L0 and cannot be raised (H-07 / G-05).');
         return {
             authorization: input.authorization,
@@ -207,7 +207,7 @@ export function adviseMigration(input: {
 /** Guard: refuse to label a report above L0 when oracle is missing/unavailable. */
 export function assertLevelRespectsOracle(report: PreservationReport): string[] {
     const errors: string[] = [];
-    if ((!report.oracle || !report.oracle.available) && report.level !== 'L0') {
+    if (!report.oracle?.available && report.level !== 'L0') {
         errors.push(`Invalid level ${report.level}: without an available oracle the level must be L0.`);
     }
     return errors;
