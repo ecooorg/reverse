@@ -18,17 +18,17 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.3.10** (R-01, R-04, R-05 closure and the Windows idle-helper fix; 2026-11-12).
+State as of **1.3.11** (O step 0: F-08 macOS and R-19 macOS; 2026-11-12).
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.3.10** (R-01/R-04/R-05 tooling and Windows idle-helper fix; N remains historically closed at 1.3.5) |
+| What is the product version? | **1.3.11** (O step 0: macOS single-PID `ps -p` fast path and sampling without full-table reads; N remains historically closed at 1.3.5) |
 | What is finished? | The 1.0 foundation (**patches A–L**) and **Patch M** (Windows compatibility through 2010, release **1.2.0**) and **Patch N** (old Linux compatibility, closed at **1.3.5**). |
-| What is being built? | No product feature is in progress. Post-N maintenance through 1.3.10 closed R-01, R-04, R-05, R-07, R-19 Windows, F-80, F-81, F-82 and F-84. Full matrix green on commit `78a47fd`: Capabilities [43172993614](https://github.com/ecooorg/reverse/actions/runs/43172993614) (6 environments, 0 drift, 0 failed), Mutation [43173019792](https://github.com/ecooorg/reverse/actions/runs/43173019792) (47.72 %), Golden [43173044415](https://github.com/ecooorg/reverse/actions/runs/43173044415), Structure [43173076031](https://github.com/ecooorg/reverse/actions/runs/43173076031), Supply chain [43173096703](https://github.com/ecooorg/reverse/actions/runs/43173096703). Next is **Patch O** (Classic Mac and early macOS, target **1.4**); entry criteria are met; first work is O step 0 (F-08 macOS, R-19 macOS). |
+| What is being built? | **Patch O** step 0 delivered in **1.3.11**: macOS single-PID inspection via `ps -p` and children via `pgrep -P` (F-08 macOS, R-19 macOS). True libproc is not used (zero runtime native deps); inventory still uses full `ps -ax`. Next: Patch O feature work (Classic Mac / early macOS, target **1.4**), starting at work-order step 1. |
 | What has not started? | **Patches O, P, Q** (Classic Mac/early macOS; legacy Android; newer generations and unified compatibility intelligence). Next is **O**. Plans: [Detailed plans for patches N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q). |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Close O step 0 debts F-08 macOS and R-19 macOS, then start Patch O. Optionally raise the Stryker score on `process-parse` and `legacy-linux-packages` (survivors listed in the report). O has not started. |
-| What is open but not blocking? | R-19 macOS and F-08 macOS (O step 0), R-10 residual (`goblin` and later providers), R-11 residual (Mach-O and unified report), F-83 (Linux Node 22 timeout; not reproduced in three consecutive green matrices including 43172993614), F-86 (dev-only moderate advisories in the full tree), and the low Stryker score on two modules (recorded baseline, floor held). M/N G/H residual scope is itemized below and in `CAPABILITIES.md`. See the [carry-over debt register](#carry-over-debt-register). |
+| What is the next concrete step? | Patch O work-order step 1 (Target Profile and static inventory for Classic Mac / early macOS). Optionally raise the Stryker score on `process-parse` and `legacy-linux-packages`. |
+| What is open but not blocking? | R-10 residual (`goblin` and later providers), R-11 residual (Mach-O and unified report), F-83 (Linux Node 22 timeout; not reproduced in three consecutive green matrices), F-86 (dev-only moderate advisories), and the low Stryker score on two modules (recorded baseline, floor held). M/N G/H residual scope is itemized below and in `CAPABILITIES.md`. See the [carry-over debt register](#carry-over-debt-register). |
 | What is unverified? | Residual M/N limitations (explicit): no bundled Windows/Linux oracle (preservation stays L0); execution lifecycle lacks snapshot/restore/trace; behavior capture does not cover registry/network/UI/audio/time/randomness or code coverage; no function-level equivalence lab; migration options are limited; similarity BSim is unconfigured; calibration uses small crafted corpora; containers share the host kernel; the verneed summary is a string-residue scan, not a full `SHT_GNU_verneed` walk; `goblin` is not wired; libc/compiler generation heuristics are not calibrated beyond the crafted fixtures. The 1.3.7 manual matrix (Capabilities run 43079862360) stopped at the formatting gate on all six OS/Node cells, before build or capability tests; no cross-platform result is inferred from that run. Capabilities run 43084133732 exposed malformed PowerShell source on Windows (fixed in 1.3.9) and a Windows capability file that finished all 108 checks but did not exit (F-84, fixed in 1.3.10). The full matrix is green on commit `78a47fd` (Capabilities 43172993614, Structure 43173076031, Mutation 43173019792, Golden 43173044415, Supply chain 43173096703). An earlier green matrix on `f85200e` is superseded by this final verification run. The earlier N closure matrix remains recorded for commit `b5ea3fa` (Capabilities 43059743774, Structure 43059819947, Supply chain 43059851184). Windows/macOS hard sandbox isolation remains a recorded limitation from M. |
 
 ## Delivery plan: foundation A–L and product patches M–Q
@@ -380,8 +380,8 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 - [ ] Two scenarios on lawful fixtures; explicit limitation where no oracle or licensed environment exists.
 
 *8. Debts due in this patch* (one box per debt; a debt whose box already sits in sections 1–7 is only named here)
-- [ ] F-08 macOS part: single-PID fast path for inspection and sampling (step 0).
-- [ ] R-19 macOS part: `libproc`-based sampling instead of reading the full process table (step 0).
+- [x] F-08 macOS part: single-PID fast path for inspection and sampling (step 0; 1.3.11, `ps -p`).
+- [x] R-19 macOS part: sampling without reading the full process table (step 0; 1.3.11, `ps -p` + `pgrep -P`; true libproc not used — zero runtime native deps).
 - [ ] R-04: hostile-input property tests (`fast-check`) for the 68k, PEF, Mach-O/fat, resource-fork, container and HFS parsers (step 3).
 - [ ] R-02: every new source of untrusted text (resource strings, `Info.plist`, installer metadata) passes through the untrusted-content wrapper, with an adversarial fixture (step 3).
 - [ ] R-15: golden results and a manual CI job for the O reference trials (step 8).
@@ -600,8 +600,8 @@ Approved tasks that are **not** closed, collected from the backlog, the patch re
 | R-04 | Fuzz and property tests (`fast-check`) for parsers | D (done) | Partial: deterministic hostile process-parser corpus; `fast-check` property tests for a.out/ELF/archive parsers closed in 1.3.10; parsers of O, P and Q remain in their steps | *Approved:* step 3 of M, N, O and P for the parsers each patch adds (boxes in sections 1 or 8 of those plans); newer-generation parsers in Q step 4 |
 | R-05 | Linter, `knip`, `jscpd`, own-line size gate | C (done) | Done in 1.3.10: Biome linter, `jscpd` and `knip` join the format/size gates and `quality:static` in CI | *Approved:* N step 0; **closed in 1.3.10** |
 | R-07 | Contract-first MCP (docs generated from one definition) | D (done) | **Closed in 1.3.6:** `docs/MCP.md` tool table generated from the registry used by `tools/list`; drift check is a CI gate | *Approved:* N step 0; closed in post-N maintenance 1.3.6 |
-| R-19 | Windows/macOS metric parity: persistent helpers instead of a fork per sample; `typeperf`/ETW and `libproc` | D/H (done) | Windows persistent helper implemented in 1.3.6, verified by the green matrix on `78a47fd` (Capabilities 43172993614); macOS `libproc` portion remains open | *Approved:* Windows part N step 0 (**closed in 1.3.10**); macOS part O step 0 |
-| F-08 | Single-PID fast path for inspection and sampling | B (done) | Linux and Windows done; macOS reads the full table | *Approved:* O step 0 (box in the O plan, section 8) |
+| R-19 | Windows/macOS metric parity: persistent helpers instead of a fork per sample; `typeperf`/ETW and `libproc` | D/H (done) | Windows persistent helper closed in 1.3.10; macOS single-PID `ps -p` / `pgrep -P` sampling closed in 1.3.11 (true libproc not used — zero runtime native deps) | *Closed:* Windows N step 0 (1.3.10); macOS O step 0 (**1.3.11**) |
+| F-08 | Single-PID fast path for inspection and sampling | B (done) | Linux, Windows and macOS done (`ps -p` on darwin, 1.3.11) | *Closed:* O step 0 (**1.3.11**) |
 | F-06 | MCP protocol: stateless 2026 protocol era | D (done) | Stateful revisions through 2025-11-25 only | *Approved:* Q step 0 (box in the Q plan, section 6) |
 | R-08 / R-18 / H-09 | Full live-agent evaluation corpus harness; optional single-file binary | L | Core shipped in 1.0.0; lite evaluation (`evaluateAgentPrompts`) in 1.0.1; full harness and single binary open | *Approved:* Q step 9 (box in the Q plan, section 6) |
 | H-03 / H-04 / H-05 / H-06 / H-07 / H-08 / H-10 | Similarity adapters, deterministic-first rule, authorization enforcement, corpus policy, oracle rule, calibrated reference corpus, authorization record in reports | M (introduced) | H-03 partial (Ghidra BSim extension only, no configured corpus); H-04 partial (no legacy analogy tags emitted); H-05 and H-10 closed for current M/N APIs in 1.3.7; H-06 calibration-manifest policy enforced, similarity corpus remains local/operator supplied; H-07 L0 oracle rule enforced; H-08 partial (metrics implemented, small crafted corpus not representative) | Remaining similarity/calibration scope continues in O–Q |
@@ -643,8 +643,8 @@ These capabilities are **not** implemented and must not be described as availabl
 | R-05 linter, `knip`, `jscpd`; F-33 remainder | N step 0 | **Closed 1.3.10** (gates CI-gated) |
 | R-07 contract-first MCP (docs from one definition) | N step 0 | **closed 1.3.6** |
 | R-01 mutation testing on the pure modules | N step 0 | **Closed 1.3.10** (baseline 47.72 %) |
-| R-19 metric parity | Windows part: N step 0; macOS part together with F-08: O step 0 | **Windows closed 1.3.10 (matrix green on `78a47fd` / 43172993614); macOS open for O step 0** |
-| F-08 macOS single-PID fast path | O step 0 | approved |
+| R-19 metric parity | Windows part: N step 0; macOS part together with F-08: O step 0 | **Windows closed 1.3.10; macOS closed 1.3.11 (`ps -p` / `pgrep -P`) ** |
+| F-08 macOS single-PID fast path | O step 0 | **Closed 1.3.11** |
 | R-12 profile ingestion | Android formats (`simpleperf`, Perfetto): P step 6; `perf`, pprof, `.cpuprofile`, Speedscope, Firefox Profiler, bpftrace, ETW, per-process network I/O: Q step 6 | approved |
 | Android items of the Audit 8 non-claims (AXML, DEX class listing, Gradle/build dependencies, Frida call-frequency and `Java.perform` scripts, Perfetto, `dumpsys`) | P steps 3 and 6 | approved |
 | Other Audit 8 non-claims (CVE and registry queries, dependency-size recommendations, test-framework discovery, continuous Frida profiles for non-Android targets, ETW hotspots, network I/O, full CFG/decompilation/xrefs/BSim without a corpus) | Q step 6 or an explicit limitation at Q step 10; full CFG, decompilation and BSim stay provider-backed and are never claimed as built in | approved |
@@ -921,7 +921,7 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | F-05 | Validation never matches truncated output | closed in 0.2.0-beta.2; normalization rules in **I** |
 | F-06 | (a)–(c) protocol errors | closed in 0.2.0-beta.2; stateful revisions through 2025-11-25, titles, output schemas and annotations in 0.2.0-beta.6; stateless 2026 protocol remains open |
 | F-07 | Page size and `CLK_TCK` read from the OS; one documented CPU-percent convention | closed in 0.2.0-beta.6 |
-| F-08 | Single-PID fast path for inspection and sampling; cached `btime`, page size, tick rate | Linux inspection fast path and cached constants in 0.2.0-beta.6; Windows single-PID query in 0.2.0-beta.8; macOS remains partial |
+| F-08 | Single-PID fast path for inspection and sampling; cached `btime`, page size, tick rate | **closed in 1.3.11** (Linux `/proc`, Windows CIM, macOS `ps -p` + `pgrep -P`) |
 | F-09 | File and size caps, `lstat`, `.wasm`; comment-aware imports | closed in 0.2.0-beta.2 (caps); comment-aware imports closed in **0.3.0-beta.1 / E** (not full AST) |
 | F-10 | Dependency groups kept per group, `peerDependencies`, lockfiles | closed in **0.3.0-beta.1 / E** |
 | F-11 | Streamed hashing, atomic evidence writes, lookup by evidence id, one evidence code path | closed in 0.2.0-beta.6 (shared atomic JSON writer) |
@@ -1036,7 +1036,7 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | R-16 | Node support window: drop Node 20, `engines` and matrix to 22 and 24 | closed in 0.2.0-beta.3 |
 | R-17 | Node built-ins instead of code: `util.parseArgs`, `AbortSignal.timeout`, `fs.glob`, test coverage, `os.availableParallelism` | closed in 0.2.0-beta.6 |
 | R-18 | Distribution: `npx` entry, install scripts that only check Node and print configuration, optional single binary, `server.json` for MCP registries | **L** |
-| R-19 | Windows and macOS metric parity: persistent helpers instead of a fork per sample; `typeperf`/ETW and `libproc` providers | Windows persistent PowerShell helper implemented in 1.3.6 and verified in 1.3.10; macOS `libproc` and other parity work remain for O |
+| R-19 | Windows and macOS metric parity: persistent helpers instead of a fork per sample; `typeperf`/ETW and `libproc` providers | **closed** — Windows 1.3.10; macOS 1.3.11 (`ps -p` / `pgrep -P`; true libproc not used) |
 | R-20 | Sandbox for executed targets under `CONTROLLED_EXECUTION` (bwrap/unshare, sandbox-exec, Job Objects/AppContainer or a container provider; no network by default; scratch directory; rlimits) | **M step 5 (2026-11-11):** Linux bwrap/unshare when present; process-group+scratch+timeout everywhere; Windows/macOS hard isolation still open |
 
 ### Goal gaps (Audit 2, approved 2026-11-09)
@@ -1153,6 +1153,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.3.8 | CI formatting recovery and capability-report aggregation guard | 2026-11-11; local format/quality/structure checks and 123 unit tests; locked toolchain and full `os: all` rerun pending |
 | 1.3.9 | Windows persistent PowerShell helper protocol recovery | 2026-11-11; local helper-script contract test; Windows verified later by the matrix on `f85200e` |
 | 1.3.10 | R-04, R-05, R-01, R-19 Windows, F-80–F-84 closure; documentation sync | 2026-11-12; final green matrix on `78a47fd`: Capabilities 43172993614, Structure 43173076031, Mutation 43173019792 (47.72 %), Golden 43173044415, Supply chain 43173096703 |
+| 1.3.11 | O step 0: F-08 macOS + R-19 macOS (`ps -p` single-PID path, `pgrep -P` children; no native libproc) | 2026-11-12; local Linux verification; macOS path pending matrix |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP

@@ -1,3 +1,20 @@
+## Audit 25 — 2026-11-12 — O step 0: macOS single-PID process path (1.3.11)
+
+**Scope.** Close F-08 macOS and R-19 macOS before Patch O feature work. No Classic Mac format work is included.
+
+**Findings closed.**
+
+| ID | Severity | Area | Summary | Status |
+|---|---|---|---|---|
+| F-08 | Medium | Processes / macOS | Single-PID inspection enumerated the full `ps -ax` table | Status: closed in 1.3.11 — `ps -p <pid>` + `pgrep -P` for children |
+| R-19 (macOS) | Medium | Processes / macOS | Sampling forked a full-table `ps` per sample; debt named `libproc` | Status: closed in 1.3.11 for the stated goal (no full-table read on inspect/sample). True `libproc` is not used: zero runtime native dependencies; pure `ps -p` is the portable equivalent |
+
+**Implementation notes.** `macOsInfo` in `process-inspector.ts` runs two `ps -p` calls (metrics columns and args) and optional `pgrep -P` for direct children. Inventory (`listProcesses`) still uses full `ps -ax`. Coverage notes state the limitation explicitly. Linux and Windows fast paths are unchanged.
+
+**Verification.** Structure check passes. Unit/capability suite on Linux host: process checks remain green (darwin branch is compile-time selected). Full macOS matrix verification is pending the next `os: all` run.
+
+---
+
 ## Audit 24 — 2026-11-12 — Documentation sync after green 1.3.10 matrix (no product code change)
 
 **Scope.** Align ROADMAP, CAPABILITIES, AUDIT, MCP, ARCHITECTURE, README and SECURITY with the final green matrix on commit `78a47fd` and with the debts audit. Close documentation debts that are confirmed by logs or existing code. No version bump and no product-feature work; this is a documentation-only maintenance entry (no patch letter).
