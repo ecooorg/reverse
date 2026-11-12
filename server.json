@@ -5,6 +5,6 @@
   "args": [
     "mcp"
   ],
-  "version": "1.5.1",
+  "version": "1.5.2",
   "transport": "stdio"
 }
