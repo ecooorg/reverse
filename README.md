@@ -93,7 +93,7 @@ The server writes protocol messages to stdout. Do not add logging to stdout; dia
 7. Analogies and AI guesses are hypotheses, kept apart from facts and promoted only by same-session Validation or Benchmark evidence.
 8. The legacy track is for open-source software or software whose developers and rights holders consent; see [SECURITY.md](docs/SECURITY.md).
 
-## Project status (1.3.11 — O step 0)
+## Project status
 
 - **Done:** patches **A–K** and **L** are the 1.0 baseline (process State as of **1.5.5** (Patch O closed — Classic Mac / early macOS; post-close maintenance green; 2026-11-12).
 
