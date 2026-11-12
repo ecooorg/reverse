@@ -2866,6 +2866,12 @@ check('Legacy Android', 'controlled install plan refuses without confirm and ser
     const plan = planAndroidControlledInstall({ apkPath: '/tmp/x.apk', confirm: false });
     assert.equal(plan.allowed, false);
 });
+check('Legacy Android', 'L0 reference trials pass on crafted fixtures', async () => {
+    const url = pathToFileURL(path.join(DIST, 'legacy-android-reference-trials.js')).href;
+    const { runAndroidReferenceTrials } = await import(url);
+    const report = await runAndroidReferenceTrials();
+    assert.equal(report.ok, true);
+});
 check('Roadmap', 'M and N status, version and O entry criteria are internally consistent', () => {
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const architecture = readFileSync(path.join(ROOT, 'docs/ARCHITECTURE.md'), 'utf8');

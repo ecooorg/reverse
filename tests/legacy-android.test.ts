@@ -7,6 +7,7 @@ import { analyzeLegacyAndroid, parseAxmlSdkHints } from '../dist/legacy-android.
 import { runAndroidCalibration } from '../dist/legacy-android-calibration.js';
 import { diagnoseAndroidFromTables, assertAndroidTablesValid } from '../dist/legacy-android-tables.js';
 import { runAndroidWorksFailsMatrix, planAndroidControlledInstall } from '../dist/legacy-android-behavior.js';
+import { runAndroidReferenceTrials } from '../dist/legacy-android-reference-trials.js';
 import { LegacyAuthorizationError } from '../dist/legacy-gate.js';
 const AUTH = {
     basis: 'open_source' as const,
@@ -92,4 +93,9 @@ test('planAndroidControlledInstall refuses without controlled mode/serial', () =
     });
     assert.equal(plan.allowed, false);
     assert.ok(plan.limitations.length >= 1);
+});
+test('Android L0 reference trials pass on crafted fixtures', async () => {
+    const report = await runAndroidReferenceTrials();
+    assert.equal(report.ok, true);
+    assert.ok(report.trials.length >= 2);
 });
