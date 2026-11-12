@@ -20,6 +20,10 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 concurrency:
   group: nightly-full-verification-${{ github.ref }}
   cancel-in-progress: false
@@ -236,8 +240,7 @@ jobs:
         if: always()
         run: |
           mkdir -p ci-logs
-          npm run mutation:summary -- reports/mutation/mutation.json ci-logs/mutation-report.json
-          cat ci-logs/mutation-report.json >> "$GITHUB_STEP_SUMMARY"
+          node tests/mutation-summary.mjs reports/mutation/mutation.json ci-logs/mutation-report.json | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Upload mutation report
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
