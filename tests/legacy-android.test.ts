@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import { analyzeLegacyAndroid } from '../dist/legacy-android.js';
+import { analyzeLegacyAndroid, parseAxmlSdkHints } from '../dist/legacy-android.js';
+import { runAndroidCalibration } from '../dist/legacy-android-calibration.js';
 import { LegacyAuthorizationError } from '../dist/legacy-gate.js';
 const AUTH = {
     basis: 'open_source' as const,
@@ -38,4 +39,19 @@ test('DEX magic yields format DEX and Target Profile Android family', async () =
     finally {
         await rm(dir, { recursive: true, force: true });
     }
+});
+test('parseAxmlSdkHints reads embedded minSdkVersion', () => {
+    const b = Buffer.alloc(256);
+    b.writeUInt32LE(0x00080003, 0);
+    Buffer.from('minSdkVersion', 'utf16le').copy(b, 64);
+    const at = 64 + Buffer.from('minSdkVersion', 'utf16le').length + 4;
+    b[at] = 0x10;
+    b.writeInt32LE(19, at + 4);
+    const h = parseAxmlSdkHints(b);
+    assert.equal(h.minSdk, 19);
+});
+test('Android calibration crafted fixtures pass', async () => {
+    const report = await runAndroidCalibration();
+    assert.equal(report.ok, true);
+    assert.ok(report.cases.length >= 2);
 });

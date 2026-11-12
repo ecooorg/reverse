@@ -2810,6 +2810,12 @@ check('Legacy Android', 'analyzeLegacyAndroid fills Android Target Profile on DE
         await rm(dir, { recursive: true, force: true });
     }
 });
+check('Legacy Android', 'calibration fixtures pass on crafted DEX and AXML', async () => {
+    const url = pathToFileURL(path.join(DIST, 'legacy-android-calibration.js')).href;
+    const { runAndroidCalibration } = await import(url);
+    const report = await runAndroidCalibration();
+    assert.equal(report.ok, true);
+});
 check('Roadmap', 'M and N status, version and O entry criteria are internally consistent', () => {
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const architecture = readFileSync(path.join(ROOT, 'docs/ARCHITECTURE.md'), 'utf8');
