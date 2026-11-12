@@ -384,7 +384,7 @@ researchTools.push({
 researchTools.push({
     name: 'analyze_legacy_linux',
     description: 'Statically inspect a.out/ELF headers, DT_NEEDED, interpreter, libc/GCC markers '
-        + 'and sourced Linux diagnosis. Requires session authorization; never executes the target.',
+        + 'and sourced Linux diagnosis. Needs research-session authorization; does not execute the target.',
     inputSchema: {
         type: 'object',
         properties: { file: { type: 'string' }, session_id: { type: 'string' } },
@@ -394,7 +394,7 @@ researchTools.push({
 researchTools.push({
     name: 'analyze_legacy_mac',
     description: 'Statically inspect classic Mac / early macOS formats (Mach-O, fat, PEF, AppleDouble) '
-        + 'and fill Mac Target Profile fields. Requires session authorization; never executes the target.',
+        + 'and fill Mac Target Profile fields. Needs research-session authorization; static only, no execution.',
     inputSchema: {
         type: 'object',
         properties: { file: { type: 'string' }, session_id: { type: 'string' } },
