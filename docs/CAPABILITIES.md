@@ -357,3 +357,12 @@ Classic Mac / early macOS static analysis and limited execution adapters are **d
 | `adb` / `emulator` ExecutionEnvironment | ✅ detect-only |
 | `runAndroidWorksFailsMatrix` | ✅ unsupported without SERIAL/AVD |
 | Automated install/run | 🚧 operator confirm path |
+
+
+### P step 5 (1.5.4)
+
+| Item | Status |
+|---|---|
+| `planAndroidControlledInstall` | ✅ gated (mode + confirm + serial) |
+| Host `runAndroidBehaviorRoundTrip` | ✅ via shared capture/replay |
+| Device logcat/uiautomator capture | 🚧 |
