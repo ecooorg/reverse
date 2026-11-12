@@ -1,0 +1,124 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
+import { analyzeLegacyMac } from '../dist/legacy-mac.js';
+import type { LegacyAuthorization } from '../dist/legacy-types.js';
+const AUTH: LegacyAuthorization = {
+    basis: 'open_source',
+    licenseOrConsentReference: 'test-fixture',
+    declaredBy: 'unit-test',
+    declaredAt: new Date().toISOString(),
+};
+function machO32LeHeader(cpu = 7): Buffer {
+    // MH_MAGIC little-endian 32-bit, minimal header, 0 load commands
+    const b = Buffer.alloc(28);
+    b.writeUInt32LE(0xfeedface, 0);
+    b.writeUInt32LE(cpu, 4); // cputype
+    b.writeUInt32LE(0, 8); // cpusubtype
+    b.writeUInt32LE(2, 12); // filetype MH_EXECUTE
+    b.writeUInt32LE(0, 16); // ncmds
+    b.writeUInt32LE(0, 20); // sizeofcmds
+    b.writeUInt32LE(0, 24); // flags
+    return b;
+}
+function pefHeader(arch = 'pwpc'): Buffer {
+    const b = Buffer.alloc(40);
+    b.writeUInt32BE(0x4a6f7921, 0); // Joy!
+    Buffer.from(arch.padEnd(4, '\0')).copy(b, 4);
+    return b;
+}
+function appleDoubleWithFinder(): Buffer {
+    // magic, version, filler, entry count = 1, entry id=9 (Finder), offset=38, length=8
+    const b = Buffer.alloc(46);
+    b.writeUInt32BE(0x00051607, 0);
+    b.writeUInt32BE(0x00020000, 4);
+    b.writeUInt16BE(1, 24);
+    b.writeUInt32BE(9, 26);
+    b.writeUInt32BE(38, 30);
+    b.writeUInt32BE(8, 34);
+    b.write('APPL', 38); // type
+    b.write('ttxt', 42); // creator
+    return b;
+}
+test('analyzeLegacyMac refuses without authorization', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'mac-auth-'));
+    try {
+        const f = path.join(dir, 'x.bin');
+        await writeFile(f, machO32LeHeader());
+        await assert.rejects(() => analyzeLegacyMac(f, null), /authorization/i);
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
+test('analyzeLegacyMac recognizes little-endian Mach-O 32-bit x86', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'mac-macho-'));
+    try {
+        const f = path.join(dir, 'a.out');
+        await writeFile(f, machO32LeHeader(7));
+        const r: any = await analyzeLegacyMac(f, AUTH);
+        assert.equal(r.status, 'completed');
+        const finding = r.findings[0];
+        assert.equal(finding.format, 'mach-o');
+        assert.equal(finding.bitness, 32);
+        assert.equal(finding.endian, 'little');
+        assert.equal(finding.targetProfile.codeModel.value, 'mach-o');
+        assert.equal(finding.targetProfile.endianness.value, 'little');
+        assert.ok(finding.authorization.basis === 'open_source');
+        assert.ok(finding.sha256);
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
+test('analyzeLegacyMac recognizes PEF PowerPC', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'mac-pef-'));
+    try {
+        const f = path.join(dir, 'app.pef');
+        await writeFile(f, pefHeader('pwpc'));
+        const r: any = await analyzeLegacyMac(f, AUTH);
+        assert.equal(r.status, 'completed');
+        const finding = r.findings[0];
+        assert.equal(finding.format, 'pef-cfm');
+        assert.match(finding.architecture, /PowerPC/i);
+        assert.equal(finding.targetProfile.codeModel.value, 'pef-cfm');
+        assert.ok(finding.targetProfile.rosettaOr32BitDependence.value.length >= 1);
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
+test('analyzeLegacyMac reads AppleDouble Finder type/creator', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'mac-ad-'));
+    try {
+        const f = path.join(dir, '._doc');
+        await writeFile(f, appleDoubleWithFinder());
+        const r: any = await analyzeLegacyMac(f, AUTH);
+        assert.equal(r.status, 'completed');
+        const finding = r.findings[0];
+        assert.ok(finding.format === 'appledouble' || finding.format === '68k-code' || finding.format === 'pef-cfm');
+        assert.ok(finding.creatorType);
+        assert.equal(finding.creatorType.type, 'APPL');
+        assert.equal(finding.creatorType.creator, 'ttxt');
+        assert.equal(finding.targetProfile.creatorType.value?.type, 'APPL');
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
+test('analyzeLegacyMac unknown bytes yield partial', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'mac-unk-'));
+    try {
+        const f = path.join(dir, 'noise.bin');
+        await writeFile(f, Buffer.from('not a mac binary at all'));
+        const r: any = await analyzeLegacyMac(f, AUTH);
+        assert.equal(r.status, 'partial');
+        assert.equal(r.findings[0].format, 'unknown');
+        assert.equal(r.findings[0].targetProfile.codeModel.value, null);
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});

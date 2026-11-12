@@ -1872,6 +1872,7 @@ const DOCUMENTED_TOOLS = [
     'declare_legacy_authorization',
     'analyze_legacy_windows',
     'analyze_legacy_linux',
+    'analyze_legacy_mac',
     'create_change_workspace',
     'apply_change',
     'rollback_change',
@@ -2534,6 +2535,35 @@ check('Legacy governance', 'calibration corpus manifest rejects embedded data an
         await rm(dir, { recursive: true, force: true });
     }
 });
+check('Legacy Mac', 'analyzeLegacyMac recognizes Mach-O and fills Mac Target Profile fields', async () => {
+    const { analyzeLegacyMac } = await import(pathToFileURL(path.join(DIST, 'legacy-mac.js')).href);
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'cap-mac-'));
+    try {
+        const f = path.join(dir, 'tiny-macho');
+        const b = Buffer.alloc(28);
+        b.writeUInt32LE(0xfeedface, 0);
+        b.writeUInt32LE(7, 4);
+        b.writeUInt32LE(0, 8);
+        b.writeUInt32LE(2, 12);
+        await writeFile(f, b);
+        const r: any = await analyzeLegacyMac(f, {
+            basis: 'open_source',
+            licenseOrConsentReference: 'cap-fixture',
+            declaredBy: 'capability-suite',
+            declaredAt: new Date().toISOString(),
+        });
+        assert.equal(r.status, 'completed');
+        assert.equal(r.findings[0].format, 'mach-o');
+        assert.equal(r.findings[0].targetProfile.codeModel.value, 'mach-o');
+        assert.ok(r.findings[0].targetProfile.endianness.value === 'little');
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
+check('Legacy Mac', 'analyze_legacy_mac is registered in the MCP tool contract', () => {
+    assert.ok(DOCUMENTED_TOOLS.includes('analyze_legacy_mac'));
+});
 check('Legacy Linux', 'Linux support matrix names the implemented a.out and ELF detectors', () => {
     const docs = readFileSync(path.join(ROOT, 'docs/CAPABILITIES.md'), 'utf8');
     assert.match(docs, /Linux a\.out.*ELF32.*ELF64/s);
@@ -2543,8 +2573,8 @@ check('Roadmap', 'M and N status, version and O entry criteria are internally co
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const architecture = readFileSync(path.join(ROOT, 'docs/ARCHITECTURE.md'), 'utf8');
     const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
-    assert.equal(pkg.version, '1.3.12');
-    assert.match(roadmap, /State as of \*\*1\.3\.12\*\*/);
+    assert.equal(pkg.version, '1.3.13');
+    assert.match(roadmap, /State as of \*\*1\.3\.13\*\*/);
     assert.match(roadmap, /Patch M.*\*\*done\*\*/s);
     assert.match(roadmap, /Patch N.*\*\*done\*\*/s);
     // O step 0 is closed; feature work (steps 1+) is the active product unit.
