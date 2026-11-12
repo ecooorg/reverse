@@ -1,6 +1,6 @@
 # Architecture
 
-Sections marked **implemented**, or named after the patch that delivered them, describe what exists today (1.1.0-beta.2). Headings still marked **(0.1.0)** (*Layers*, *Data flow*) describe the original structure that every later patch kept. Sections marked **(planned)** describe the target design and the patch in which it is scheduled; see [ROADMAP.md](ROADMAP.md) (start with its *Status at a glance*). Nothing marked *planned* should be treated as implemented.
+Sections marked **implemented**, or named after the patch that delivered them, describe what exists today (1.3.10). Headings still marked **(0.1.0)** (*Layers*, *Data flow*) describe the original structure that every later patch kept. Sections marked **(planned)** describe the target design and the patch in which it is scheduled; see [ROADMAP.md](ROADMAP.md) (start with its *Status at a glance*). Nothing marked *planned* should be treated as implemented.
 
 ## Purpose and design principles
 

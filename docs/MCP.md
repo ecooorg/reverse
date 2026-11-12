@@ -131,7 +131,7 @@ Default bind `127.0.0.1:7331`. Not full MCP Streamable HTTP.
 | `resources/read` | Read local JSON artifact by URI |
 
 
-## Legacy Windows tools (patch M, initial slice; M remains in progress)
+## Legacy Windows tools (patch M, closed at 1.2.0)
 
 1. Call `create_research_session` with the target identifier.
 2. Call `declare_legacy_authorization` with `basis` (`open_source` or `written_consent`), a human-readable `license_or_consent_reference`, and `declared_by`. This records the operator's declaration; Reverse does not validate the legal basis.

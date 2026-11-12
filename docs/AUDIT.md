@@ -1,3 +1,29 @@
+## Audit 24 — 2026-11-12 — Documentation sync after green 1.3.10 matrix (no product code change)
+
+**Scope.** Align ROADMAP, CAPABILITIES, AUDIT, MCP, ARCHITECTURE, README and SECURITY with the final green matrix on commit `78a47fd` and with the debts audit. Close documentation debts that are confirmed by logs or existing code. No version bump and no product-feature work; this is a documentation-only maintenance entry (no patch letter).
+
+**Findings.**
+
+| ID | Severity | Area | Summary | Status |
+|---|---|---|---|---|
+| F-85 | Low | Documentation | Drift after 1.3.10: CAPABILITIES labelled Patch M in progress; ROADMAP debt register had a contradictory G-01…G-10 row; Status at a glance cited superseded run IDs; MCP/ARCHITECTURE/README/SECURITY carried stale M-in-progress and sandbox wording | Status: closed in this documentation sync |
+| F-86 | Low | Supply chain (dev) | `npm ci` reports 4 moderate advisories in the full tree (minimatch via Stryker, qs via typed-rest-client); production audit (`--omit=dev`) is clean | Status: open; dev-only; do not change dependencies without maintainer approval |
+
+**Closures confirmed by the final matrix (Capabilities 43172993614 and companions on `78a47fd`).**
+
+- **F-80** — format gate passes (109 TypeScript files). Status: closed in 1.3.10.
+- **F-81** — summary regression test and green summary job. Status: closed in 1.3.10.
+- **F-82 / F-84** — Windows helper protocol and idle-helper unref. Status: closed in 1.3.9 / 1.3.10; final verification on 43172993614.
+- **R-19 (Windows)** — persistent PowerShell helper verified on all Windows cells. Status: closed in 1.3.10; macOS part remains O step 0.
+- **R-05 / F-33 (available part)** — Biome, jscpd, knip and quality:static are CI-gated; R-03 check ✅ on all six cells. Status: closed in 1.3.10.
+- **F-83** — still open; not reproduced in three consecutive green matrices including 43172993614; root cause unconfirmed; do not weaken timeouts.
+
+**Verification.** Archive matches commit `78a47fd` (149 tracked files; size gate 78 files / 13796 lines). Local: `npm ci`, build, check-structure --built, docs:mcp:check, quality:static and capability suite 157/157 pass on the untouched baseline. Tools/list remains 61 tools.
+
+**Readiness for Patch O.** Entry criteria are met (N closed at 1.3.5; matrix, structure, mutation and golden green on final code). First work items of O are step 0 debts F-08 macOS and R-19 macOS (`inspectProcess` still reads the full `ps -ax` table; no `libproc`). F-83 remains open for observation only.
+
+---
+
 ## Audit 23 — 2026-11-11 — Windows helper protocol recovery and Linux Node 22 timeout (1.3.9)
 
 **Scope.** Diagnose Capabilities run [43084133732](https://github.com/ecooorg/reverse/actions/runs/43084133732). Fix the confirmed Windows persistent PowerShell helper source/framing defect without weakening process, profiling, benchmark or MCP checks. Record the separate Linux Node 22 timeout as unresolved because the available failure brief does not identify a failing capability check. No Patch O work is included.
