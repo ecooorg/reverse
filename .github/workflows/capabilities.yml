@@ -116,7 +116,13 @@ jobs:
           KNIP_DISABLE_RAW_TRANSFER=1 npm run unused:check
           } > ci-logs/03-build-library-cli-and-mcp-server.log 2>&1
       - name: MCP documentation contract
-        run: npm run docs:mcp:check
+        run: |
+          mkdir -p ci-logs
+          export GITHUB_STEP_SUMMARY=ci-logs/03-mcp-documentation-contract.summary.md
+          trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/03-mcp-documentation-contract.exit' EXIT
+          {
+          npm run docs:mcp:check
+          } > ci-logs/03-mcp-documentation-contract.log 2>&1
       - name: Package targets (built tree)
         if: runner.os == 'Linux'
         run: |
