@@ -5,14 +5,16 @@
 **Findings.**
 
 - **F-82 — Persistent PowerShell helper used escaped text instead of line boundaries.** The helper assembled its multiline script with the two-character sequence `\\n` and searched stdout for that same sequence; PowerShell received a malformed `Select-Object` expression and exited before returning process data. The source now joins script lines with LF, frames stdout on LF (stripping an optional CR), and starts PowerShell with UTF-16LE `-EncodedCommand` so multiline source is not subject to `-Command` quoting. A platform-independent test decodes the command and checks the real newline contract. Windows execution remains pending a Windows CI run.
+- **F-84 — Idle Windows helper kept the host process alive.** Run 43105112195: the Windows capability file reported every check as passed but did not exit and was cancelled by the 240 s timeout. The persistent PowerShell child and its three pipes held the event loop, and the `exit` handler that kills the child never ran. Fix: `unref` the child and its streams; pending requests stay alive through their own timers.
 - **F-83 — Linux Node 22 capability-suite timeout/cancellation.** The 1.3.9 source snapshot records that the Linux Node 22 capability job exited with a timeout/cancellation classification in run 43084133732. The available failure brief lists selected successful checks but does not identify the timed-out check or provide the complete test-runner tail. Root cause is therefore unconfirmed; keep open and inspect the full job log on the next run rather than increasing timeouts or weakening checks speculatively.
 
 **Verification.** On Linux with Node 22.16.0 and the available TypeScript 5.8.3 toolchain: `npm test` passes 124/124; a direct capability-suite invocation passes 157/157; `format:check` passes 108 TypeScript files; `quality:static`, size gate, MCP docs check, CI summary tests (12/12), and source/built structure checks pass. `npm ci` was not run, so the locked TypeScript 5.9.3 toolchain is not verified. The `npm run verify` wrapper did not finish within the local command window, although the direct capability suite passed. Windows PowerShell execution and the Linux Node 22.23.4 GitHub matrix remain pending.
 
 | ID | Sev | Area | Finding | Status |
 |---|---|---|---|---|
-| F-82 | High | Windows process helper | Literal escaped newlines malformed the persistent PowerShell script and stdout framing | Status: fixed in 1.3.9; platform-independent contract test added; Windows CI verification pending |
-| F-83 | Medium | CI / Linux Node 22 | Capability suite exited with timeout/cancellation classification; available failure brief does not identify the check | Status: open; requires full Linux Node 22 job-log diagnosis; no timeout policy changed |
+| F-82 | High | Windows process helper | Literal escaped newlines malformed the persistent PowerShell script and stdout framing | Status: fixed in 1.3.9; platform-independent contract test added; verified by the green full matrix on `f85200e` |
+| F-84 | High | Windows process helper | Idle persistent PowerShell helper kept the host process alive; the capability file finished all 108 checks but hit the 240 s timeout | Status: fixed in 1.3.10 (`unref` of helper and pipes); verified by the green full matrix on `f85200e` |
+| F-83 | Medium | CI / Linux Node 22 | Capability suite exited with timeout/cancellation classification; available failure brief does not identify the check | Status: open, not reproduced in the green full matrix (run 43110447213); probable cause F-84 (unconfirmed: the failure-brief header said Linux while log paths were Windows); no timeout policy changed |
 
 ---
 
@@ -602,3 +604,7 @@ Supply chain [43059851184](https://github.com/ecooorg/reverse/actions/runs/43059
 The first red run of this stage (MCP contract: 61 served tools against 60 documented, `analyze_legacy_linux` missing from the fixture and from `docs/MCP.md`) was fixed by aligning the fixture and documentation with the served tool surface; the tool itself was already correct.
 
 Explicit product limitations at N exit: no old-Linux rootfs or oracle bundled (preservation L0); kernel-ABI faults need a VM; string-residue verneed summary only; `goblin` not wired. Step 0 debts R-01, R-05, R-07, R-19 (Windows part) and `fast-check` for R-04 stay open in the carry-over register.
+
+## Maintenance note — release 1.3.10 (2026-11-12)
+
+Green full matrix on commit `f85200e`: Capabilities 43110447213, Structure 43110487271, Supply chain 43111192808, Patch N Linux golden trials 43111237082. 1.3.10 closes R-04, R-05 and R-01 and fixes F-84. Stryker baseline (Linux, Node 22, command runner, 679 mutants in `benchmark-stats`, `process-parse`, `legacy-linux-symver` and `legacy-linux-packages`): **47.72 %** (316 killed, 8 timed out, 355 survived); per module 67.95 / 22.27 / 65.09 / 31.07 %. Floor `thresholds.break` = 45. Open: R-19 macOS and F-08 macOS (O step 0), R-10, R-11 residual, F-83 (not reproduced).

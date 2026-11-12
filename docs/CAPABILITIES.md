@@ -1,6 +1,6 @@
 ## Status
 
-Patch **M** closed at **1.2.0** and Patch **N** closed at **1.3.5** (2026-11-11); post-N debt increment **1.3.6** closes MCP-doc generation and the Linux untrusted-content/golden-trial portions, and implements the Windows persistent helper pending Windows CI. Residual limitations listed per row (L0 without oracle; sandbox hard-isolation gaps; no full `SHT_GNU_verneed` walk, no `goblin`).
+Patch **M** closed at **1.2.0** and Patch **N** closed at **1.3.5** (2026-11-11); post-N debt increments **1.3.6** and **1.3.10** (R-01, R-04, R-05, R-19 Windows) close MCP-doc generation and the Linux untrusted-content/golden-trial portions, and implements the Windows persistent helper pending Windows CI. Residual limitations listed per row (L0 without oracle; sandbox hard-isolation gaps; no full `SHT_GNU_verneed` walk, no `goblin`).
 
 # Capability matrix
 
@@ -192,11 +192,11 @@ The remaining work is one ordered sequence, not parallel capability tracks: M co
 | Debt | Status | Evidence |
 |---|---|---|
 | R-07 MCP contract-first documentation | ✅ | Generated table from the same built tool registry used by `tools/list`; check runs in `npm run verify` and Capabilities CI |
-| R-19 Windows persistent helper | 🚧 pending Windows CI | One PowerShell process serves CIM inventory, single-PID inspection, process-tree snapshots and benchmark samples; 1.3.9 fixes script/stdout newline framing and uses UTF-16LE EncodedCommand, but the Windows lifecycle test still awaits a Windows CI run |
+| R-19 Windows persistent helper | ✅ | One PowerShell process serves CIM inventory, single-PID inspection, process-tree snapshots and benchmark samples; 1.3.9 fixed script/stdout newline framing (UTF-16LE EncodedCommand), 1.3.10 detaches the idle helper from the event loop (F-84); the lifecycle passes in the full matrix on commit `f85200e` |
 | R-02 Linux untrusted text | ✅ | `analyzeLegacyLinux` applies `wrapUntrusted` at its library boundary; adversarial ELF PT_INTERP fixture verifies marker and truncation |
 | R-15 Linux golden trials | ✅ | Golden manifest and manual `Patch N Linux golden trials` workflow; fixture trials remain L0 without an oracle |
 
 
-## Dependency-free static quality gate (R-05 / F-33 partial)
+## Static quality gates and mutation baseline (R-05, R-04, R-01)
 
-`npm run quality:static` is now included in the `quality` and `verify` scripts and in the Capabilities workflow alongside the format and source-size gates. It checks duplicate-like source files and TODO/FIXME markers without adding dependencies. This does **not** close R-05: a dedicated linter, `knip` and `jscpd` remain open.
+`npm run quality:static`, the format check and the own-line size gate (1.3.6) are joined in 1.3.10 by `npm run lint` (Biome, `src` and `tests/*.ts`, warnings are errors), `npm run dup:check` (`jscpd`, 0.83 % baseline, threshold 1.5 %) and `npm run unused:check` (`knip`). All run in the Capabilities workflow static gates step and in `npm run quality`. `tests/legacy-linux-property.test.ts` adds `fast-check` property tests (fixed seed) for the a.out, ELF and archive parsers and `summarizeVerneed`. `npm run mutation` and the manual `Mutation testing` workflow run Stryker on four pure modules; Stryker baseline (Linux, Node 22, command runner, 679 mutants in `benchmark-stats`, `process-parse`, `legacy-linux-symver` and `legacy-linux-packages`): **47.72 %** (316 killed, 8 timed out, 355 survived); per module 67.95 / 22.27 / 65.09 / 31.07 %. Floor `thresholds.break` = 45. The score is a recorded baseline, not a quality claim: two modules (`process-parse`, `legacy-linux-packages`) have many surviving mutants. The `.mjs` CI helpers are outside the lint scope.
