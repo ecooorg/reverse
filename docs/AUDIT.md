@@ -1,3 +1,28 @@
+## Audit 27 — 2026-11-12 — Debt register 1.4.2; Patch P steps 0–1 start (1.5.0)
+
+**Scope.** Fold the 1.4.2 debt-register revision into project docs; correct CAPABILITIES header drift; open **Patch P** (legacy Android) at **1.5.0** with step 0 decision and step 1 authorization-gated Target Profile (`analyze_legacy_android`).
+
+**Debt register (slice 1.4.2 → start of P).**
+
+| Class | IDs | Notes |
+|---|---|---|
+| Closed since 1.3.10 | F-08/R-19 macOS, Patch O at 1.4.0, hygiene 1.4.1–1.4.2 | Do not reopen |
+| Open observe | **F-83** | Linux N22 timeout historically; not reproduced on 1.4.2 green matrix |
+| Open low | **F-86** | 4 moderate dev-tree advisories; production audit clean |
+| Docs | **F-87** | CAPABILITIES intro still cited 1.3.10 / `78a47fd` — **closed in this audit** |
+| Process | **F-88** | `os: all` run ID for O close not yet pasted by maintainer — still open |
+| Residual R | R-10 goblin, R-11 hardening depth, R-20 isolation gaps, verneed walk | Carry-over |
+| O residuals | O-R1…O-R8 | PEF symbols, full HFS B-tree, emulator injection, real ROM matrix, … — explicit 🚧 |
+| G/H partial | G-03…G-06, G-10, H-03, H-08, H-09 | Shared M–Q dimensions |
+
+**Patch P step 0 decision.** Audit 8 Android non-claims are **not** promoted into P scope before step 3. Step 1 delivers authorization + Target Profile only; AXML decode, emulator runs and capture/replay remain later steps.
+
+**Product.** `src/legacy-android.ts` + MCP `analyze_legacy_android`; DEX/APK inventory reused from `analysis-android`; limitations recorded (no AXML decode, no v2/v3 parse).
+
+**Verification.** Structure/format/size gates expected green; capability checks for tool registration and DEX profile. Full matrix after merge.
+
+---
+
 ## Audit 26 — 2026-11-12 — Patch O closed; green matrix on 1.4.2 (documentation)
 
 **Scope.** Record the closure of Patch O (Classic Mac / early macOS) at **1.4.0** and the post-close maintenance line **1.4.1–1.4.2** after a green Capabilities matrix. Documentation-only; no product code change in this entry.

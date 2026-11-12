@@ -18,18 +18,18 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.4.2** (Patch O closed — Classic Mac / early macOS; post-close maintenance green; 2026-11-12).
+State as of **1.5.0** (Patch O closed — Classic Mac / early macOS; post-close maintenance green; 2026-11-12).
 
 **Verification.** Capability matrix **green** on **1.4.2** (operator-confirmed). Patch O remains closed at **1.4.0**; 1.4.1–1.4.2 are post-close hygiene only.
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.4.2** (Patch O closed — Classic Mac / early macOS) |
+| What is the product version? | **1.5.0** (Patch P steps 0–1 — legacy Android Target Profile) |
 | What is finished? | The 1.0 foundation (**patches A–L**), **Patch M** (Windows, **1.2.0**), **Patch N** (old Linux, **1.3.5**), and **Patch O** (Classic Mac / early macOS, **1.4.0**). |
-| What is being built? | **Patch P** is next (legacy Android). Patch O is **done** at 1.4.0 with residual Mac limitations recorded in CAPABILITIES.md. |
+| What is being built? | **Patch P** in progress (legacy Android). Steps 0–1 in **1.5.0**: gate + `analyze_legacy_android` Target Profile. |
 | What has not started? | **Patch Q** (newer generations and unified compatibility intelligence). Patch P is the next product unit. |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Patch P step 0 / entry criteria (legacy Android inventory). |
+| What is the next concrete step? | Patch P step 2 — calibration corpus and deeper static inventory (AXML/minSdk when feasible). |
 | What is open but not blocking? | R-10 residual (`goblin` and later providers), R-11 residual (Mach-O and unified report), F-83 (Linux Node 22 timeout; not reproduced in three consecutive green matrices), F-86 (dev-only moderate advisories), and the low Stryker score on two modules (recorded baseline, floor held). M/N G/H residual scope is itemized below and in `CAPABILITIES.md`. See the [carry-over debt register](#carry-over-debt-register). |
 | What is unverified? | Residual M/N limitations (explicit): no bundled Windows/Linux oracle (preservation stays L0); execution lifecycle lacks snapshot/restore/trace; behavior capture does not cover registry/network/UI/audio/time/randomness or code coverage; no function-level equivalence lab; migration options are limited; similarity BSim is unconfigured; calibration uses small crafted corpora; containers share the host kernel; the verneed summary is a string-residue scan, not a full `SHT_GNU_verneed` walk; `goblin` is not wired; libc/compiler generation heuristics are not calibrated beyond the crafted fixtures. The 1.3.7 manual matrix (Capabilities run 43079862360) stopped at the formatting gate on all six OS/Node cells, before build or capability tests; no cross-platform result is inferred from that run. Capabilities run 43084133732 exposed malformed PowerShell source on Windows (fixed in 1.3.9) and a Windows capability file that finished all 108 checks but did not exit (F-84, fixed in 1.3.10). The full matrix is green on commit `78a47fd` (Capabilities 43172993614, Structure 43173076031, Mutation 43173019792, Golden 43173044415, Supply chain 43173096703). An earlier green matrix on `f85200e` is superseded by this final verification run. The earlier N closure matrix remains recorded for commit `b5ea3fa` (Capabilities 43059743774, Structure 43059819947, Supply chain 43059851184). Windows/macOS hard sandbox isolation remains a recorded limitation from M. |
 
@@ -71,7 +71,7 @@ One table for every patch. Patches A–L are the completed 1.0 foundation; M–Q
 | M | Windows compatibility, DOS through Windows 7-era (up to 2010) | 1.2 | A–L foundation; steps 0–8; reference trials | **done** (1.2.0) |
 | N | Old Linux software | 1.3 | M shared contracts and evidence model | **done** (1.3.5) |
 | O | Classic Mac and early macOS software | 1.4 | N shared contracts and environment/replay foundations | **done** (1.4.0) |
-| P | Legacy Android software | 1.5 | O shared contracts; Android foundations already present in E/J | not started |
+| P | Legacy Android software | 1.5 | O shared contracts; Android foundations already present in E/J | **in progress** (1.5.0 steps 0–1) |
 | Q | Newer generations and unified compatibility intelligence | 2.0 | M–P complete | not started |
 
 B and C can proceed in parallel after A; E can start at the same time. G and H can proceed in parallel once F is done (historical note; A–L are complete).
@@ -417,7 +417,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 **Verification.** Capability suite and unit tests cover the delivered surface. Manual `os: all` green run ID to be recorded by the maintainer after this release tag lands.
 
 
-### Patch P working plan — Legacy Android software (target release 1.5, not started)
+### Patch P working plan — Legacy Android software (target release 1.5, **in progress**)
 
 **Outcome.** Reverse can take an old Android application (roughly Android 1.0 to 5.1, API levels 1 to 22, Dalvik and early ART, 2008 to about 2015) and (a) identify its build, runtime and native components, (b) name the concrete causes it fails on a current device, (c) run it on an emulator or device of a suitable API level under controlled conditions, (d) capture and replay deterministic scenarios, (e) validate a repaired, retargeted or rebuilt version against the original, and (f) rank migration options. The Android foundations from E, F, G, H and J are reused, not rewritten.
 
@@ -437,7 +437,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 
 | Step | Work | Closes | Exit criteria |
 |---|---|---|---|
-| 0 | Debts due: nothing blocking; decide with the maintainer whether any of the Android-related Audit 8 non-claims (see the register) is promoted into P scope before step 3 | none | Decision recorded |
+| 0 | Debts due: nothing blocking; decide with the maintainer whether any of the Android-related Audit 8 non-claims (see the register) is promoted into P scope before step 3 | none | **Done in 1.5.0 / Audit 27:** non-claims **not** promoted before step 3 |
 | 1 | Legacy-Android fields in the shared Target Profile (API levels, runtime, ABIs, build system, signing scheme, framework-behavior flags, services dependencies) | Section 1 | No second schema |
 | 2 | Ground-truth corpus and calibration: crafted AXML/DEX/ARSC fixtures, open-source or consented APKs | H-08 for P | Precision and recall reported per detector |
 | 3 | Static inventory: binary AXML decoder, `resources.arsc` reader, DEX class and method listing, signature scheme detection, ABI and native-library inventory, build-system and dependency identification (Ant, ADT, Gradle files where present), Play-services dependency detection, hostile-input property tests, Android rows of the support matrix | G-02 (Android), G-09 (Android), R-04 (AXML/DEX/ARSC parsers) | Every field has evidence; the manifest and class listing no longer depend on JADX or Apktool being present |
@@ -1194,6 +1194,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.4.0 | **Patch O closed** — Classic Mac / early macOS; residuals documented |
 | 1.4.1 | Wire diffDiskImageHashes into tests (knip unused export) |
 | 1.4.2 | ROADMAP status table O done; suite no longer expects O in progress |
+| 1.5.0 | **Patch P start** — steps 0–1: `analyze_legacy_android`, Audit 27 debt register |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP
@@ -1409,3 +1410,12 @@ The core is considered ready for first production use when it:
 12. allows new analyzers to be connected.
 
 Trials cover at least two scenarios: detecting a real performance problem, and verifying an optimization with a measurable result. Three things are never traded for size: Evidence (otherwise the agent decides on unreliable assumptions), Profiler plus Benchmark (otherwise optimization effectiveness cannot be established objectively), and Validation (otherwise a faster but broken program can result).
+
+
+## Debt register (1.4.2 / Audit 27)
+
+Authoritative narrative: **Audit 27**. Summary:
+
+- **Open:** F-83 (observe), F-86 (dev npm audit), F-88 (record O `os: all` run ID), R-10/R-11/R-20 residuals, Linux verneed/goblin gaps, O-R1…O-R8, shared G/H partials.
+- **Closed:** F-87 (CAPABILITIES header drift) in 1.5.0 docs; F-08/R-19 macOS; Patch O product scope at 1.4.0.
+- **Backlog product:** Patch P (in progress), Patch Q (not started).

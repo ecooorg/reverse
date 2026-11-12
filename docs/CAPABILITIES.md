@@ -325,3 +325,15 @@ Classic Mac / early macOS static analysis and limited execution adapters are **d
 | Emulator input injection / screenshots | 🚧 residual |
 | Full PEF export/import symbol tables | 🚧 residual |
 | Real ROM boot matrix | 🚧 residual (operator media) |
+
+
+## Legacy Android (Patch P steps 0–1, 1.5.0)
+
+| Capability | Status | Notes |
+|---|---|---|
+| `analyze_legacy_android` + authorization gate | ✅ | Session or explicit declaration |
+| DEX magic / APK ZIP inventory reuse | ✅ | Via `analysis-android` |
+| Target Profile (family Android, ABI, bitness, codeModel) | ✅ | minSdk not decoded |
+| Signing scheme v1 hint | ✅ | META-INF; v2/v3 not parsed |
+| AXML / resources decode | 🚧 | P step 2+ |
+| Emulator / adb execution | 🚧 | P later steps |
