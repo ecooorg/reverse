@@ -18,11 +18,11 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.4.0** (Patch O closed — Classic Mac / early macOS; 2026-11-12).
+State as of **1.4.1** (Patch O closed — Classic Mac / early macOS; 2026-11-12).
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.4.0** (Patch O closed — Classic Mac / early macOS) |
+| What is the product version? | **1.4.1** (Patch O closed — Classic Mac / early macOS) |
 | What is finished? | The 1.0 foundation (**patches A–L**), **Patch M** (Windows, **1.2.0**), **Patch N** (old Linux, **1.3.5**), and **Patch O** (Classic Mac / early macOS, **1.4.0**). |
 | What is being built? | **Patch P** is next (legacy Android). Patch O is **done** at 1.4.0 with residual Mac limitations recorded in CAPABILITIES.md. |
 | What has not started? | **Patch Q** (newer generations and unified compatibility intelligence). Patch P is the next product unit. |
@@ -1182,6 +1182,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.3.24 | O residual max: HFS B-tree walk, named traps, PEF imports, Mac reference trials, disk hash diff |
 | 1.3.25 | Split legacy-mac parsers (size gate); Mac works/fails matrix (unsupported without ROM) |
 | 1.4.0 | **Patch O closed** — Classic Mac / early macOS; residuals documented |
+| 1.4.1 | Wire diffDiskImageHashes into tests (knip unused export) |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP
