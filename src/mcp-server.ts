@@ -18,6 +18,7 @@ import { analyzeLegacyWindows } from './legacy-windows.js';
 import { analyzeLegacyLinux } from './legacy-linux.js';
 import { analyzeLegacyAndroid } from './legacy-android.js';
 import { analyzeLegacyMac } from './legacy-mac.js';
+import { collectAndroidDeviceObservations } from './legacy-android-behavior.js';
 import { listProcesses, inspectProcess, getProcessMetrics, getProcessTree } from './process-inspector.js';
 import { analyzeMemory, analyzeCpu, analyzeIo } from './process-inspector.js';
 import { profileProcess, monitorProcess, detectResourceAnomalies } from './profiling-profiler.js';
@@ -179,6 +180,14 @@ async function call(name: string, a: any, signal?: AbortSignal) {
         }
         case 'analyze_legacy_android': {
             return analyzeLegacyAndroid(a.file, null, { sessionId: a.session_id });
+        }
+        case 'collect_android_device_observations': {
+            return collectAndroidDeviceObservations({
+                sessionId: a.session_id,
+                confirm: a.confirm === true,
+                serial: a.serial,
+                logcatLines: a.logcat_lines
+            });
         }
         case 'analyze_legacy_mac': {
             return analyzeLegacyMac(a.file, null, { sessionId: a.session_id });

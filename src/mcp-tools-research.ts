@@ -411,3 +411,18 @@ researchTools.push({
         required: ['file', 'session_id']
     }
 });
+researchTools.push({
+    name: 'collect_android_device_observations',
+    description: 'Collect bounded read-only Android logcat and activity diagnostics from an authorized device. '
+        + 'Requires CONTROLLED_EXECUTION, confirm=true, and a declared research-session authorization.',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            session_id: { type: 'string' },
+            confirm: { type: 'boolean' },
+            serial: { type: 'string' },
+            logcat_lines: { type: 'number' }
+        },
+        required: ['session_id', 'confirm']
+    }
+});
