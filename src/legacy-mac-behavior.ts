@@ -191,7 +191,7 @@ export async function runMacWorksFailsMatrix(targets: string[], auth: LegacyAuth
     outcome: "works" | "fails" | "unsupported" | "error";
     detail: string;
 }>> {
-    const { runWorksFailsMatrix, bootstrapExecutionEnvironments, listExecutionEnvironments } = await import("./execution-environment.js");
+    const { bootstrapExecutionEnvironments, listExecutionEnvironments } = await import("./execution-environment.js");
     bootstrapExecutionEnvironments();
     const roms = await fingerprintMacRoms(opts.romPaths ?? (process.env.REVERSE_MAC_ROM ? [process.env.REVERSE_MAC_ROM] : []));
     const cells: Array<{

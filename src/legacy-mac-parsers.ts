@@ -3,6 +3,8 @@
  * Split from legacy-mac.ts to satisfy the 1000-line size gate.
  */
 import { parseMachO } from './analysis-binary-parse.js';
+/** Local alias to avoid a circular import with legacy-mac.ts */
+type MacCodeModel = string;
 export const MAX_READ = 8 * 1024 * 1024;
 export const MH_MAGIC = 0xfeedface;
 export const MH_CIGAM = 0xcefaedfe;
@@ -335,6 +337,33 @@ export function machODetails(b: Buffer, magic: number): {
         minimumOsVersion,
         codeSignaturePresent,
     };
+}
+/** Best-effort PEF fragment graph from section names + loader strings. */
+export function buildPefFragmentGraph(sectionNames: string[], loaderStrings: string[]): {
+    nodes: string[];
+    edges: Array<{
+        from: string;
+        to: string;
+        kind: string;
+    }>;
+} {
+    const nodes = Array.from(new Set([
+        ...sectionNames.filter(s => !s.startsWith("section[")),
+        ...loaderStrings.slice(0, 24),
+    ])).slice(0, 32);
+    const edges: Array<{
+        from: string;
+        to: string;
+        kind: string;
+    }> = [];
+    const libs = loaderStrings.filter(s => /Lib|Interface|Carbon|StdC/i.test(s));
+    const code = sectionNames.filter(s => /code|main|text/i.test(s) || !s.startsWith("section["));
+    for (const c of code.slice(0, 8)) {
+        for (const lib of libs.slice(0, 8)) {
+            edges.push({ from: c, to: lib, kind: "import" });
+        }
+    }
+    return { nodes, edges };
 }
 export function eraFromSignals(args: {
     format: MacCodeModel;

@@ -10,7 +10,7 @@ import { createHash } from 'node:crypto';
 import { result } from './core-types.js';
 import { profileField, type LegacyAuthorization, type TargetProfile } from './legacy-types.js';
 import { assertAuthorizationPresent, requireLegacyGate } from './legacy-gate.js';
-import { parseMachO, parseFat } from './analysis-binary-parse.js';
+import { parseFat } from './analysis-binary-parse.js';
 import { diagnoseMacFromTables, type MacCompatDiagnosis } from './legacy-mac-tables.js';
 import * as macParsers from './legacy-mac-parsers.js';
 export type { LegacyAuthorization, TargetProfile } from './legacy-types.js';
@@ -156,6 +156,18 @@ export async function analyzeLegacyMac(filePath: string, authorization: LegacyAu
                     evidence: imports.map(s => `import=${s}`),
                     confidence: 0.6,
                 });
+                const graph = macParsers.buildPefFragmentGraph(pef.sectionNames, pef.loaderStrings);
+                if (graph.nodes.length || graph.edges.length) {
+                    structuralDetectors.push({
+                        name: 'pef-fragment-graph',
+                        evidence: [
+                            `nodes=${graph.nodes.length}`,
+                            `edges=${graph.edges.length}`,
+                            ...graph.edges.slice(0, 8).map(e => `${e.from}->${e.to}:${e.kind}`),
+                        ],
+                        confidence: graph.edges.length ? 0.55 : 0.35,
+                    });
+                }
             }
         }
     }
