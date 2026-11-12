@@ -93,7 +93,7 @@ jobs:
           {
           npm ci --ignore-scripts
           } > ci-logs/02-npm-ci-ignore-scripts.log 2>&1
-      - name: Static quality gates (format and own-line budget)
+      - name: Static quality gates (format, size, lint, duplication, unused code)
         run: |
           mkdir -p ci-logs
           export GITHUB_STEP_SUMMARY=ci-logs/02-static-quality-gates.summary.md
@@ -102,6 +102,9 @@ jobs:
           npm run format:check
           npm run size:check
           npm run quality:static
+          npm run lint
+          npm run dup:check
+          KNIP_DISABLE_RAW_TRANSFER=1 npm run unused:check
           } > ci-logs/02-static-quality-gates.log 2>&1
       - name: Build library, CLI and MCP server
         run: |
