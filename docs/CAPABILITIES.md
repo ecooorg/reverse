@@ -1,6 +1,6 @@
 ## Status
 
-Patch **M** closed at **1.2.0**, Patch **N** at **1.3.5**, Patch **O** at **1.4.0**, and Patch **P** remains in progress through **1.5.8** (2026-11-12); post-N debt increments through **1.3.10** close R-01, R-04, R-05, R-07, R-19 Windows, F-80, F-81, F-82 and F-84. Full matrix green on commit `78a47fd` (Capabilities 43172993614, Structure 43173076031, Mutation 43173019792, Golden 43173044415, Supply chain 43173096703). Residual limitations listed per row (L0 without oracle; Windows/macOS hard-isolation gaps; no full `SHT_GNU_verneed` walk, no `goblin`; F-08 / R-19 macOS closed in 1.3.11; O step 1 (`analyze_legacy_mac`) in 1.3.13 (`ps -p` / `pgrep -P`; true libproc not used)).
+Patch **M** closed at **1.2.0**, Patch **N** at **1.3.5**, Patch **O** at **1.4.0**, and Patch **P** remains in progress through **1.5.9** (2026-11-12); post-N debt increments through **1.3.10** close R-01, R-04, R-05, R-07, R-19 Windows, F-80, F-81, F-82 and F-84. Full matrix green on commit `78a47fd` (Capabilities 43172993614, Structure 43173076031, Mutation 43173019792, Golden 43173044415, Supply chain 43173096703). Residual limitations listed per row (L0 without oracle; Windows/macOS hard-isolation gaps; no full `SHT_GNU_verneed` walk, no `goblin`; F-08 / R-19 macOS closed in 1.3.11; O step 1 (`analyze_legacy_mac`) in 1.3.13 (`ps -p` / `pgrep -P`; true libproc not used)).
 
 # Capability matrix
 

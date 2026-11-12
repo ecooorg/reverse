@@ -1,3 +1,18 @@
+## Audit 31 — 2026-11-12 — Nightly Full Verification repair, Windows red (1.5.9)
+
+**Scope.** Explain and close the Windows failures of Nightly Full Verification #2 (run 43299003746, commit 753b5a1) and the annotation raised by its mutation job.
+
+**Findings (closed in 1.5.9).**
+- F-92: the workflow declared no default shell. On Windows runners `run` steps use PowerShell, which cannot parse the bash group redirection, `KNIP_DISABLE_RAW_TRANSFER=1 npm …` prefix or `${!check}` expansion; static gates (step 5), build (step 6), the status table (step 12) and the enforcement step (step 16) failed on Node 22 and Node 24, and the dependent steps were skipped. Linux and macOS were unaffected. `capabilities.yml` and `structure.yml` already set `defaults.run.shell: bash`.
+- F-93: the mutation job appended `ci-logs/mutation-report.json` (2.6 MB) to the step summary, which GitHub limits to 1 MiB. It now pipes the Markdown table from `tests/mutation-summary.mjs` into the summary; the JSON stays an artifact.
+- New check *Workflows — Windows-capable workflows default to bash and never append raw JSON to the step summary* fails against the 1.5.8 workflow and passes now.
+
+**Limits of this diagnosis.** Step logs of the run require a sign-in and were not readable; the cause follows from the failing step numbers, the workflow file and the contrast with the workflows that are green on Windows. Windows steps that were previously skipped (capability suite, coverage, structure, golden trials) have not run in this workflow yet, so further Windows-specific failures cannot be excluded.
+
+**Verification.** In the 1.5.9 environment (Linux, Node 22.23, TypeScript 6.0.3 standing in for the locked 5.9 printer, `@types/node` 26; `npm ci` was not possible offline) the package build, the unit suite (160 tests; the two `fast-check` property files could not run), the capability suite (182 checks: 176 verified, 6 documented limitations, 0 drift, 0 failed), MCP docs, source and built structure, size and static-quality checks passed, and the printer reported no drift in 124 files. The Windows failures of Nightly Full Verification #2 were diagnosed from the run annotations and the workflow file (step logs require a sign-in); the fix is pending verification on Windows. Biome lint, `jscpd`, `knip`, the property tests, coverage, mutation, the macOS and Node 24 matrix and the manual `os: all` run were not run here.
+
+---
+
 ## Audit 30 — 2026-11-12 — CI repair of 1.5.7 (1.5.8)
 
 **Scope.** Close the failures hidden behind the first red gate of Capabilities run #529 and the checks that 1.5.7 never executed.
