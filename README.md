@@ -93,11 +93,11 @@ The server writes protocol messages to stdout. Do not add logging to stdout; dia
 7. Analogies and AI guesses are hypotheses, kept apart from facts and promoted only by same-session Validation or Benchmark evidence.
 8. The legacy track is for open-source software or software whose developers and rights holders consent; see [SECURITY.md](docs/SECURITY.md).
 
-## Project status (1.3.9 maintenance)
+## Project status (1.3.10 maintenance)
 
 - **Done:** patches **A–K** and **L** are the 1.0 baseline (process intelligence, benchmarks, evidence, static analysis, providers, controlled optimization, runtime analyzers, agent integration).
 - **Closed:** product patch **M** (Windows compatibility, DOS through Windows 7-era) at **1.2.0**, with static DOS/Windows recognition, sourced diagnosis, environments, behavior capture/replay and preservation L0–L3 reporting. The authorization declaration is not legal verification.
-- **Closed:** product patch **N** (old Linux compatibility) at **1.3.5**, after **M** at 1.2.0. Post-N maintenance through **1.3.9** closes selected carry-over debts and fixes the Windows persistent PowerShell helper newline/launch protocol; Windows runtime verification remains pending. Residual limitations: no bundled old-Linux rootfs or oracle (preservation L0), kernel-ABI faults need a VM, string-residue verneed summary only.
+- **Closed:** product patch **N** (old Linux compatibility) at **1.3.5**, after **M** at 1.2.0. Post-N maintenance through **1.3.10** closes the carry-over debts R-01 (Stryker baseline), R-04 (`fast-check`), R-05 (Biome, `jscpd`, `knip`) and R-19 Windows (persistent PowerShell helper, verified by the full matrix on commit `f85200e`). Residual limitations: no bundled old-Linux rootfs or oracle (preservation L0), kernel-ABI faults need a VM, string-residue verneed summary only.
 - **Not started:** the rest of the product sequence: O Classic Mac/early macOS (next), P legacy Android, Q newer generations plus unified compatibility intelligence. Before O, rerun the full `os: all` matrix and diagnose the separate Linux Node 22.23.4 capability-suite timeout reported in run 43084133732. There are no parallel platform-wave or cross-cutting patch tracks.
 - **Where to start (people and AI assistants):** read [AGENTS.md](AGENTS.md), then the *Status at a glance* section of [docs/ROADMAP.md](docs/ROADMAP.md). See also [docs/CAPABILITIES.md](docs/CAPABILITIES.md), [docs/SECURITY.md](docs/SECURITY.md) and [docs/AUDIT.md](docs/AUDIT.md).
 

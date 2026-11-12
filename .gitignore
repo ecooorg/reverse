@@ -8,3 +8,5 @@ coverage/
 dist-tests/
 ci-logs/
 structure-output.txt
+.stryker-tmp/
+reports/

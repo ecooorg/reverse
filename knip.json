@@ -1,0 +1,20 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/mcp-server.ts",
+    "tests/*.ts",
+    "tests/*.mjs"
+  ],
+  "project": [
+    "src/*.ts",
+    "tests/*.ts",
+    "tests/*.mjs"
+  ],
+  "ignoreExportsUsedInFile": true,
+  "ignoreBinaries": [
+    "reverse"
+  ],
+  "ignoreDependencies": [
+    "@stryker-mutator/command-runner"
+  ]
+}

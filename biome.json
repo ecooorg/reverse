@@ -1,0 +1,36 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.6.7/schema.json",
+  "root": true,
+  "vcs": {
+    "enabled": false
+  },
+  "files": {
+    "includes": [
+      "src/*.ts",
+      "tests/*.ts"
+    ]
+  },
+  "formatter": {
+    "enabled": false
+  },
+  "assist": {
+    "enabled": false
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "suspicious": {
+        "noExplicitAny": "off"
+      },
+      "style": {
+        "noNonNullAssertion": "off",
+        "useTemplate": "off"
+      },
+      "complexity": {
+        "useSimpleNumberKeys": "off",
+        "useLiteralKeys": "off"
+      }
+    }
+  }
+}
