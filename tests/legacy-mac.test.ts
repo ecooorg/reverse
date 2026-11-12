@@ -182,10 +182,7 @@ test('Mac builtin tables validate', async () => {
     assert.deepEqual(assertBuiltinMacTablesValid(), []);
 });
 test('Mac execution environments register and report absence', async () => {
-    const {
-        bootstrapExecutionEnvironments,
-        listExecutionEnvironments,
-    } = await import('../dist/execution-environment.js');
+    const { bootstrapExecutionEnvironments, listExecutionEnvironments, } = await import('../dist/execution-environment.js');
     bootstrapExecutionEnvironments();
     const names = listExecutionEnvironments().map(e => e.name);
     for (const n of ['basiliskii', 'minivmac', 'sheepshaver', 'qemu-ppc'])
