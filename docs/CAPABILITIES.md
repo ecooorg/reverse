@@ -211,4 +211,11 @@ The remaining work is one ordered sequence, not parallel capability tracks: M (W
 | Mac Target Profile fields | ✅ | `codeModel`, `endianness`, `resourceInventory`, `creatorType`, `bundleLayout` (null), `rosettaOr32BitDependence` |
 | MCP `analyze_legacy_mac` | ✅ | Session authorization required |
 | 68k CODE deep parser, HFS images, `.app` / Info.plist | 🚧 | O step 3 |
-| Calibration corpus | 🚧 | O step 2 |
+| Calibration corpus + precision/recall | ✅ | Crafted fixtures (1.3.14); operator hash manifests |
+| MacBinary II / BinHex 4.0 | ✅ | Header recognition |
+| HFS / HFS+ volume signature at offset 1024 | ✅ | Catalog walk not implemented |
+| StuffIt / disk-image container markers | ✅ | Detection only |
+| Info.plist CFBundle* summary | ✅ | When path basename is Info.plist |
+| Mach-O MH_PIE flag | ✅ | R-11 Mach-O partial |
+| Hostile-input property tests (R-04 Mac) | ✅ | fast-check; fixed seed |
+| 68k CODE deep parser, PEF fragment graph, HFS catalog | 🚧 | Remaining step 3 |
