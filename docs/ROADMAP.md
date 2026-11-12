@@ -18,11 +18,11 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.4.1** (Patch O closed — Classic Mac / early macOS; 2026-11-12).
+State as of **1.4.2** (Patch O closed — Classic Mac / early macOS; 2026-11-12).
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.4.1** (Patch O closed — Classic Mac / early macOS) |
+| What is the product version? | **1.4.2** (Patch O closed — Classic Mac / early macOS) |
 | What is finished? | The 1.0 foundation (**patches A–L**), **Patch M** (Windows, **1.2.0**), **Patch N** (old Linux, **1.3.5**), and **Patch O** (Classic Mac / early macOS, **1.4.0**). |
 | What is being built? | **Patch P** is next (legacy Android). Patch O is **done** at 1.4.0 with residual Mac limitations recorded in CAPABILITIES.md. |
 | What has not started? | **Patch Q** (newer generations and unified compatibility intelligence). Patch P is the next product unit. |
@@ -68,7 +68,7 @@ One table for every patch. Patches A–L are the completed 1.0 foundation; M–Q
 | L | Agent integration and distribution | 1.x (core in 1.0.0, hygiene in 1.0.1) | D, J | done (full H-09 harness and optional single-file binary remain open) |
 | M | Windows compatibility, DOS through Windows 7-era (up to 2010) | 1.2 | A–L foundation; steps 0–8; reference trials | **done** (1.2.0) |
 | N | Old Linux software | 1.3 | M shared contracts and evidence model | **done** (1.3.5) |
-| O | Classic Mac and early macOS software | 1.4 | N shared contracts and environment/replay foundations | in progress (step 0 closed in 1.3.12) |
+| O | Classic Mac and early macOS software | 1.4 | N shared contracts and environment/replay foundations | **done** (1.4.0) |
 | P | Legacy Android software | 1.5 | O shared contracts; Android foundations already present in E/J | not started |
 | Q | Newer generations and unified compatibility intelligence | 2.0 | M–P complete | not started |
 
@@ -1183,6 +1183,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.3.25 | Split legacy-mac parsers (size gate); Mac works/fails matrix (unsupported without ROM) |
 | 1.4.0 | **Patch O closed** — Classic Mac / early macOS; residuals documented |
 | 1.4.1 | Wire diffDiskImageHashes into tests (knip unused export) |
+| 1.4.2 | ROADMAP status table O done; suite no longer expects O in progress |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP
