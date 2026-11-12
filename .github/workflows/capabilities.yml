@@ -93,7 +93,7 @@ jobs:
           {
           npm ci --ignore-scripts
           } > ci-logs/02-npm-ci-ignore-scripts.log 2>&1
-      - name: Static quality gates (format, size, lint, duplication, unused code)
+      - name: Static quality gates (format, size, lint, duplication)
         run: |
           mkdir -p ci-logs
           export GITHUB_STEP_SUMMARY=ci-logs/02-static-quality-gates.summary.md
@@ -104,15 +104,16 @@ jobs:
           npm run quality:static
           npm run lint
           npm run dup:check
-          KNIP_DISABLE_RAW_TRANSFER=1 npm run unused:check
           } > ci-logs/02-static-quality-gates.log 2>&1
-      - name: Build library, CLI and MCP server
+      - name: Build library, CLI and MCP server (then unused-code check)
         run: |
           mkdir -p ci-logs
           export GITHUB_STEP_SUMMARY=ci-logs/03-build-library-cli-and-mcp-server.summary.md
           trap 'rc=$?; [ "$rc" = 0 ] || echo "$rc" > ci-logs/03-build-library-cli-and-mcp-server.exit' EXIT
           {
           npm run build
+          # knip follows the tests' imports of ../dist, so it needs the built tree
+          KNIP_DISABLE_RAW_TRANSFER=1 npm run unused:check
           } > ci-logs/03-build-library-cli-and-mcp-server.log 2>&1
       - name: MCP documentation contract
         run: npm run docs:mcp:check
