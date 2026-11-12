@@ -104,7 +104,7 @@ export async function runAndroidBehaviorRoundTrip(scenario: BehaviorScenario | u
     }
     limitations.push('Host capture/replay only; device logcat not attached in P step 5');
     const record = await captureScenario(scenario, { confirm: true });
-    const comparison = await replayScenario(record, scenario, { confirm: true });
+    const comparison = await replayScenario(scenario, record, { confirm: true });
     return {
         equal: comparison.equal,
         differences: comparison.differences,

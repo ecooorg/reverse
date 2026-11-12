@@ -69,3 +69,4 @@ export { analyzeLegacyAndroid, parseAxmlSdkHints } from './legacy-android.js';
 export { runAndroidCalibration } from './legacy-android-calibration.js';
 export * from './legacy-android-tables.js';
 export { runAndroidWorksFailsMatrix, planAndroidControlledInstall, runAndroidBehaviorRoundTrip } from './legacy-android-behavior.js';
+export { runAndroidReferenceTrials } from './legacy-android-reference-trials.js';
