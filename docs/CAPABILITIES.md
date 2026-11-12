@@ -229,3 +229,24 @@ The remaining work is one ordered sequence, not parallel capability tracks: M (W
 | `mac-runtime-frameworks` (Carbon, QuickTime, codesign/notarization) | ✅ |
 | `diagnoseMacFromTables` → `compatibilityFindings` with table ids | ✅ |
 | Host runtime probe / emulator execution | 🚧 | O step 5 |
+
+### Environments (O step 5, 1.3.17)
+
+| Engine | Status |
+|---|---|
+| Basilisk II | ✅ detect-only (PATH) |
+| Mini vMac | ✅ detect-only |
+| SheepShaver | ✅ detect-only |
+| qemu-system-ppc / ppc64 | ✅ detect-only |
+| Operator ROM/image fingerprint | 🚧 | recorded limitation until hashed |
+| Works/fails matrix with real runs | 🚧 | needs operator-supplied media |
+
+### Inventory depth (O step 3 residual, 1.3.17)
+
+| Item | Status |
+|---|---|
+| PEF section count | ✅ |
+| CODE resource id scan | ✅ best-effort |
+| HFS MDB allocation block size | ✅ |
+| Full HFS catalog B-tree | 🚧 |
+| PEF loader string / fragment graph | 🚧 |
