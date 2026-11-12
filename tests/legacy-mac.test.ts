@@ -299,3 +299,53 @@ test('A-line Toolbox trap words surface as toolbox-traps detector', async () => 
         await rm(dir, { recursive: true, force: true });
     }
 });
+test('HFS catalog btree walk reports nodes when extent data present', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'mac-btree-'));
+    try {
+        // alBlkSiz=512, startBlock=3 → catalog at 1536; leaf node type -1
+        const hfs = Buffer.alloc(1536 + 512);
+        hfs.write('BD', 1024);
+        hfs.writeUInt32BE(512, 1024 + 20);
+        hfs.writeUInt16BE(3, 1024 + 0x5e);
+        hfs.writeUInt16BE(2, 1024 + 0x5e + 2);
+        const node = 1536;
+        hfs.writeInt8(-1, node + 8);
+        hfs.writeUInt16BE(1, node + 10);
+        hfs[node + 14] = 4;
+        hfs.write('Appl', node + 15);
+        const f = path.join(dir, 'vol.hfs');
+        await writeFile(f, hfs);
+        const r: any = await analyzeLegacyMac(f, AUTH);
+        assert.ok(r.findings[0].structuralDetectors.some((d: any) => d.name === 'hfs-catalog-btree'));
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
+test('Mac reference trials complete on crafted fixtures', async () => {
+    const { runLegacyMacReferenceTrials } = await import('../dist/legacy-mac-reference-trials.js');
+    const report = await runLegacyMacReferenceTrials();
+    assert.equal(report.ok, true);
+    assert.equal(report.trials.length, 2);
+    assert.ok(report.trials.every((t: any) => t.status !== 'failed'));
+    assert.equal(report.preservation.level, 'L0');
+});
+test('named Toolbox traps appear in detector evidence', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'mac-named-trap-'));
+    try {
+        const b = Buffer.alloc(16);
+        b.writeUInt16BE(0xa000, 0); // Open
+        b.writeUInt16BE(0xa001, 2); // Close
+        b.writeUInt16BE(0xa002, 4); // Read
+        b.writeUInt16BE(0xa9ff, 6); // Unimplemented
+        const f = path.join(dir, 't.bin');
+        await writeFile(f, b);
+        const r: any = await analyzeLegacyMac(f, AUTH);
+        const det = r.findings[0].structuralDetectors.find((d: any) => d.name === 'toolbox-traps');
+        assert.ok(det);
+        assert.ok(det.evidence.some((e: string) => /Open|Close|Read|Unimplemented/.test(e)));
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});

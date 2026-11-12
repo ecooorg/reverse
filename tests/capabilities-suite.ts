@@ -2699,6 +2699,43 @@ check('Legacy Mac', 'Toolbox A-line trap scan yields toolbox-traps detector', as
         await rm(dir, { recursive: true, force: true });
     }
 });
+check('Legacy Mac', 'Mac reference trials pass on crafted fixtures at L0', async () => {
+    const url = pathToFileURL(path.join(DIST, 'legacy-mac-reference-trials.js')).href;
+    const { runLegacyMacReferenceTrials } = await import(url);
+    const report = await runLegacyMacReferenceTrials();
+    assert.equal(report.ok, true);
+    assert.equal(report.trials.length, 2);
+    assert.equal(report.preservation.level, 'L0');
+});
+check('Legacy Mac', 'HFS catalog btree detector fires on crafted extent data', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'cap-btree-'));
+    try {
+        const hfs = Buffer.alloc(1536 + 512);
+        hfs.write('BD', 1024);
+        hfs.writeUInt32BE(512, 1024 + 20);
+        hfs.writeUInt16BE(3, 1024 + 0x5e);
+        hfs.writeUInt16BE(2, 1024 + 0x5e + 2);
+        hfs.writeInt8(-1, 1536 + 8);
+        hfs.writeUInt16BE(1, 1536 + 10);
+        hfs[1536 + 14] = 3;
+        hfs.write('App', 1536 + 15);
+        const f = path.join(dir, 'v.hfs');
+        await writeFile(f, hfs);
+        const macUrl = pathToFileURL(path.join(DIST, 'legacy-mac.js')).href;
+        const { analyzeLegacyMac } = await import(macUrl);
+        const auth = {
+            basis: 'open_source',
+            licenseOrConsentReference: 'cap',
+            declaredBy: 'cap',
+            declaredAt: new Date().toISOString(),
+        };
+        const r = await analyzeLegacyMac(f, auth);
+        assert.ok(r.findings[0].structuralDetectors.some((d: any) => d.name === 'hfs-catalog-btree'));
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
 check('Roadmap', 'M and N status, version and O entry criteria are internally consistent', () => {
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const architecture = readFileSync(path.join(ROOT, 'docs/ARCHITECTURE.md'), 'utf8');
