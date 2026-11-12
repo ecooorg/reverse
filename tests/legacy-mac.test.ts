@@ -236,3 +236,46 @@ test('fingerprintMacRoms reports missing paths as limitations', async () => {
     assert.equal(r[0].sha256, null);
     assert.ok(r[0].limitation);
 });
+test('HFS MDB reports catalog first extent when present', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'mac-hfs-cat-'));
+    try {
+        const hfs = Buffer.alloc(1024 + 0x70);
+        hfs.write('BD', 1024);
+        hfs.writeUInt32BE(512, 1024 + 20); // alBlkSiz
+        hfs[1024 + 36] = 4;
+        hfs.write('Test', 1024 + 37);
+        hfs.writeUInt16BE(10, 1024 + 0x5e); // startBlock
+        hfs.writeUInt16BE(3, 1024 + 0x5e + 2); // blockCount
+        const f = path.join(dir, 'vol.hfs');
+        await writeFile(f, hfs);
+        const r: any = await analyzeLegacyMac(f, AUTH);
+        assert.equal(r.findings[0].format, 'hfs-volume');
+        assert.ok(r.findings[0].structuralDetectors.some((d: any) => d.name === 'hfs-catalog-extent'));
+        assert.match(r.findings[0].formatEvidence.join(' '), /volumeName=Test|catalogExtent=10:3/);
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
+test('PEF loader string window is scanned for printable names', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'mac-pef-str-'));
+    try {
+        const b = Buffer.alloc(40 + 28 + 32);
+        b.writeUInt32BE(0x4a6f7921, 0);
+        b.write('pwpc', 4);
+        b.writeUInt16BE(1, 32);
+        // section[0] nameOff points into post-header window
+        b.writeUInt32BE(0, 40); // nameOff relative 0 → tableBase
+        b.write('Code', 40 + 28);
+        b[40 + 28 + 4] = 0;
+        const f = path.join(dir, 'x.pef');
+        await writeFile(f, b);
+        const r: any = await analyzeLegacyMac(f, AUTH);
+        assert.equal(r.findings[0].format, 'pef-cfm');
+        const ev = JSON.stringify(r.findings[0].structuralDetectors);
+        assert.ok(/Code|loaderStrings/i.test(ev + r.findings[0].formatEvidence.join(' ')));
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});

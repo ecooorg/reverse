@@ -2651,12 +2651,39 @@ check('Legacy Linux', 'Linux support matrix names the implemented a.out and ELF 
     assert.match(docs, /Linux a\.out.*ELF32.*ELF64/s);
     assert.match(docs, /analyze_legacy_linux/);
 });
+check('Legacy Mac', 'HFS catalog first extent and PEF loader strings surface in detectors', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'cap-hfs-pef-'));
+    try {
+        const hfs = Buffer.alloc(1024 + 0x70);
+        hfs.write('BD', 1024);
+        hfs.writeUInt32BE(512, 1024 + 20);
+        hfs.writeUInt16BE(1, 1024 + 0x5e);
+        hfs.writeUInt16BE(2, 1024 + 0x5e + 2);
+        const hf = path.join(dir, 'v.hfs');
+        await writeFile(hf, hfs);
+        const macUrl = pathToFileURL(path.join(DIST, 'legacy-mac.js')).href;
+        const { analyzeLegacyMac } = await import(macUrl);
+        const auth = {
+            basis: 'open_source',
+            licenseOrConsentReference: 'cap',
+            declaredBy: 'cap',
+            declaredAt: new Date().toISOString(),
+        };
+        const r = await analyzeLegacyMac(hf, auth);
+        assert.ok(r.findings[0].structuralDetectors.some((d: any) => d.name === 'hfs-catalog-extent'));
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
 check('Roadmap', 'M and N status, version and O entry criteria are internally consistent', () => {
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const architecture = readFileSync(path.join(ROOT, 'docs/ARCHITECTURE.md'), 'utf8');
     const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
-    assert.equal(pkg.version, '1.3.21');
-    assert.match(roadmap, /State as of \*\*1\.3\.20\*\*/);
+    // Version is single-sourced from package.json; never hardcode the third digit here.
+    const verRe = pkg.version.replace(/\./g, '\\.');
+    assert.match(roadmap, new RegExp(`State as of \\*\\*${verRe}\\*\\*`));
+    assert.match(roadmap, new RegExp(`What is the product version\\? \\| \\*\\*${verRe}`));
     assert.match(roadmap, /Patch M.*\*\*done\*\*/s);
     assert.match(roadmap, /Patch N.*\*\*done\*\*/s);
     // O step 0 is closed; feature work (steps 1+) is the active product unit.
