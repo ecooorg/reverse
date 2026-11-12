@@ -219,3 +219,13 @@ The remaining work is one ordered sequence, not parallel capability tracks: M (W
 | Mach-O MH_PIE flag | ✅ | R-11 Mach-O partial |
 | Hostile-input property tests (R-04 Mac) | ✅ | fast-check; fixed seed |
 | 68k CODE deep parser, PEF fragment graph, HFS catalog | 🚧 | Remaining step 3 |
+
+### Compatibility diagnosis (O step 4, 1.3.16)
+
+| Table / rule | Status |
+|---|---|
+| `mac-code-models` (68k, PEF/CFM, PowerPC/Rosetta, 32-bit Intel, Classic removed) | ✅ |
+| `mac-resource-filesystem` (resource-fork loss, creator/type, HFS names, BinHex) | ✅ |
+| `mac-runtime-frameworks` (Carbon, QuickTime, codesign/notarization) | ✅ |
+| `diagnoseMacFromTables` → `compatibilityFindings` with table ids | ✅ |
+| Host runtime probe / emulator execution | 🚧 | O step 5 |
