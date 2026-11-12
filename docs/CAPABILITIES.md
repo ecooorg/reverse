@@ -281,3 +281,18 @@ The remaining work is one ordered sequence, not parallel capability tracks: M (W
 |---|---|
 | A-line trap word scan (0xA000–0xA7FF) | ✅ best-effort detector `toolbox-traps` |
 | Named trap inventory / dispatch table | 🚧 |
+
+
+### O residual max (1.3.24)
+
+| Item | Status |
+|---|---|
+| HFS catalog B-tree leaf walk (bounded) | ✅ `hfs-catalog-btree` |
+| Named Toolbox traps (selected table) | ✅ |
+| CODE segment candidates | ✅ `code-segments` |
+| PEF import string detector | ✅ `pef-imports` |
+| Mac reference trials (2 scenarios, L0) | ✅ |
+| Disk-image hash diff (operator trees) | ✅ |
+| Full PEF fragment/import graph | 🚧 |
+| Emulator works/fails with operator ROM | 🚧 |
+| Patch O closed at 1.4.0 | 🚧 |
