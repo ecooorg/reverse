@@ -348,3 +348,12 @@ Classic Mac / early macOS static analysis and limited execution adapters are **d
 | `android-runtime-models` table | ✅ |
 | `diagnoseAndroidFromTables` | ✅ |
 | Device/emulator execution | 🚧 |
+
+
+### P step 4 (1.5.3)
+
+| Item | Status |
+|---|---|
+| `adb` / `emulator` ExecutionEnvironment | ✅ detect-only |
+| `runAndroidWorksFailsMatrix` | ✅ unsupported without SERIAL/AVD |
+| Automated install/run | 🚧 operator confirm path |
