@@ -118,7 +118,6 @@ export async function runAndroidBehaviorRoundTrip(scenario: BehaviorScenario | u
         comparison,
     };
 }
-
 /** Apply the shared prompt-injection wrapper to device-controlled text. */
 export function wrapAndroidDeviceText(input: {
     serial: string;
@@ -127,7 +126,6 @@ export function wrapAndroidDeviceText(input: {
 }): Record<string, unknown> {
     return wrapUntrusted(input).structured;
 }
-
 /**
  * Read bounded device-side Android observations. Read-only: no install, launch or clear.
  */
@@ -216,7 +214,6 @@ export async function collectAndroidDeviceObservations(input: {
         ],
     };
 }
-
 /**
  * Plan a controlled adb install — does not run adb unless CONTROLLED + confirm + serial.
  * Returns a structured plan for the operator / later MCP tool.
