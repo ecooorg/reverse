@@ -2585,6 +2585,24 @@ check('Legacy Mac', 'Mac calibration fixtures score crafted detectors', async ()
         await rm(dir, { recursive: true, force: true });
     }
 });
+check('Legacy Mac', 'Mac sourced diagnosis tables validate and cite entries', async () => {
+    const tablesUrl = pathToFileURL(path.join(DIST, 'legacy-mac-tables.js')).href;
+    const { assertBuiltinMacTablesValid, diagnoseMacFromTables } = await import(tablesUrl);
+    assert.deepEqual(assertBuiltinMacTablesValid(), []);
+    const diag = diagnoseMacFromTables({
+        format: 'pef-cfm',
+        architecture: 'PowerPC',
+        bitness: 32,
+        dylibs: [],
+        resourceTypes: [],
+        containers: [],
+        creatorType: null,
+        codeSignaturePresent: false,
+        structuralDetectorNames: ['pef-cfm'],
+    });
+    assert.ok(diag.some((d: any) => d.tableEntryIds.includes('mac-pef-cfm-needs-classic-or-carbon')));
+    assert.ok(diag.some((d: any) => d.tableEntryIds.includes('mac-powerpc-needs-rosetta-or-emulator')));
+});
 check('Legacy Mac', 'analyze_legacy_mac is registered in the MCP tool contract', () => {
     assert.ok(DOCUMENTED_TOOLS.includes('analyze_legacy_mac'));
 });
@@ -2597,7 +2615,7 @@ check('Roadmap', 'M and N status, version and O entry criteria are internally co
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const architecture = readFileSync(path.join(ROOT, 'docs/ARCHITECTURE.md'), 'utf8');
     const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
-    assert.equal(pkg.version, '1.3.15');
+    assert.equal(pkg.version, '1.3.16');
     assert.match(roadmap, /State as of \*\*1\.3\.14\*\*/);
     assert.match(roadmap, /Patch M.*\*\*done\*\*/s);
     assert.match(roadmap, /Patch N.*\*\*done\*\*/s);

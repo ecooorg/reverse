@@ -159,3 +159,25 @@ test('analyzeLegacyMac recognizes MacBinary II and HFS+ volume header', async ()
         await rm(dir, { recursive: true, force: true });
     }
 });
+test('analyzeLegacyMac PEF yields sourced PEF/Classic diagnosis', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'mac-diag-'));
+    try {
+        const f = path.join(dir, 'app.pef');
+        const b = Buffer.alloc(40);
+        b.writeUInt32BE(0x4a6f7921, 0);
+        b.write('pwpc', 4);
+        await writeFile(f, b);
+        const r: any = await analyzeLegacyMac(f, AUTH);
+        const findings = r.findings[0].compatibilityFindings;
+        assert.ok(Array.isArray(findings) && findings.length > 0);
+        assert.ok(findings.some((c: any) => c.tableEntryIds.includes('mac-pef-cfm-needs-classic-or-carbon')));
+        assert.ok(findings.every((c: any) => /\[table:/.test(c.evidence)));
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
+test('Mac builtin tables validate', async () => {
+    const { assertBuiltinMacTablesValid } = await import('../dist/legacy-mac-tables.js');
+    assert.deepEqual(assertBuiltinMacTablesValid(), []);
+});
