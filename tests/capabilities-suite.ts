@@ -2756,6 +2756,13 @@ check('Legacy Mac', 'works/fails matrix reports unsupported without operator ROM
             process.env.REVERSE_MAC_ROM = prev;
     }
 });
+check('Roadmap', 'Patch O is recorded closed at 1.4.0', () => {
+    const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
+    const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+    assert.equal(pkg.version, '1.4.0');
+    assert.match(roadmap, /Patch O.*done|closed at \*\*1\.4\.0\*\*/i);
+    assert.match(roadmap, /1\.4\.0 — Patch O closed/i);
+});
 check('Roadmap', 'M and N status, version and O entry criteria are internally consistent', () => {
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const architecture = readFileSync(path.join(ROOT, 'docs/ARCHITECTURE.md'), 'utf8');

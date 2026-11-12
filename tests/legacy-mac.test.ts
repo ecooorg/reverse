@@ -363,3 +363,24 @@ test('Mac works/fails matrix reports unsupported without ROM', async () => {
             process.env.REVERSE_MAC_ROM = prev;
     }
 });
+test('PEF fragment graph detector surfaces import edges', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'mac-pef-graph-'));
+    try {
+        const b = Buffer.alloc(40 + 28 + 32);
+        b.writeUInt32BE(0x4a6f7921, 0);
+        b.write('pwpc', 4);
+        b.writeUInt16BE(1, 32);
+        b.write('Code', 40 + 28);
+        b[40 + 28 + 4] = 0;
+        b.write('InterfaceLib', 40 + 28 + 8);
+        const f = path.join(dir, 'g.pef');
+        await writeFile(f, b);
+        const r: any = await analyzeLegacyMac(f, AUTH);
+        assert.equal(r.findings[0].format, 'pef-cfm');
+        const names = r.findings[0].structuralDetectors.map((d: any) => d.name);
+        assert.ok(names.includes('pef-cfm'));
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
