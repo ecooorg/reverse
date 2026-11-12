@@ -95,10 +95,17 @@ The server writes protocol messages to stdout. Do not add logging to stdout; dia
 
 ## Project status (1.3.11 — O step 0)
 
-- **Done:** patches **A–K** and **L** are the 1.0 baseline (process intelligence, benchmarks, evidence, static analysis, providers, controlled optimization, runtime analyzers, agent integration).
-- **Closed:** product patch **M** (Windows compatibility, DOS through Windows 7-era) at **1.2.0**, with static DOS/Windows recognition, sourced diagnosis, environments, behavior capture/replay and preservation L0–L3 reporting. The authorization declaration is not legal verification.
-- **Closed:** product patch **N** at **1.3.5**, after **M** at 1.2.0. Post-N maintenance through **1.3.10** closed R-01, R-04, R-05 and R-19 Windows. **1.3.11** closes O step 0: F-08 macOS and R-19 macOS (single-PID `ps -p` inspection and sampling; `pgrep -P` for children; true libproc not used). Residual limitations: no bundled old-Linux rootfs or oracle (preservation L0), kernel-ABI faults need a VM, string-residue verneed summary only.
-- **In progress:** **Patch O** (Classic Mac / early macOS, target 1.4). Step 0 is done; next is work-order step 1 (Target Profile and static inventory). P and Q remain not started. Full matrix green on `78a47fd` (1.3.10). F-83 not reproduced. There are no parallel platform-wave or cross-cutting patch tracks.
+- **Done:** patches **A–K** and **L** are the 1.0 baseline (process State as of **1.5.5** (Patch O closed — Classic Mac / early macOS; post-close maintenance green; 2026-11-12).
+
+**Verification.** Capability matrix **green** on **1.4.2** (operator-confirmed). Patch O remains closed at **1.4.0**; 1.4.1–1.4.2 are post-close hygiene only.
+
+| Question | Answer |
+|---|---|
+| What is the product version? | **1.5.5** (Patch P steps 0–1 — legacy Android Target Profile) |
+| What is finished? | The 1.0 foundation (**patches A–L**), **Patch M** (Windows, **1.2.0**), **Patch N** (old Linux, **1.3.5**), and **Patch O** (Classic Mac / early macOS, **1.4.0**). |
+| What is being built? | **Patch P** in progress through **1.5.5**: L0 reference trials. |
+| What has not started? | **Patch Q** (newer generations and unified compatibility intelligence). Patch P is the next product unit. |
+
 - **Where to start (people and AI assistants):** read [AGENTS.md](AGENTS.md), then the *Status at a glance* section of [docs/ROADMAP.md](docs/ROADMAP.md). See also [docs/CAPABILITIES.md](docs/CAPABILITIES.md), [docs/SECURITY.md](docs/SECURITY.md) and [docs/AUDIT.md](docs/AUDIT.md).
 
 ## Documentation
