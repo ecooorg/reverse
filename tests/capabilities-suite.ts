@@ -2759,9 +2759,28 @@ check('Legacy Mac', 'works/fails matrix reports unsupported without operator ROM
 check('Roadmap', 'Patch O is recorded closed at 1.4.0', () => {
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
-    assert.equal(pkg.version, '1.4.0');
+    assert.equal(pkg.version, '1.4.1');
     assert.match(roadmap, /Patch O.*done|closed at \*\*1\.4\.0\*\*/i);
     assert.match(roadmap, /1\.4\.0 — Patch O closed/i);
+});
+check('Legacy Mac', 'diffDiskImageHashes reports tree drift', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'cap-diff-'));
+    try {
+        const before = path.join(dir, 'b');
+        const after = path.join(dir, 'a');
+        await mkdir(before);
+        await mkdir(after);
+        await writeFile(path.join(before, 'f.txt'), '1');
+        await writeFile(path.join(after, 'f.txt'), '2');
+        const url = pathToFileURL(path.join(DIST, 'legacy-mac-behavior.js')).href;
+        const { diffDiskImageHashes } = await import(url);
+        const d = await diffDiskImageHashes(before, after);
+        assert.equal(d.equal, false);
+        assert.ok(d.changed.includes('f.txt'));
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
 });
 check('Roadmap', 'M and N status, version and O entry criteria are internally consistent', () => {
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');

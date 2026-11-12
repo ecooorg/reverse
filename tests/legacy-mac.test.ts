@@ -5,6 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { analyzeLegacyMac } from '../dist/legacy-mac.js';
 import type { LegacyAuthorization } from '../dist/legacy-types.js';
+import { diffDiskImageHashes } from '../dist/legacy-mac-behavior.js';
 const AUTH: LegacyAuthorization = {
     basis: 'open_source',
     licenseOrConsentReference: 'test-fixture',
@@ -379,6 +380,27 @@ test('PEF fragment graph detector surfaces import edges', async () => {
         assert.equal(r.findings[0].format, 'pef-cfm');
         const names = r.findings[0].structuralDetectors.map((d: any) => d.name);
         assert.ok(names.includes('pef-cfm'));
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
+test('diffDiskImageHashes detects added changed and removed files', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'mac-diff-'));
+    try {
+        const before = path.join(dir, 'before');
+        const after = path.join(dir, 'after');
+        await (await import('node:fs/promises')).mkdir(before);
+        await (await import('node:fs/promises')).mkdir(after);
+        await writeFile(path.join(before, 'a.txt'), 'one');
+        await writeFile(path.join(before, 'gone.txt'), 'x');
+        await writeFile(path.join(after, 'a.txt'), 'two');
+        await writeFile(path.join(after, 'new.txt'), 'y');
+        const d = await diffDiskImageHashes(before, after);
+        assert.equal(d.equal, false);
+        assert.ok(d.changed.includes('a.txt'));
+        assert.ok(d.onlyBefore.includes('gone.txt'));
+        assert.ok(d.onlyAfter.includes('new.txt'));
     }
     finally {
         await rm(dir, { recursive: true, force: true });
