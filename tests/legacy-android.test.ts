@@ -6,7 +6,7 @@ import os from 'node:os';
 import { analyzeLegacyAndroid, parseAxmlSdkHints } from '../dist/legacy-android.js';
 import { runAndroidCalibration } from '../dist/legacy-android-calibration.js';
 import { diagnoseAndroidFromTables, assertAndroidTablesValid } from '../dist/legacy-android-tables.js';
-import { runAndroidWorksFailsMatrix } from '../dist/legacy-android-behavior.js';
+import { runAndroidWorksFailsMatrix, planAndroidControlledInstall } from '../dist/legacy-android-behavior.js';
 import { LegacyAuthorizationError } from '../dist/legacy-gate.js';
 const AUTH = {
     basis: 'open_source' as const,
@@ -84,4 +84,12 @@ test('Android works/fails matrix reports unsupported without device', async () =
         if (prevA !== undefined)
             process.env.REVERSE_ANDROID_AVD = prevA;
     }
+});
+test('planAndroidControlledInstall refuses without controlled mode/serial', () => {
+    const plan = planAndroidControlledInstall({
+        apkPath: '/tmp/x.apk',
+        confirm: false,
+    });
+    assert.equal(plan.allowed, false);
+    assert.ok(plan.limitations.length >= 1);
 });

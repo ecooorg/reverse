@@ -2860,6 +2860,12 @@ check('Legacy Android', 'works/fails matrix unsupported without serial/AVD', asy
             process.env.REVERSE_ANDROID_AVD = prevA;
     }
 });
+check('Legacy Android', 'controlled install plan refuses without confirm and serial', async () => {
+    const url = pathToFileURL(path.join(DIST, 'legacy-android-behavior.js')).href;
+    const { planAndroidControlledInstall } = await import(url);
+    const plan = planAndroidControlledInstall({ apkPath: '/tmp/x.apk', confirm: false });
+    assert.equal(plan.allowed, false);
+});
 check('Roadmap', 'M and N status, version and O entry criteria are internally consistent', () => {
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const architecture = readFileSync(path.join(ROOT, 'docs/ARCHITECTURE.md'), 'utf8');
