@@ -95,15 +95,15 @@ The server writes protocol messages to stdout. Do not add logging to stdout; dia
 
 ## Project status
 
-- **Done:** patches **A–K** and **L** are the 1.0 baseline (process State as of **1.5.5** (Patch O closed — Classic Mac / early macOS; post-close maintenance green; 2026-11-12).
+- **Done:** patches **A–K** and **L** are the 1.0 baseline (process State as of **1.5.6** (Patch P in progress — bounded Android device observation slice; 2026-11-12).
 
-- **Verification.** Capability matrix **green** on **1.4.2** (operator-confirmed). Patch O remains closed at **1.4.0**; 1.4.1–1.4.2 are post-close hygiene only.
+- **Verification.** The 1.5.6 increment is not yet verified: dependency installation timed out locally. The 1.4.2 matrix is historical evidence for Patch O only; rerun build, tests, capability and full `os: all` gates before claiming a green 1.5.6 matrix.
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.5.5** (Patch P steps 0–1 — legacy Android Target Profile) |
+| What is the product version? | **1.5.6** (Patch P step 6 — bounded Android device observations) |
 | What is finished? | The 1.0 foundation (**patches A–L**), **Patch M** (Windows, **1.2.0**), **Patch N** (old Linux, **1.3.5**), and **Patch O** (Classic Mac / early macOS, **1.4.0**). |
-| What is being built? | **Patch P** in progress through **1.5.5**: L0 reference trials. |
+| What is being built? | **Patch P** in progress through **1.5.6**: L0 reference trials and bounded device-side logcat/activity observation. |
 | What has not started? | **Patch Q** (newer generations and unified compatibility intelligence). Patch P is the next product unit. |
 
 - **Where to start (people and AI assistants):** read [AGENTS.md](AGENTS.md), then the *Status at a glance* section of [docs/ROADMAP.md](docs/ROADMAP.md). See also [docs/CAPABILITIES.md](docs/CAPABILITIES.md), [docs/SECURITY.md](docs/SECURITY.md) and [docs/AUDIT.md](docs/AUDIT.md).
