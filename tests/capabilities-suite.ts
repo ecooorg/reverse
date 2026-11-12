@@ -2676,6 +2676,29 @@ check('Legacy Mac', 'HFS catalog first extent and PEF loader strings surface in 
         await rm(dir, { recursive: true, force: true });
     }
 });
+check('Legacy Mac', 'Toolbox A-line trap scan yields toolbox-traps detector', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'cap-trap-'));
+    try {
+        const b = Buffer.alloc(32);
+        for (let i = 0; i < 8; i++)
+            b.writeUInt16BE(0xa000 + i, i * 2);
+        const f = path.join(dir, 'code.bin');
+        await writeFile(f, b);
+        const macUrl = pathToFileURL(path.join(DIST, 'legacy-mac.js')).href;
+        const { analyzeLegacyMac } = await import(macUrl);
+        const auth = {
+            basis: 'open_source',
+            licenseOrConsentReference: 'cap',
+            declaredBy: 'cap',
+            declaredAt: new Date().toISOString(),
+        };
+        const r = await analyzeLegacyMac(f, auth);
+        assert.ok(r.findings[0].structuralDetectors.some((d: any) => d.name === 'toolbox-traps'));
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
 check('Roadmap', 'M and N status, version and O entry criteria are internally consistent', () => {
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const architecture = readFileSync(path.join(ROOT, 'docs/ARCHITECTURE.md'), 'utf8');

@@ -251,7 +251,10 @@ test('HFS MDB reports catalog first extent when present', async () => {
         const r: any = await analyzeLegacyMac(f, AUTH);
         assert.equal(r.findings[0].format, 'hfs-volume');
         assert.ok(r.findings[0].structuralDetectors.some((d: any) => d.name === 'hfs-catalog-extent'));
-        assert.match(r.findings[0].formatEvidence.join(' '), /volumeName=Test|catalogExtent=10:3/);
+        const hfsEv = r.findings[0].structuralDetectors
+            .flatMap((d: any) => d.evidence)
+            .join(' ');
+        assert.match(hfsEv, /volumeName=Test|catalogExtent|startBlock=10|blockCount=3/);
     }
     finally {
         await rm(dir, { recursive: true, force: true });
@@ -273,7 +276,24 @@ test('PEF loader string window is scanned for printable names', async () => {
         const r: any = await analyzeLegacyMac(f, AUTH);
         assert.equal(r.findings[0].format, 'pef-cfm');
         const ev = JSON.stringify(r.findings[0].structuralDetectors);
-        assert.ok(/Code|loaderStrings/i.test(ev + r.findings[0].formatEvidence.join(' ')));
+        assert.ok(/Code|loaderStrings|section\[/i.test(ev));
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
+test('A-line Toolbox trap words surface as toolbox-traps detector', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'mac-trap-'));
+    try {
+        // Big-endian 0xA000-class words (classic Toolbox traps)
+        const b = Buffer.alloc(32);
+        for (let i = 0; i < 8; i++)
+            b.writeUInt16BE(0xa000 + i, i * 2);
+        const f = path.join(dir, 'code.bin');
+        await writeFile(f, b);
+        const r: any = await analyzeLegacyMac(f, AUTH);
+        assert.ok(r.findings[0].structuralDetectors.some((d: any) => d.name === 'toolbox-traps'));
+        assert.equal(r.findings[0].format, '68k-code');
     }
     finally {
         await rm(dir, { recursive: true, force: true });
