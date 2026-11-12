@@ -1,6 +1,6 @@
 {
   "name": "reverse-compact",
-  "version": "1.5.4",
+  "version": "1.5.5",
   "private": false,
   "description": "A compact local analysis, profiling, benchmarking and evidence core with CLI, MCP, Windows and legacy Linux compatibility diagnosis (patches M/N).",
   "type": "module",
