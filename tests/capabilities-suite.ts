@@ -2828,6 +2828,38 @@ check('Legacy Android', 'Android diagnosis tables validate and emit findings', a
     });
     assert.ok(d.length >= 1);
 });
+check('Legacy Android', 'adb and emulator environments are registered', async () => {
+    const envUrl = pathToFileURL(path.join(DIST, 'execution-environment.js')).href;
+    const { bootstrapExecutionEnvironments, listExecutionEnvironments } = await import(envUrl);
+    bootstrapExecutionEnvironments();
+    const names = listExecutionEnvironments().map((e: any) => e.name);
+    assert.ok(names.includes('adb'));
+    assert.ok(names.includes('emulator'));
+});
+check('Legacy Android', 'works/fails matrix unsupported without serial/AVD', async () => {
+    const prevS = process.env.REVERSE_ANDROID_SERIAL;
+    const prevA = process.env.REVERSE_ANDROID_AVD;
+    delete process.env.REVERSE_ANDROID_SERIAL;
+    delete process.env.REVERSE_ANDROID_AVD;
+    try {
+        const url = pathToFileURL(path.join(DIST, 'legacy-android-behavior.js')).href;
+        const { runAndroidWorksFailsMatrix } = await import(url);
+        const cells = await runAndroidWorksFailsMatrix(['/tmp/x.apk'], {
+            basis: 'open_source',
+            licenseOrConsentReference: 'cap',
+            declaredBy: 'cap',
+            declaredAt: new Date().toISOString(),
+        });
+        assert.ok(cells.length >= 2);
+        assert.ok(cells.every((c: any) => c.outcome === 'unsupported'));
+    }
+    finally {
+        if (prevS !== undefined)
+            process.env.REVERSE_ANDROID_SERIAL = prevS;
+        if (prevA !== undefined)
+            process.env.REVERSE_ANDROID_AVD = prevA;
+    }
+});
 check('Roadmap', 'M and N status, version and O entry criteria are internally consistent', () => {
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const architecture = readFileSync(path.join(ROOT, 'docs/ARCHITECTURE.md'), 'utf8');

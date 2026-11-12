@@ -6,6 +6,7 @@ import os from 'node:os';
 import { analyzeLegacyAndroid, parseAxmlSdkHints } from '../dist/legacy-android.js';
 import { runAndroidCalibration } from '../dist/legacy-android-calibration.js';
 import { diagnoseAndroidFromTables, assertAndroidTablesValid } from '../dist/legacy-android-tables.js';
+import { runAndroidWorksFailsMatrix } from '../dist/legacy-android-behavior.js';
 import { LegacyAuthorizationError } from '../dist/legacy-gate.js';
 const AUTH = {
     basis: 'open_source' as const,
@@ -66,4 +67,21 @@ test('Android compatibility tables validate and diagnose 32-bit + low SDK', () =
     });
     assert.ok(d.length >= 2);
     assert.ok(d.some(x => x.id.includes('32bit') || x.id.includes('permissions') || x.id.includes('multidex')));
+});
+test('Android works/fails matrix reports unsupported without device', async () => {
+    const prevS = process.env.REVERSE_ANDROID_SERIAL;
+    const prevA = process.env.REVERSE_ANDROID_AVD;
+    delete process.env.REVERSE_ANDROID_SERIAL;
+    delete process.env.REVERSE_ANDROID_AVD;
+    try {
+        const cells = await runAndroidWorksFailsMatrix(['/tmp/x.apk'], AUTH);
+        assert.ok(cells.length >= 2);
+        assert.ok(cells.every(c => c.outcome === 'unsupported'));
+    }
+    finally {
+        if (prevS !== undefined)
+            process.env.REVERSE_ANDROID_SERIAL = prevS;
+        if (prevA !== undefined)
+            process.env.REVERSE_ANDROID_AVD = prevA;
+    }
 });
