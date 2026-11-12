@@ -144,7 +144,13 @@ test('analyzeLegacyMac recognizes MacBinary II and HFS+ volume header', async ()
         const r2: any = await analyzeLegacyMac(hf, AUTH);
         assert.equal(r2.findings[0].format, 'hfs-volume');
         const pl = path.join(dir, 'Info.plist');
-        await writeFile(pl, '<?xml version="1.0"?><plist><dict><key>CFBundleIdentifier</key><string>a.b</string><key>LSMinimumSystemVersion</key><string>10.5</string></dict></plist>');
+        const plist = [
+            '<?xml version="1.0"?><plist><dict>',
+            '<key>CFBundleIdentifier</key><string>a.b</string>',
+            '<key>LSMinimumSystemVersion</key><string>10.5</string>',
+            '</dict></plist>',
+        ].join('');
+        await writeFile(pl, plist);
         const r3: any = await analyzeLegacyMac(pl, AUTH);
         assert.ok(r3.findings[0].bundleSummary?.includes('id=a.b'));
         assert.equal(r3.findings[0].targetProfile.bundleLayout.value?.includes('id=a.b'), true);

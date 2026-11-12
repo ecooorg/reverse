@@ -2562,7 +2562,8 @@ check('Legacy Mac', 'analyzeLegacyMac recognizes Mach-O and fills Mac Target Pro
     }
 });
 check('Legacy Mac', 'Mac calibration fixtures score crafted detectors', async () => {
-    const { writeCraftedMacCalibrationFixtures, runMacCalibration } = await import(pathToFileURL(path.join(DIST, 'legacy-mac-calibration.js')).href);
+    const calUrl = pathToFileURL(path.join(DIST, 'legacy-mac-calibration.js')).href;
+    const { writeCraftedMacCalibrationFixtures, runMacCalibration } = await import(calUrl);
     const dir = await mkdtemp(path.join(os.tmpdir(), 'cap-mac-cal-'));
     try {
         const manifest = await writeCraftedMacCalibrationFixtures(dir);
@@ -2596,7 +2597,7 @@ check('Roadmap', 'M and N status, version and O entry criteria are internally co
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const architecture = readFileSync(path.join(ROOT, 'docs/ARCHITECTURE.md'), 'utf8');
     const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
-    assert.equal(pkg.version, '1.3.14');
+    assert.equal(pkg.version, '1.3.15');
     assert.match(roadmap, /State as of \*\*1\.3\.14\*\*/);
     assert.match(roadmap, /Patch M.*\*\*done\*\*/s);
     assert.match(roadmap, /Patch N.*\*\*done\*\*/s);
