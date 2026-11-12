@@ -2561,6 +2561,29 @@ check('Legacy Mac', 'analyzeLegacyMac recognizes Mach-O and fills Mac Target Pro
         await rm(dir, { recursive: true, force: true });
     }
 });
+check('Legacy Mac', 'Mac calibration fixtures score crafted detectors', async () => {
+    const { writeCraftedMacCalibrationFixtures, runMacCalibration } = await import(pathToFileURL(path.join(DIST, 'legacy-mac-calibration.js')).href);
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'cap-mac-cal-'));
+    try {
+        const manifest = await writeCraftedMacCalibrationFixtures(dir);
+        const manPath = path.join(dir, 'manifest.json');
+        await writeFile(manPath, JSON.stringify(manifest));
+        const report = await runMacCalibration(manPath, {
+            authorization: {
+                basis: 'open_source',
+                licenseOrConsentReference: 'cap-fixture',
+                declaredBy: 'capability-suite',
+                declaredAt: new Date().toISOString(),
+            },
+        });
+        assert.equal(report.skipped, 0, report.failures.join('; '));
+        assert.ok(report.failures.length === 0, report.failures.join('; '));
+        assert.ok(report.scores.length > 0);
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
 check('Legacy Mac', 'analyze_legacy_mac is registered in the MCP tool contract', () => {
     assert.ok(DOCUMENTED_TOOLS.includes('analyze_legacy_mac'));
 });
@@ -2573,8 +2596,8 @@ check('Roadmap', 'M and N status, version and O entry criteria are internally co
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const architecture = readFileSync(path.join(ROOT, 'docs/ARCHITECTURE.md'), 'utf8');
     const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
-    assert.equal(pkg.version, '1.3.13');
-    assert.match(roadmap, /State as of \*\*1\.3\.13\*\*/);
+    assert.equal(pkg.version, '1.3.14');
+    assert.match(roadmap, /State as of \*\*1\.3\.14\*\*/);
     assert.match(roadmap, /Patch M.*\*\*done\*\*/s);
     assert.match(roadmap, /Patch N.*\*\*done\*\*/s);
     // O step 0 is closed; feature work (steps 1+) is the active product unit.

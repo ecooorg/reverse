@@ -122,3 +122,34 @@ test('analyzeLegacyMac unknown bytes yield partial', async () => {
         await rm(dir, { recursive: true, force: true });
     }
 });
+test('analyzeLegacyMac recognizes MacBinary II and HFS+ volume header', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'mac-more-'));
+    try {
+        const mb = Buffer.alloc(128);
+        mb[0] = 0;
+        mb[1] = 5;
+        mb.write('Hello', 2);
+        mb.write('TEXT', 65);
+        mb.write('ttxt', 69);
+        mb[122] = 129;
+        const mf = path.join(dir, 'x.bin');
+        await writeFile(mf, mb);
+        const r1: any = await analyzeLegacyMac(mf, AUTH);
+        assert.equal(r1.findings[0].format, 'macbinary');
+        assert.equal(r1.findings[0].creatorType?.type, 'TEXT');
+        const hfs = Buffer.alloc(1024 + 4);
+        hfs.write('H+', 1024);
+        const hf = path.join(dir, 'vol.bin');
+        await writeFile(hf, hfs);
+        const r2: any = await analyzeLegacyMac(hf, AUTH);
+        assert.equal(r2.findings[0].format, 'hfs-volume');
+        const pl = path.join(dir, 'Info.plist');
+        await writeFile(pl, '<?xml version="1.0"?><plist><dict><key>CFBundleIdentifier</key><string>a.b</string><key>LSMinimumSystemVersion</key><string>10.5</string></dict></plist>');
+        const r3: any = await analyzeLegacyMac(pl, AUTH);
+        assert.ok(r3.findings[0].bundleSummary?.includes('id=a.b'));
+        assert.equal(r3.findings[0].targetProfile.bundleLayout.value?.includes('id=a.b'), true);
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
