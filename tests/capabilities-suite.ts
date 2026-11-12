@@ -2629,8 +2629,8 @@ check('Roadmap', 'M and N status, version and O entry criteria are internally co
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const architecture = readFileSync(path.join(ROOT, 'docs/ARCHITECTURE.md'), 'utf8');
     const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
-    assert.equal(pkg.version, '1.3.19');
-    assert.match(roadmap, /State as of \*\*1\.3\.14\*\*/);
+    assert.equal(pkg.version, '1.3.20');
+    assert.match(roadmap, /State as of \*\*1\.3\.20\*\*/);
     assert.match(roadmap, /Patch M.*\*\*done\*\*/s);
     assert.match(roadmap, /Patch N.*\*\*done\*\*/s);
     // O step 0 is closed; feature work (steps 1+) is the active product unit.
