@@ -113,10 +113,16 @@ function detectPef(b: Buffer): {
         sectionNames,
     };
 }
-function parseCodeResourceInventory(b: Buffer): Array<{ id: number; size: number }> {
+function parseCodeResourceInventory(b: Buffer): Array<{
+    id: number;
+    size: number;
+}> {
     // Best-effort scan for classic Resource Manager type list entries for CODE.
     // Looks for the fourcc CODE followed by a count and id/offset pairs.
-    const out: Array<{ id: number; size: number }> = [];
+    const out: Array<{
+        id: number;
+        size: number;
+    }> = [];
     for (let i = 0; i + 8 < b.length; i++) {
         if (b[i] === 0x43 && b[i + 1] === 0x4f && b[i + 2] === 0x44 && b[i + 3] === 0x45) {
             // Possible type-list: CODE (4) + count-1 as Int16BE

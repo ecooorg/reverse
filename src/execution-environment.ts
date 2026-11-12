@@ -9,9 +9,9 @@ import { runInSandbox, type SandboxLimits, type SandboxRunResult } from './execu
 import { operatingMode } from './benchmark-gate.js';
 import { requireLegacyGate } from './legacy-gate.js';
 import type { LegacyAuthorization } from './legacy-types.js';
-export type EngineKind =
-    | 'wine' | 'dosbox' | 'qemu' | 'native' | 'chroot' | 'qemu-user' | 'oss-shim'
-    | 'basiliskii' | 'minivmac' | 'sheepshaver' | 'qemu-ppc';
+type WindowsEngineKind = 'wine' | 'dosbox' | 'qemu' | 'native' | 'chroot' | 'qemu-user' | 'oss-shim';
+type MacEngineKind = 'basiliskii' | 'minivmac' | 'sheepshaver' | 'qemu-ppc';
+export type EngineKind = WindowsEngineKind | MacEngineKind;
 export interface EnvironmentFingerprint {
     engine: EngineKind;
     binary: string | null;
@@ -267,7 +267,6 @@ export function registerExecutionEnvironment(env: ExecutionEnvironment): void {
 export function listExecutionEnvironments(): readonly ExecutionEnvironment[] {
     return registry;
 }
-
 /** Basilisk II class — 68k Mac OS emulator. Detect-only when absent. */
 export function createBasiliskIiEnvironment(): ExecutionEnvironment {
     return createPathEngine({
