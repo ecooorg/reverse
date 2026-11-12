@@ -391,3 +391,13 @@ researchTools.push({
         required: ['file', 'session_id']
     }
 });
+researchTools.push({
+    name: 'analyze_legacy_mac',
+    description: 'Statically inspect classic Mac / early macOS formats (Mach-O, fat, PEF, AppleDouble) '
+        + 'and fill Mac Target Profile fields. Requires session authorization; never executes the target.',
+    inputSchema: {
+        type: 'object',
+        properties: { file: { type: 'string' }, session_id: { type: 'string' } },
+        required: ['file', 'session_id']
+    }
+});

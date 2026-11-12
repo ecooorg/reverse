@@ -16,6 +16,7 @@ import { analyzeDotnet } from './analysis-dotnet.js';
 import { analyzeWasm } from './analysis-wasm.js';
 import { analyzeLegacyWindows } from './legacy-windows.js';
 import { analyzeLegacyLinux } from './legacy-linux.js';
+import { analyzeLegacyMac } from './legacy-mac.js';
 import { listProcesses, inspectProcess, getProcessMetrics, getProcessTree } from './process-inspector.js';
 import { analyzeMemory, analyzeCpu, analyzeIo } from './process-inspector.js';
 import { profileProcess, monitorProcess, detectResourceAnomalies } from './profiling-profiler.js';
@@ -175,18 +176,27 @@ async function call(name: string, a: any, signal?: AbortSignal) {
         case 'analyze_legacy_linux': {
             return analyzeLegacyLinux(a.file, null, { sessionId: a.session_id });
         }
-        case 'add_research_hypothesis': return new EvidenceEngine().addHypothesis(a.session_id, {
-            statement: a.statement, provenance: a.provenance, confidence: a.confidence
-        });
-        case 'promote_research_hypothesis':
-            return new EvidenceEngine().updateHypothesis(a.session_id, a.hypothesis_id, a.status, a.evidence_id);
-        case 'add_research_event': return new EvidenceEngine().addSessionEvent(a.session_id, a.event, a.payload ?? {});
-        case 'add_research_evidence': return new EvidenceEngine().addEvidence(a.session_id, {
-            type: a.type, source: a.source, measurement: a.measurement, confidence: a.confidence, limitations: a.limitations
-        });
-        case 'link_research_artifacts': return new EvidenceEngine().link(a.session_id, a.relation, a.ids);
-        default: throw new ProtocolError(-32602, `Unknown tool: ${name}`);
+        case 'analyze_legacy_mac':
+            {
+                return analyzeLegacyMac(a.file, null, { sessionId: a.session_id });
+            }
+            ;
     }
+    'add_research_hypothesis';
+    return new EvidenceEngine().addHypothesis(a.session_id, {
+        statement: a.statement, provenance: a.provenance, confidence: a.confidence
+    });
+    'promote_research_hypothesis';
+    return new EvidenceEngine().updateHypothesis(a.session_id, a.hypothesis_id, a.status, a.evidence_id);
+    'add_research_event';
+    return new EvidenceEngine().addSessionEvent(a.session_id, a.event, a.payload ?? {});
+    'add_research_evidence';
+    return new EvidenceEngine().addEvidence(a.session_id, {
+        type: a.type, source: a.source, measurement: a.measurement, confidence: a.confidence, limitations: a.limitations
+    });
+    'link_research_artifacts';
+    return new EvidenceEngine().link(a.session_id, a.relation, a.ids);
+    throw new ProtocolError(-32602, `Unknown tool: ${name}`);
 }
 // Versions whose tools/call result shape this server satisfies. A client asking for one of them gets it back; otherwise the newest is
 // offered.

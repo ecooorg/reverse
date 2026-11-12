@@ -69,6 +69,21 @@ export interface TargetProfile {
     threadModel?: ProfileField<string | null>;
     /** Interpreter path (PT_INTERP / ld-linux) when present. */
     dynamicInterpreter?: ProfileField<string | null>;
+    /** Classic Mac / early macOS code model (Patch O): mach-o, fat-mach-o, pef-cfm, 68k-code, … */
+    codeModel?: ProfileField<string | null>;
+    /** Endianness when known from headers (Patch O). */
+    endianness?: ProfileField<'big' | 'little' | 'mixed' | null>;
+    /** Resource Manager type codes observed (Patch O). */
+    resourceInventory?: ProfileField<string[]>;
+    /** Classic creator/type codes when present (Patch O). */
+    creatorType?: ProfileField<{
+        creator: string;
+        type: string;
+    } | null>;
+    /** Bundle layout summary when an .app tree is examined (Patch O step 3). */
+    bundleLayout?: ProfileField<string | null>;
+    /** Rosetta / 32-bit dependence hints (Patch O). */
+    rosettaOr32BitDependence?: ProfileField<string[]>;
 }
 /** Operator-declared legal basis for legacy analysis (not legal verification). */
 export interface LegacyAuthorization {
