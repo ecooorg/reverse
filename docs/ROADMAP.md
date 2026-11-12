@@ -18,11 +18,11 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.3.14** (O steps 2–3 slice: Mac calibration + expanded inventory; 2026-11-12).
+State as of **1.3.15** (O steps 2–3 slice: Mac calibration + expanded inventory; 2026-11-12).
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.3.14** (O steps 2–3: Mac calibration corpus, MacBinary/BinHex/HFS/archive detectors, Info.plist, Mach-O PIE, property tests) |
+| What is the product version? | **1.3.15** (O steps 2–3: Mac calibration corpus, MacBinary/BinHex/HFS/archive detectors, Info.plist, Mach-O PIE, property tests) |
 | What is finished? | The 1.0 foundation (**patches A–L**) and **Patch M** (Windows compatibility through 2010, release **1.2.0**) and **Patch N** (old Linux compatibility, closed at **1.3.5**). |
 | What is being built? | **Patch O** in progress. Steps 0–1 closed. **1.3.14 delivers step 2 + inventory slice of step 3:** crafted Mac calibration harness with precision/recall, MacBinary/BinHex/HFS volume/archive recognition, Info.plist bundle summary, Mach-O MH_PIE flag, hostile-input property tests (R-04 Mac). Full 68k segment loader, PEF fragment graph, HFS catalog and sourced diagnosis tables remain open. Next: step 4 diagnosis tables or remaining step 3 depth. |
 | What has not started? | **Patches P and Q** (legacy Android; newer generations and unified compatibility intelligence). Patch O feature work (steps 1+) is next. Plans: [Detailed plans for patches N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q). |
@@ -1157,6 +1157,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.3.12 | O step 0 format fix; Status/docs aligned to 1.3.12 | 2026-11-12; Capabilities 43195327371 format green, docs checks updated |
 | 1.3.13 | O step 1: Mac Target Profile fields + analyze_legacy_mac (Mach-O/PEF/AppleDouble) | 2026-11-12 |
 | 1.3.14 | O steps 2–3 slice: Mac calibration, MacBinary/BinHex/HFS/archive, Info.plist, PIE, R-04 property tests | 2026-11-12 |
+| 1.3.15 | Fix: unused cpuName, line-length in Mac tests/suite | 2026-11-12 |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP
