@@ -1,3 +1,19 @@
+## Audit 28 — 2026-11-12 — Patch P step 6: bounded Android device observations (1.5.6)
+
+**Scope.** Deliver the first device-side capture slice without claiming full scenario replay.
+
+**Delivered.**
+- `collectAndroidDeviceObservations` uses the shared authorization gate and requires `REVERSE_MODE=CONTROLLED_EXECUTION`, `confirm=true` and an explicit device serial.
+- Read-only `adb logcat -d -t N` and `adb shell dumpsys activity activities` calls use argument arrays (no shell), 15-second per-command timeouts and bounded output.
+- Missing/invalid serial returns `unsupported` without starting adb. The helper does not install, launch, clear or otherwise mutate the device.
+- Device-controlled output passes through `wrapUntrusted`; adversarial tests verify the untrusted marker and string cap (R-02).
+
+**Remaining.** UI hierarchy/screenshots, seeded input replay, network and persisted-state diffs, Frida scripts/call-frequency profiles, and `simpleperf`/Perfetto ingestion remain open under P step 6.
+
+**Verification.** Local dependency installation did not complete in this environment (Node 22.16.0; package engine warnings and install timeout). Structure check passes; build, unit, capability, format and cross-platform CI gates remain pending. No green matrix is claimed.
+
+---
+
 ## Audit 27 — 2026-11-12 — Debt register 1.4.2; Patch P steps 0–1 start (1.5.0)
 
 **Scope.** Fold the 1.4.2 debt-register revision into project docs; correct CAPABILITIES header drift; open **Patch P** (legacy Android) at **1.5.0** with step 0 decision and step 1 authorization-gated Target Profile (`analyze_legacy_android`).

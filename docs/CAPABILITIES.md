@@ -368,9 +368,12 @@ Classic Mac / early macOS static analysis and limited execution adapters are **d
 | Device logcat/uiautomator capture | 🚧 |
 
 
-### P step 6 (1.5.5)
+### P step 6 (1.5.5–1.5.6)
 
-| Item | Status |
-|---|---|
-| `runAndroidReferenceTrials` (L0) | ✅ crafted DEX + diagnosis + auth provenance |
-| Operator APK oracle / higher L | 🚧 |
+| Item | Status | Notes |
+|---|---|---|
+| `runAndroidReferenceTrials` (L0) | ✅ | Crafted DEX + diagnosis + authorization provenance |
+| `collectAndroidDeviceObservations` | ✅ | Library API only (not MCP-exposed); read-only `adb logcat` + `dumpsys activity activities`; authorization, controlled mode, confirm and serial required |
+| Operator APK oracle / higher L | 🚧 | No original-API oracle automation |
+| UI hierarchy / screenshots / seeded input replay | 🚧 | Remaining P step 6 |
+| Network / persisted-state diff, Frida and profiler ingestion | 🚧 | Remaining P step 6 |

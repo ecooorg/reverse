@@ -18,18 +18,18 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.5.5** (Patch O closed — Classic Mac / early macOS; post-close maintenance green; 2026-11-12).
+State as of **1.5.6** (Patch P in progress — bounded Android device observation slice; 2026-11-12).
 
-**Verification.** Capability matrix **green** on **1.4.2** (operator-confirmed). Patch O remains closed at **1.4.0**; 1.4.1–1.4.2 are post-close hygiene only.
+**Verification.** This 1.5.6 increment is not yet verified: dependency installation timed out in the local environment. The 1.4.2 matrix is historical evidence for Patch O only; rerun build, tests, capability and full `os: all` gates before claiming a green 1.5.6 matrix.
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.5.5** (Patch P steps 0–1 — legacy Android Target Profile) |
+| What is the product version? | **1.5.6** (Patch P step 6 slice — bounded Android device observations) |
 | What is finished? | The 1.0 foundation (**patches A–L**), **Patch M** (Windows, **1.2.0**), **Patch N** (old Linux, **1.3.5**), and **Patch O** (Classic Mac / early macOS, **1.4.0**). |
-| What is being built? | **Patch P** in progress through **1.5.5**: L0 reference trials. |
+| What is being built? | **Patch P** in progress through **1.5.6**: L0 reference trials and bounded device-side logcat/activity observation. |
 | What has not started? | **Patch Q** (newer generations and unified compatibility intelligence). Patch P is the next product unit. |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Patch P close-out: docs/security residual list and release record at 1.5.0-equivalent (line stays 1.5.x). |
+| What is the next concrete step? | Continue Patch P step 6: expose the observation API through the stable MCP contract, then add UI hierarchy/screenshot capture, seeded input replay and device-side scenario comparison; current observations are read-only. |
 | What is open but not blocking? | R-10 residual (`goblin` and later providers), R-11 residual (Mach-O and unified report), F-83 (Linux Node 22 timeout; not reproduced in three consecutive green matrices), F-86 (dev-only moderate advisories), and the low Stryker score on two modules (recorded baseline, floor held). M/N G/H residual scope is itemized below and in `CAPABILITIES.md`. See the [carry-over debt register](#carry-over-debt-register). |
 | What is unverified? | Residual M/N limitations (explicit): no bundled Windows/Linux oracle (preservation stays L0); execution lifecycle lacks snapshot/restore/trace; behavior capture does not cover registry/network/UI/audio/time/randomness or code coverage; no function-level equivalence lab; migration options are limited; similarity BSim is unconfigured; calibration uses small crafted corpora; containers share the host kernel; the verneed summary is a string-residue scan, not a full `SHT_GNU_verneed` walk; `goblin` is not wired; libc/compiler generation heuristics are not calibrated beyond the crafted fixtures. The 1.3.7 manual matrix (Capabilities run 43079862360) stopped at the formatting gate on all six OS/Node cells, before build or capability tests; no cross-platform result is inferred from that run. Capabilities run 43084133732 exposed malformed PowerShell source on Windows (fixed in 1.3.9) and a Windows capability file that finished all 108 checks but did not exit (F-84, fixed in 1.3.10). The full matrix is green on commit `78a47fd` (Capabilities 43172993614, Structure 43173076031, Mutation 43173019792, Golden 43173044415, Supply chain 43173096703). An earlier green matrix on `f85200e` is superseded by this final verification run. The earlier N closure matrix remains recorded for commit `b5ea3fa` (Capabilities 43059743774, Structure 43059819947, Supply chain 43059851184). Windows/macOS hard sandbox isolation remains a recorded limitation from M. |
 
@@ -469,7 +469,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 - [ ] First-failure diagnostics and a works/fails matrix across at least two API levels.
 
 *4. Behavior capture and replay*
-- [ ] `logcat`, `dumpsys`, UI hierarchy, screenshots, seeded `monkey`/`input` scenarios, Frida session scripts and call-frequency profiles, proxy network capture, file and database diffs, `simpleperf` and Perfetto ingestion.
+- [ ] Complete device capture/replay: UI hierarchy, screenshots, seeded `monkey`/`input` scenarios, Frida session scripts and call-frequency profiles, proxy network capture, file/database diffs, `simpleperf` and Perfetto ingestion. Bounded read-only `logcat` and `dumpsys activity activities` collection is delivered in 1.5.6.
 
 *5. Preservation and migration*
 - [ ] Oracle comparisons on the original API level, retarget and repackage workflow, L0–L3 report, ranked migration options with evidence.
@@ -492,6 +492,14 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 **Out of scope and known limits.** Bundling system images or Google components; defeating licensing or DRM; apps that depend on a vendor ROM or proprietary hardware without an emulator path; ARM-translation results are labeled as translated.
 
 **P is done when** section 8 (the debts) and the definition of done for N, O, P and Q holds for the legacy Android family and the release is **1.5.0** with its release record.
+
+### 1.5.6 — Patch P step 6 slice (bounded Android device observations)
+
+- [x] Add authorization-gated, `CONTROLLED_EXECUTION` + `confirm=true` read-only adb collection for bounded `logcat` and `dumpsys activity activities`.
+- [x] Require an explicit device serial; missing/invalid serial returns `unsupported` without invoking adb.
+- [x] Cap command time/output, avoid shell interpolation, and wrap device-controlled strings with the shared untrusted-content marker and per-string cap (R-02).
+- [x] Unit and capability checks cover the no-serial refusal path and adversarial untrusted text.
+- [ ] Full Android capture/replay remains open: UI hierarchy/screenshots, seeded input replay, network and persisted-state diffs, Frida and profiler ingestion.
 
 ### Patch Q working plan — Newer generations and unified compatibility intelligence (target release 2.0, not started)
 
@@ -1202,6 +1210,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.5.3 | P step 4: adb/emulator envs; works/fails unsupported without serial/AVD |
 | 1.5.4 | P step 5: planAndroidControlledInstall + host behavior round-trip; knip type |
 | 1.5.5 | P step 6: Android L0 reference trials; replayScenario arg order fix |
+| 1.5.6 | P step 6 slice: bounded adb logcat + activity dumpsys collection; R-02 wrapper and authorization/mode gates |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP
