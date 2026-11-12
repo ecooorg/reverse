@@ -1873,6 +1873,7 @@ const DOCUMENTED_TOOLS = [
     'analyze_legacy_windows',
     'analyze_legacy_linux',
     'analyze_legacy_mac',
+    'analyze_legacy_android',
     'create_change_workspace',
     'apply_change',
     'rollback_change',
@@ -2760,7 +2761,7 @@ check('Roadmap', 'Patch O is recorded closed at 1.4.0', () => {
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
     // version from package.json only
-    assert.match(pkg.version, /^1\.4\.\d+$/);
+    assert.match(pkg.version, /^1\.5\.\d+$/);
     assert.match(roadmap, /Patch O.*done|closed at \*\*1\.4\.0\*\*/i);
     assert.match(roadmap, /1\.4\.0 — Patch O closed/i);
 });
@@ -2783,6 +2784,32 @@ check('Legacy Mac', 'diffDiskImageHashes reports tree drift', async () => {
         await rm(dir, { recursive: true, force: true });
     }
 });
+check('Legacy Android', 'analyze_legacy_android is registered in the MCP tool contract', () => {
+    assert.ok(DOCUMENTED_TOOLS.includes('analyze_legacy_android'));
+});
+check('Legacy Android', 'analyzeLegacyAndroid fills Android Target Profile on DEX', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'cap-la-'));
+    try {
+        const b = Buffer.alloc(70);
+        b.write('dex\n035\0', 0);
+        const f = path.join(dir, 'classes.dex');
+        await writeFile(f, b);
+        const url = pathToFileURL(path.join(DIST, 'legacy-android.js')).href;
+        const { analyzeLegacyAndroid } = await import(url);
+        const auth = {
+            basis: 'open_source',
+            licenseOrConsentReference: 'cap',
+            declaredBy: 'cap',
+            declaredAt: new Date().toISOString(),
+        };
+        const r = await analyzeLegacyAndroid(f, auth);
+        assert.equal(r.findings[0].format, 'DEX');
+        assert.equal(r.findings[0].targetProfile.osAndEra.value.family, 'Android');
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
 check('Roadmap', 'M and N status, version and O entry criteria are internally consistent', () => {
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const architecture = readFileSync(path.join(ROOT, 'docs/ARCHITECTURE.md'), 'utf8');
@@ -2796,6 +2823,7 @@ check('Roadmap', 'M and N status, version and O entry criteria are internally co
     // O closed at 1.4.0 — status table and narrative must not say in progress.
     assert.match(roadmap, /Patch O.*(\*\*done\*\*|closed at)/i);
     assert.doesNotMatch(roadmap, /\| O \|[^\n]*in progress/i);
+    assert.match(roadmap, /Patch P.*in progress/i);
     assert.match(roadmap, /F-08 macOS|ps -p/);
     assert.doesNotMatch(architecture, /M remains open until its complete end-to-end acceptance criteria pass/);
 });
