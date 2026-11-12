@@ -10,6 +10,7 @@ import { result } from './core-types.js';
 import { analyzeAndroid } from './analysis-android.js';
 import { profileField, type LegacyAuthorization, type TargetProfile } from './legacy-types.js';
 import { assertAuthorizationPresent, requireLegacyGate } from './legacy-gate.js';
+import { diagnoseAndroidFromTables, type AndroidCompatDiagnosis } from './legacy-android-tables.js';
 export type { LegacyAuthorization, TargetProfile } from './legacy-types.js';
 const DEX_MAGIC = Buffer.from('dex\n');
 /**
@@ -35,7 +36,7 @@ export function parseAxmlSdkHints(b: Buffer): {
         evidence.push(`AXML magic ok 0x${magic.toString(16)}`);
     const asUtf16 = (label: string): number | null => {
         const needle = Buffer.from(label, 'utf16le');
-        let idx = b.indexOf(needle);
+        const idx = b.indexOf(needle);
         if (idx < 0)
             return null;
         // Search forward up to 64 bytes for type=0x10 (int) value LE
@@ -86,6 +87,7 @@ export interface LegacyAndroidFinding {
         evidence: string[];
         confidence: number;
     }>;
+    compatibilityFindings: AndroidCompatDiagnosis[];
     targetProfile: TargetProfile;
     authorization: LegacyAuthorization;
     sha256: string;
@@ -110,11 +112,9 @@ function apiBandFromShape(args: {
 }
 async function readZipEntry(file: string, entryName: string, max = 512 * 1024): Promise<Buffer | null> {
     const buf = await readFile(file);
-    const nameBuf = Buffer.from(entryName, 'utf8');
-    let offset = 0;
-    while (offset + 30 < buf.length) {
+    for (let offset = 0; offset + 30 < buf.length;) {
         if (buf.readUInt32LE(offset) !== 0x04034b50)
-            break;
+            return null;
         const method = buf.readUInt16LE(offset + 8);
         const compSize = buf.readUInt32LE(offset + 18);
         const nameLen = buf.readUInt16LE(offset + 26);
@@ -125,7 +125,6 @@ async function readZipEntry(file: string, entryName: string, max = 512 * 1024): 
         if (name === entryName || name.endsWith('/' + entryName)) {
             if (method === 0 && dataEnd <= buf.length)
                 return buf.subarray(dataStart, Math.min(dataEnd, dataStart + max));
-            // deflate — skip full inflate in step 2 if not stored; try inflate raw
             if (method === 8 && dataEnd <= buf.length) {
                 try {
                     const { inflateRawSync } = await import('node:zlib');
@@ -137,9 +136,9 @@ async function readZipEntry(file: string, entryName: string, max = 512 * 1024): 
             }
             return null;
         }
-        offset = dataEnd;
         if (compSize === 0 && nameLen === 0)
-            break;
+            return null;
+        offset = dataEnd;
     }
     return null;
 }
