@@ -250,8 +250,8 @@ export async function inspectProcess(pid: number) {
                 complete: false,
                 notes: [
                     'Single-PID ps -p fast path (F-08 / R-19 macOS); does not read the full process table. '
-                    + 'Children via pgrep -P when available. True libproc is not used (zero runtime native deps). '
-                    + 'Identity token is pid + lstart. PID can still race between an OS read and a subsequent operation.',
+                        + 'Children via pgrep -P when available. True libproc is not used (zero runtime native deps). '
+                        + 'Identity token is pid + lstart. PID can still race between an OS read and a subsequent operation.',
                 ],
             },
         }) : result<ProcessInfo>(String(pid), 'process_inspection', [], {
