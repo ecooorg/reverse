@@ -17,6 +17,7 @@ import { RES_XML_START_ELEMENT } from './legacy-android-parsers.js';
 import { DEX_MAGIC } from './legacy-android-parsers.js';
 import { APK_SIG_BLOCK_MAGIC } from './legacy-android-parsers.js';
 import { compareAndroidObservations, planAndroidFridaSession } from './legacy-android-capture.js';
+import { androidPreservationReport } from './legacy-android-behavior.js';
 import type { LegacyAuthorization } from './legacy-types.js';
 const AUTH: LegacyAuthorization = {
     basis: 'open_source',
@@ -184,6 +185,13 @@ export async function runAndroidReferenceTrials(): Promise<AndroidReferenceTrial
             level: 'L0',
             ok: frida.allowed && !!frida.script && /Java\.perform/.test(frida.script),
             detail: frida.allowed ? 'script generated' : frida.limitations.join(';'),
+        });
+        const pres = androidPreservationReport({ authorization: AUTH, packageName: 'com.example.app' });
+        trials.push({
+            id: 'android-preservation-l0',
+            level: 'L0',
+            ok: pres.level === 'L0' && pres.oracle?.available === false,
+            detail: `level=${pres.level}; oracleAvailable=${pres.oracle?.available}`,
         });
         const diag = diagnoseAndroidFromTables({
             minSdk: 16,

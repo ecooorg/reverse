@@ -301,8 +301,8 @@ export async function analyzeLegacyAndroid(filePath: string, authorization: Lega
     catch {
         /* ignore */
     }
-    let certificateSubjects: string[] = [];
-    let certificateIssuers: string[] = [];
+    const certificateSubjects: string[] = [];
+    const certificateIssuers: string[] = [];
     if (format === 'APK' || format === 'AAB') {
         try {
             const sig = detectApkSignatures(wholeFile);

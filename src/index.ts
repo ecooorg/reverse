@@ -77,3 +77,4 @@ export type { AdbRunner, SeededMonkeyRun, AndroidObservationSnapshot } from './l
 export { planAndroidFridaSession, detectAndroidProfilers, collectAndroidFileObservations, } from './legacy-android-capture.js';
 export { collectAndroidNetworkObservations } from './legacy-android-capture.js';
 export { extractDerNameHints } from './legacy-android.js';
+export { androidPreservationReport, androidMigrationAdvice } from './legacy-android-behavior.js';

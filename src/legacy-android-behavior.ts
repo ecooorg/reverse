@@ -1,5 +1,5 @@
 /**
- * Android execution/observation helpers (Patch P steps 4–6).
+ * Android execution/observation helpers (Patch P steps 4–7).
  * Detect-only works/fails; host capture/replay; controlled install gated.
  * Never simulates emulator or adb output.
  */
@@ -12,6 +12,8 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { requireLegacyGate } from './legacy-gate.js';
 import { wrapUntrusted } from './core-untrusted.js';
+import { computePreservationLevel, adviseMigration } from './preservation-migration.js';
+import type { PreservationReport, MigrationAdvice } from './preservation-migration.js';
 const execFileAsync = promisify(execFile);
 export interface AndroidBehaviorTrialResult {
     equal: boolean;
@@ -245,4 +247,71 @@ export function planAndroidControlledInstall(opts: {
             'Plan only in P step 5; execution still goes through existing adb_install MCP with confirm',
         ],
     };
+}
+/**
+ * Android preservation report at L0 when no device oracle is available (P step 7).
+ * Never raises the level without an available oracle (H-07).
+ */
+export function androidPreservationReport(input: {
+    authorization: LegacyAuthorization;
+    packageName?: string;
+}): PreservationReport {
+    return computePreservationLevel({
+        authorization: input.authorization,
+        oracle: {
+            description: input.packageName
+                ? `Original APK/package ${input.packageName} on original API-level device/emulator`
+                : 'Original APK on original API-level environment (not supplied)',
+            provenance: 'operator-declared; not available on this host',
+            available: false,
+        },
+        comparisons: [],
+        environments: input.packageName ? [`android:${input.packageName}`] : ['android'],
+    });
+}
+/** Migration options for legacy Android; L0 when no oracle. */
+export function androidMigrationAdvice(input: {
+    authorization: LegacyAuthorization;
+    minSdk?: number | null;
+    targetSdk?: number | null;
+    packageName?: string;
+}): MigrationAdvice {
+    const preservation = androidPreservationReport({
+        authorization: input.authorization,
+        packageName: input.packageName,
+    });
+    const findings: Array<{
+        cause: string;
+        evidence: string;
+        needsExecutionEnvironment?: boolean;
+    }> = [];
+    if (input.minSdk != null && input.minSdk <= 22) {
+        findings.push({
+            cause: 'legacy-min-sdk',
+            evidence: `minSdk=${input.minSdk}`,
+            needsExecutionEnvironment: true,
+        });
+    }
+    if (input.targetSdk != null && input.targetSdk <= 22) {
+        findings.push({
+            cause: 'legacy-target-sdk',
+            evidence: `targetSdk=${input.targetSdk}`,
+            needsExecutionEnvironment: true,
+        });
+    }
+    if (!findings.length) {
+        findings.push({
+            cause: 'android-legacy-inventory',
+            evidence: input.packageName ?? 'unspecified package',
+            needsExecutionEnvironment: true,
+        });
+    }
+    return adviseMigration({
+        authorization: input.authorization,
+        preservation,
+        targetSummary: input.packageName
+            ? `Legacy Android package ${input.packageName}`
+            : 'Legacy Android application',
+        findings,
+    });
 }
