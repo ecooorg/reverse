@@ -1,4 +1,4 @@
-The server exposes **75 tools**. The tool table below is generated from the same TypeScript definitions used by `tools/list`; `npm run docs:mcp:check` fails on drift and `npm run docs:mcp:write` regenerates it. The server also exposes prompts and resources methods and an optional HTTP gateway. Sections: the core tool table, optimization-loop tools (patch J), runtime-analyzer tools (patch K), optional HTTP transport (patch K), prompts and resources (patch L), legacy Windows tools (patch M, delivered), legacy Linux analysis (patch N, delivered), classic Mac / early macOS analysis (patch O step 1) and the future plan.
+The server exposes **78 tools**. The tool table below is generated from the same TypeScript definitions used by `tools/list`; `npm run docs:mcp:check` fails on drift and `npm run docs:mcp:write` regenerates it. The server also exposes prompts and resources methods and an optional HTTP gateway. Sections: the core tool table, optimization-loop tools (patch J), runtime-analyzer tools (patch K), optional HTTP transport (patch K), prompts and resources (patch L), legacy Windows tools (patch M, delivered), legacy Linux analysis (patch N, delivered), classic Mac / early macOS analysis (patch O step 1) and the future plan.
 
 
 Transport: newline-delimited JSON-RPC 2.0 over stdin/stdout (MCP stdio). Supported methods: `initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`, `prompts/list`, `prompts/get`, `resources/list`, `resources/read`.
@@ -70,6 +70,9 @@ Tool definitions include `title`, `annotations` and an `outputSchema`; command-e
 | `android_migration_advice` | `session_id` | Rank migration options for a legacy Android package. Options cite evidence; with no oracle, preservation stays L0. Needs research-session authorization. |
 | `plan_android_frida_call_frequency` | `package_name` | Generate a Frida call-frequency sampling script skeleton for a package. Host script only; Reverse does not attach or run continuous profiling. |
 | `plan_android_proxy_capture` | none | Return operator steps for proxy/pcap capture around an Android target. Planning only; Reverse does not implement MITM or packet capture. |
+| `build_unified_compatibility_report` | `session_id`, `profile` | Aggregate a family Target Profile into the Patch Q unified compatibility report envelope. Requires research-session authorization; does not re-parse binaries. |
+| `query_compatibility_knowledge` | none | Query the in-tree multi-family compatibility knowledge facts by family or text. Bounded summary store, not a live CVE feed. |
+| `inventory_newer_generation` | `session_id`, `path` | Bounded newer-generation static inventory from a file buffer and optional ZIP entry names (PE mitigations, ELF class, Mach-O, AAB/MSIX markers). Does not execute the target. |
 | `create_change_workspace` | `path`, `confirm` | Copy target into isolated workspace (CONTROLLED_EXECUTION + confirm:true). |
 | `apply_change` | `workspace_id`, `changeType`, `relativePath`, `confirm` | Apply change only inside workspace workPath. |
 | `rollback_change` | `workspace_id`, `confirm` | Restore workspace workPath from the original copy. |

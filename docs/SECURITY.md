@@ -56,3 +56,7 @@ Report vulnerabilities privately to the repository maintainer. Do not publish ex
 - No bundled system images, no Google components, no DRM/license bypass. Authorization basis is an operator declaration, not legal verification.
 - Residual risk: operator-supplied Frida/proxy tooling and device trust remain outside Reverse’s process boundary.
 
+## Patch Q / 2.0.0
+
+Unified and newer-generation APIs inherit the same authorization gate and untrusted-input rules as M–P. Inventory helpers do not execute targets. Knowledge-base facts are non-normative summaries with source labels. Optional external providers remain operator-supplied.
+

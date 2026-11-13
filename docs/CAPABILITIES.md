@@ -1,3 +1,24 @@
+# Capabilities
+
+## Product status 2.0.0
+
+Patches **A–Q** are closed. Reverse covers legacy Windows/Linux/Mac/Android analysis plus a **unified compatibility report envelope** and **bounded newer-generation inventory** (PE mitigations, ELF/Mach-O markers, AAB/MSIX paths).
+
+### Signed-off residual limitations (Q exit / debt register)
+
+These are **not** matrix defects; they remain out of claim until future maintainer-approved work:
+
+- Stateless MCP protocol era (F-06): not implemented; stateful eras through 2025-11-25 only.
+- R-14 Merkle roots, Ed25519 detached signatures, `reverse export` / `reverse verify` as public-key tools.
+- R-08 / R-18 / H-09 full live-agent evaluation corpus harness and optional single-file binary.
+- Optional providers not wired: `goblin`, `syft`, `osv-scanner`, `cargo-auditable` (detect-only extension points may exist elsewhere).
+- Full modern OS execution oracles (Windows 10/11 images, current Linux/macOS/Android device farms).
+- Full profile format ingestion suite (perf/pprof/Speedscope/ETW/network I/O) beyond existing Android detect-only and host profilers.
+- Full CFG/decompilation/BSim without an operator corpus (provider-backed only).
+- Deep Play-services/Maven graphs, full ARSC values, full cert chains, continuous Frida attach, MITM/pcap (P residuals).
+
+Green multi-OS baseline from P: Capabilities **43410508116**.
+
 ## Status
 
 

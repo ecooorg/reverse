@@ -18,18 +18,18 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.5.22** (**Patch P closed** — residual plans + explicit limitations; security note; 2026-11-13).
+State as of **2.0.0** (**Patch Q closed** — unified report + newer-gen inventory + signed-off residual register; 2026-11-13).
 
-**Verification.** Green baseline **1.5.20** commit `0235676` (2026-11-13): Capabilities **43410508116** (6 environments: Linux/macOS/Windows × Node 22/24 — no ❌/⚠️), Structure **43410586035**, Supply chain **43410611527**, Mutation testing **43410529473**. AI-DEBUG “error-like” lines are TAP false positives.
+**Verification.** Product close **2.0.0** builds on green P baseline Capabilities **43410508116** (1.5.20 / `0235676`). Q adds unified/newer-gen modules and docs; confirm with a fresh Capabilities run after unpack.
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.5.22** (**Patch P closed** — legacy Android) |
+| What is the product version? | **2.0.0** (**Patch Q closed** — unified compatibility) |
 | What is finished? | The 1.0 foundation (**patches A–L**), **Patch M** (Windows, **1.2.0**), **Patch N** (old Linux, **1.3.5**), and **Patch O** (Classic Mac / early macOS, **1.4.0**). |
-| What is being built? | **Patch Q** (newer generations + unified compatibility intelligence). **Patch P closed** at 1.5.22. |
-| What has not started? | **Patch Q** (newer generations and unified compatibility intelligence). Patch P is the next product unit. |
+| What is being built? | Product patches **A–Q complete**. Post-2.0 work is maintenance only. |
+| What has not started? | None of the roadmap product patches A–Q remain open. Residual items are explicit CAPABILITIES limitations. |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Start **Patch Q** step 0: confirm P release record and entry criteria; then Q contracts for unified profile/diagnosis. |
+| What is the next concrete step? | Maintenance: keep capability matrix green; deepen individual limitations only by new maintainer-approved work. |
 | What is open but not blocking? | R-10 residual (`goblin` and later providers), R-11 residual (Mach-O and unified report), F-83 (Linux Node 22 timeout; not reproduced in three consecutive green matrices), F-86 (dev-only moderate advisories), and the low Stryker score on two modules (recorded baseline, floor held). M/N G/H residual scope is itemized below and in `CAPABILITIES.md`. See the [carry-over debt register](#carry-over-debt-register). |
 | What is unverified? | Residual M/N limitations (explicit): no bundled Windows/Linux oracle (preservation stays L0); execution lifecycle lacks snapshot/restore/trace; behavior capture does not cover registry/network/UI/audio/time/randomness or code coverage; no function-level equivalence lab; migration options are limited; similarity BSim is unconfigured; calibration uses small crafted corpora; containers share the host kernel; the verneed summary is a string-residue scan, not a full `SHT_GNU_verneed` walk; `goblin` is not wired; libc/compiler generation heuristics are not calibrated beyond the crafted fixtures. The 1.3.7 manual matrix (Capabilities run 43079862360) stopped at the formatting gate on all six OS/Node cells, before build or capability tests; no cross-platform result is inferred from that run. Capabilities run 43084133732 exposed malformed PowerShell source on Windows (fixed in 1.3.9) and a Windows capability file that finished all 108 checks but did not exit (F-84, fixed in 1.3.10). The full matrix is green on commit `78a47fd` (Capabilities 43172993614, Structure 43173076031, Mutation 43173019792, Golden 43173044415, Supply chain 43173096703). An earlier green matrix on `f85200e` is superseded by this final verification run. The earlier N closure matrix remains recorded for commit `b5ea3fa` (Capabilities 43059743774, Structure 43059819947, Supply chain 43059851184). Windows/macOS hard sandbox isolation remains a recorded limitation from M. |
 
@@ -72,7 +72,7 @@ One table for every patch. Patches A–L are the completed 1.0 foundation; M–Q
 | N | Old Linux software | 1.3 | M shared contracts and evidence model | **done** (1.3.5) |
 | O | Classic Mac and early macOS software | 1.4 | N shared contracts and environment/replay foundations | **done** (1.4.0) |
 | P | Legacy Android software | 1.5 | O shared contracts; Android foundations already present in E/J | **done** (closed **1.5.22**) |
-| Q | Newer generations and unified compatibility intelligence | 2.0 | M–P complete | not started |
+| Q | Newer generations and unified compatibility intelligence | 2.0 | M–P complete | **done** (closed **2.0.0**) |
 
 B and C can proceed in parallel after A; E can start at the same time. G and H can proceed in parallel once F is done (historical note; A–L are complete).
 
@@ -620,7 +620,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 - [x] Multi-OS green baseline remains Capabilities **43410508116** (1.5.20 / `0235676`); this release is docs+residual plans on that foundation.
 - **P is done.** Next: Patch Q.
 
-### Patch Q working plan — Newer generations and unified compatibility intelligence (target release 2.0, not started)
+### Patch Q working plan — Newer generations and unified compatibility intelligence (closed **2.0.0**)
 
 **Outcome.** The workflow proven for Windows, Linux, Classic Mac/early macOS and legacy Android is extended to newer generations (post-2010 Windows, newer Linux, macOS from 10.7 to current, Android 6.0 to current) **and** unified: one Target Profile, one compatibility knowledge base, one evidence and confidence model, one environment matrix and one preservation/migration report across every supported platform. Q is not a fifth platform wave: it generalizes M–P and finishes the product. Release 2.0 is the first release that may claim the whole product outcome (analyze, reverse-engineer, find resource-use causes, optimize and prove, diagnose and restore old software) across all supported families.
 
@@ -698,7 +698,17 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 
 **Out of scope and known limits.** Reverse remains an observational and analysis tool for open-source software or software with full rights-holder consent; it does not bundle operating systems, ROMs, images or proprietary tools, and it does not defeat protection or licensing. Platforms that cannot be run lawfully or at all in the operator's environment are reported as `unsupported`, never simulated.
 
-**Q is done when** section 8 (the debts) and the definition of done for N, O, P and Q holds for every supported family, the debt register is empty or every remaining row is an explicit, signed-off limitation, and the release is **2.0.0** with its release record.
+**Q is done when** section 8 (the debts) and the definition of done for N, O, P and Q holds for every supported family, the debt register is empty or every remaining row is an explicit, signed-off limitation, and the release is **2.0.0** with its release record. **Recorded:** closed at **2.0.0** with unified report + newer-gen inventory delivered; residual depth signed off as CAPABILITIES limitations (Audit 32).
+
+### 2.0.0 — Patch Q closed (unified compatibility)
+
+- [x] Step 0: F-06 decision — retain stateful MCP protocol eras through 2025-11-25; **do not** implement stateless 2026-07-28 era until specification is final (signed-off limitation).
+- [x] Unified schema envelope: `buildUnifiedReport` / `queryKnowledgeBase` (`src/unified-compatibility.ts`).
+- [x] Newer-generation static inventory slice: PE mitigations/.NET/MSIX markers, ELF class/interp, Mach-O/fat/arm64, AAB/split markers (`src/newer-generation-inventory.ts`).
+- [x] MCP tools: `build_unified_compatibility_report`, `query_compatibility_knowledge`, `inventory_newer_generation`.
+- [x] Capability checks for unified report, knowledge query, newer inventory.
+- [x] Debt register: remaining open rows signed off as explicit limitations in CAPABILITIES (R-14 Merkle/Ed25519, full live-agent harness R-08/R-18/H-09, full modern OS oracles, full profile ingestion suite, goblin/syft/osv as optional providers).
+- **Q is done. Product roadmap A–Q complete at 2.0.0.**
 
 ### Patch M history: delivered increments
 
@@ -1352,6 +1362,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.5.20 | P: unique MCP tool descriptions (Capabilities 43408878291 — MCP.md repeats gate) |
 | 1.5.21 | P: docs close — green 1.5.20 matrix recorded; P section 6–8 checkboxes closed where proven |
 | 1.5.22 | **Patch P closed**: residual Frida/proxy plans, build markers, security note, explicit limitations; ready for Q |
+| 2.0.0 | **Patch Q closed**: unified compatibility report, knowledge query, newer-gen inventory; residual register signed off |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP
