@@ -43,6 +43,18 @@ The third numeric component of the product version tracks **delivered work steps
 - Name the archive after the work, for example `patch-a-defect-closure.zip`. One patch per roadmap patch letter; do not mix unrelated changes.
 - Deliver the archive to the user as a file and describe it in two or three sentences: what changed, what was verified, what was not.
 
+## 3.0 Owner environment (mandatory)
+
+The repository **owner has only GitHub’s website on an Android tablet**. There is **no PC terminal**, no local Node/npm, and no way to run CLI checks on the owner’s side.
+
+Consequences for every assistant:
+
+1. **Do not** tell the owner to run `npm ci`, `npm test`, `npm run verify`, format/lint commands, or any other local shell steps as if they could execute them. Those commands are for CI and for assistants with a sandbox — not for the owner.
+2. Patches are **uploaded by hand** into GitHub (web UI). Deliver a zip of only changed paths; the owner applies it and relies on **GitHub Actions**.
+3. **All** verification that matters must be encoded in **tests and workflows** already in the tree (`npm test`, capability suite, format/size/lint gates, Nightly Full Verification). If a check is required for the patch to be safe, add or extend an automated test/workflow in the same change — do not leave it as an owner-side instruction.
+4. When reporting status, cite **Actions run IDs** and what the workflows proved. “Run this locally” is not an acceptance path for the owner.
+5. Optional: a short note “assistants with a sandbox should still run X before packing” is fine; never present it as something the owner must do.
+
 ## 3.1 Recurring CI failure modes (do not reintroduce)
 
 These failed on real Capabilities runs during Patch O. Fix the product or the check; never weaken gates.
