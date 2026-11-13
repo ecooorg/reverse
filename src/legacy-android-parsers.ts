@@ -43,6 +43,9 @@ export interface ArscSummary {
     typeStringsSample: string[];
     keyStringsSample: string[];
     packageNames: string[];
+    /** Approximate type-spec / type chunk counts seen while scanning. */
+    typeSpecCount: number;
+    typeChunkCount: number;
     evidence: string[];
     limitations: string[];
 }
@@ -65,6 +68,9 @@ export interface ApkSignatureInfo {
     v1Entries: string[];
     hasSigningBlock: boolean;
     blockSize: number | null;
+    /** Best-effort cert subject/issuer CN samples from v1 PKCS#7 blobs. */
+    certificateSubjects: string[];
+    certificateIssuers: string[];
     evidence: string[];
     limitations: string[];
 }
@@ -73,9 +79,6 @@ function u16(b: Buffer, o: number): number {
 }
 function u32(b: Buffer, o: number): number {
     return o + 4 <= b.length ? b.readUInt32LE(o) : 0;
-}
-function i32(b: Buffer, o: number): number {
-    return o + 4 <= b.length ? b.readInt32LE(o) : 0;
 }
 /** Decode ResStringPool (type 0x0001). Returns UTF-8/UTF-16 strings; empty on hostile input. */
 export function parseStringPool(b: Buffer, poolOffset: number): string[] {
@@ -423,6 +426,8 @@ export function parseArscSummary(b: Buffer): ArscSummary {
         typeStringsSample: [],
         keyStringsSample: [],
         packageNames: [],
+        typeSpecCount: 0,
+        typeChunkCount: 0,
         evidence: [],
         limitations: [],
     };
@@ -451,7 +456,7 @@ export function parseArscSummary(b: Buffer): ArscSummary {
             out.evidence.push(`globalStringPool=${global.length}`);
     }
     // Scan for ResTable_package chunks
-    let off = headerSize >= 12 ? headerSize : 12;
+    let off = Math.max(headerSize, 12);
     // skip global string pool chunk
     if (off + 8 <= b.length && u16(b, off) === RES_STRING_POOL_TYPE) {
         const cs = u32(b, off + 4);
@@ -498,6 +503,24 @@ export function parseArscSummary(b: Buffer): ArscSummary {
         out.evidence.push(`packages=${out.packageNames.join(',')}`);
     if (packages === 0)
         out.limitations.push('No ResTable_package chunks found');
+    // Count type-spec (0x0202) and type (0x0201) chunks for depth evidence
+    let scan = 0;
+    while (scan + 8 <= b.length) {
+        const ct = u16(b, scan);
+        const cs = u32(b, scan + 4);
+        if (cs < 8 || scan + cs > b.length) {
+            scan += 4;
+            continue;
+        }
+        if (ct === 0x0202)
+            out.typeSpecCount++;
+        else if (ct === 0x0201)
+            out.typeChunkCount++;
+        scan += cs;
+    }
+    if (out.typeSpecCount || out.typeChunkCount) {
+        out.evidence.push(`typeSpec=${out.typeSpecCount}; typeChunks=${out.typeChunkCount}`);
+    }
     return out;
 }
 /** DEX header + class name listing (bounded). */
@@ -659,12 +682,67 @@ export function parseDexClasses(b: Buffer, maxClasses = 500): DexClassListing {
  * v1: META-INF/*.RSA|DSA|EC (+ MANIFEST.MF).
  * v2/v3: APK Signing Block magic before central directory.
  */
+/** Scan PKCS#7 / DER for UTF8/PrintableString values near commonName OID (2.5.4.3). */
+export function extractDerNameHints(der: Buffer, max = 8): {
+    subjects: string[];
+    issuers: string[];
+} {
+    const subjects: string[] = [];
+    const issuers: string[] = [];
+    // OID 2.5.4.3 commonName = 55 04 03
+    const oid = Buffer.from([0x55, 0x04, 0x03]);
+    let from = 0;
+    let found = 0;
+    while (found < max && from < der.length) {
+        const idx = der.indexOf(oid, from);
+        if (idx < 0)
+            break;
+        // After OID: likely TLV string — tag 0x0c (UTF8) or 0x13 (Printable) or 0x1e (BMP)
+        let p = idx + oid.length;
+        // skip optional null/padding up to 4 bytes
+        for (let k = 0; k < 6 && p < der.length; k++) {
+            const tag = der[p];
+            if (tag === 0x0c || tag === 0x13 || tag === 0x1e || tag === 0x0a) {
+                const len = der[p + 1] ?? 0;
+                if (len > 0 && len < 128 && p + 2 + len <= der.length) {
+                    let s: string;
+                    if (tag === 0x1e) {
+                        s = der.toString('utf16be', p + 2, p + 2 + len).replace(/\0/g, '');
+                    }
+                    else {
+                        s = der.toString('utf8', p + 2, p + 2 + len);
+                    }
+                    s = s.trim();
+                    if (s && s.length <= 128) {
+                        // Heuristic: first CN ~ subject, second ~ issuer alternating is weak;
+                        // collect all as subjects, dedupe into issuers if contains CA/root cues.
+                        if (/\b(CA|Root|Authority)\b/i.test(s)) {
+                            if (!issuers.includes(s))
+                                issuers.push(s);
+                        }
+                        else if (!subjects.includes(s)) {
+                            subjects.push(s);
+                        }
+                        found++;
+                    }
+                    p += 2 + len;
+                    break;
+                }
+            }
+            p++;
+        }
+        from = idx + 1;
+    }
+    return { subjects: subjects.slice(0, max), issuers: issuers.slice(0, max) };
+}
 export function detectApkSignatures(apk: Buffer, zipEntryNames?: string[]): ApkSignatureInfo {
     const out: ApkSignatureInfo = {
         schemes: [],
         v1Entries: [],
         hasSigningBlock: false,
         blockSize: null,
+        certificateSubjects: [],
+        certificateIssuers: [],
         evidence: [],
         limitations: [],
     };
@@ -682,6 +760,8 @@ export function detectApkSignatures(apk: Buffer, zipEntryNames?: string[]): ApkS
         out.schemes.push('v1-jar');
         out.evidence.push(`v1 entries=${out.v1Entries.slice(0, 5).join(',')}`);
     }
+    // Best-effort CN extraction from embedded PKCS#7 if caller passes full APK bytes
+    // by scanning for CERT.RSA/DSA/EC local file payloads is done in analyzeLegacyAndroid.
     // Locate EOCD and APK Signing Block
     if (apk.length >= 22) {
         const tailSize = Math.min(apk.length, 65536 + 22);

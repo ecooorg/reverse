@@ -11,8 +11,17 @@ import { analyzeAndroid } from './analysis-android.js';
 import { profileField, type LegacyAuthorization, type TargetProfile } from './legacy-types.js';
 import { assertAuthorizationPresent, requireLegacyGate } from './legacy-gate.js';
 import { diagnoseAndroidFromTables, type AndroidCompatDiagnosis } from './legacy-android-tables.js';
-import { parseAxmlManifest, parseAxmlSdkHints, parseArscSummary, parseDexClasses, detectApkSignatures, } from './legacy-android-parsers.js';
-export { parseAxmlSdkHints, parseAxmlManifest, parseArscSummary, parseDexClasses, detectApkSignatures } from './legacy-android-parsers.js';
+import { parseAxmlManifest } from './legacy-android-parsers.js';
+import { parseArscSummary } from './legacy-android-parsers.js';
+import { parseDexClasses } from './legacy-android-parsers.js';
+import { detectApkSignatures } from './legacy-android-parsers.js';
+import { extractDerNameHints } from './legacy-android-parsers.js';
+export { parseAxmlSdkHints } from './legacy-android-parsers.js';
+export { parseAxmlManifest } from './legacy-android-parsers.js';
+export { parseArscSummary } from './legacy-android-parsers.js';
+export { parseDexClasses } from './legacy-android-parsers.js';
+export { detectApkSignatures } from './legacy-android-parsers.js';
+export { extractDerNameHints } from './legacy-android-parsers.js';
 export type { LegacyAuthorization, TargetProfile } from './legacy-types.js';
 const DEX_MAGIC = Buffer.from('dex\n');
 export interface LegacyAndroidFinding {
@@ -24,6 +33,8 @@ export interface LegacyAndroidFinding {
     hasResourcesArsc: boolean;
     /** Signing scheme labels: v1-jar, v2, v3, v2-block. */
     signingSchemes: string[];
+    certificateSubjects: string[];
+    certificateIssuers: string[];
     /** Heuristic era / API band from package shape and AXML SDK fields. */
     apiBand: string | null;
     minSdk: number | null;
@@ -290,6 +301,8 @@ export async function analyzeLegacyAndroid(filePath: string, authorization: Lega
     catch {
         /* ignore */
     }
+    let certificateSubjects: string[] = [];
+    let certificateIssuers: string[] = [];
     if (format === 'APK' || format === 'AAB') {
         try {
             const sig = detectApkSignatures(wholeFile);
@@ -297,9 +310,32 @@ export async function analyzeLegacyAndroid(filePath: string, authorization: Lega
                 sig.schemes.unshift('v1-jar');
             }
             signingSchemes = sig.schemes.length ? sig.schemes : signingSchemes;
+            // Pull META-INF cert blobs for CN hints
+            for (const name of ['META-INF/CERT.RSA', 'META-INF/CERT.DSA', 'META-INF/CERT.EC', 'META-INF/ANDROIDD.RSA']) {
+                try {
+                    const blob = await readZipEntry(abs, name, 256 * 1024);
+                    if (blob && blob.length > 32) {
+                        const hints = extractDerNameHints(blob);
+                        for (const s of hints.subjects) {
+                            if (!certificateSubjects.includes(s))
+                                certificateSubjects.push(s);
+                        }
+                        for (const s of hints.issuers) {
+                            if (!certificateIssuers.includes(s))
+                                certificateIssuers.push(s);
+                        }
+                    }
+                }
+                catch {
+                    /* ignore */
+                }
+            }
+            if (certificateSubjects.length) {
+                sig.evidence.push(`certSubjects=${certificateSubjects.slice(0, 3).join('|')}`);
+            }
             structuralDetectors.push({
                 name: 'apk-signatures',
-                evidence: sig.evidence.slice(0, 8),
+                evidence: sig.evidence.slice(0, 10),
                 confidence: sig.schemes.length ? 0.85 : 0.3,
             });
         }
@@ -397,6 +433,8 @@ export async function analyzeLegacyAndroid(filePath: string, authorization: Lega
         hasAndroidManifest: hasManifest,
         hasResourcesArsc: hasArsc,
         signingSchemes,
+        certificateSubjects: certificateSubjects.slice(0, 10),
+        certificateIssuers: certificateIssuers.slice(0, 10),
         apiBand,
         minSdk,
         targetSdk,
@@ -422,7 +460,8 @@ export async function analyzeLegacyAndroid(filePath: string, authorization: Lega
         'Binary AXML decoder covers manifest elements and typed attributes; nested resource refs are not fully resolved.',
         'ARSC parse is summary-level (packages + string samples); full config/value tables are not expanded.',
         'DEX class and method name listing only; no method bodies or disassembly.',
-        'APK v2/v3 detection locates the signing block and scheme IDs; certificate chains are not extracted.',
+        'APK v2/v3 detection locates the signing block and scheme IDs; '
+            + 'v1 cert CN hints are best-effort DER scans, not full chain validation.',
         'Authorization is an operator declaration, not legal verification.',
     ];
     return result<LegacyAndroidFinding>(abs, 'legacy_android_analysis', [finding], {

@@ -516,3 +516,17 @@ researchTools.push({
         required: ['session_id', 'confirm', 'package_name']
     }
 });
+researchTools.push({
+    name: 'collect_android_network_observations',
+    description: 'Collect bounded dumpsys connectivity and wifi diagnostics from an authorized device. '
+        + 'Not a MITM proxy. Requires CONTROLLED_EXECUTION, confirm=true, and research-session authorization.',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            session_id: { type: 'string' },
+            confirm: { type: 'boolean' },
+            serial: { type: 'string' }
+        },
+        required: ['session_id', 'confirm']
+    }
+});

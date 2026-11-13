@@ -75,3 +75,5 @@ export { runAndroidReferenceTrials } from './legacy-android-reference-trials.js'
 export { collectAndroidUiObservations, replayAndroidSeededInput, compareAndroidObservations, } from './legacy-android-capture.js';
 export type { AdbRunner, SeededMonkeyRun, AndroidObservationSnapshot } from './legacy-android-capture.js';
 export { planAndroidFridaSession, detectAndroidProfilers, collectAndroidFileObservations, } from './legacy-android-capture.js';
+export { collectAndroidNetworkObservations } from './legacy-android-capture.js';
+export { extractDerNameHints } from './legacy-android.js';

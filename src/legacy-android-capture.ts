@@ -585,3 +585,99 @@ export async function collectAndroidFileObservations(input: {
         ],
     };
 }
+/**
+ * Bounded network/connectivity diagnostics (dumpsys connectivity + wifi).
+ * Not a full MITM proxy — reports device-side network state only.
+ */
+export async function collectAndroidNetworkObservations(input: {
+    authorization?: LegacyAuthorization | null;
+    sessionId?: string;
+    confirm: boolean;
+    serial?: string;
+    runner?: AdbRunner;
+}): Promise<{
+    status: 'completed' | 'unsupported' | 'refused' | 'partial';
+    serial: string | null;
+    connectivity: string | null;
+    wifi: string | null;
+    untrustedContent: Record<string, unknown> | null;
+    limitations: string[];
+}> {
+    await requireLegacyGate({
+        authorization: input.authorization,
+        sessionId: input.sessionId,
+        operation: 'collect_android_network_observations',
+    });
+    const serial = input.serial ?? process.env.REVERSE_ANDROID_SERIAL ?? '';
+    if (operatingMode() !== 'CONTROLLED_EXECUTION' || input.confirm !== true) {
+        return {
+            ...refuseMode(serial || null),
+            connectivity: null,
+            wifi: null,
+            untrustedContent: null,
+        };
+    }
+    if (!isValidSerial(serial)) {
+        return {
+            ...unsupportedSerial(),
+            connectivity: null,
+            wifi: null,
+            untrustedContent: null,
+        };
+    }
+    const run = input.runner ?? defaultRunner;
+    const limitations: string[] = [];
+    let connectivity: string | null = null;
+    let wifi: string | null = null;
+    try {
+        const c = await run(serial, ['shell', 'dumpsys', 'connectivity'], {
+            timeout: 15000,
+            maxBuffer: 512 * 1024,
+        });
+        connectivity = `${c.stdout}\n${c.stderr}`.slice(0, 256 * 1024);
+    }
+    catch (error) {
+        const code = error && typeof error === 'object' && 'code' in error
+            ? String((error as {
+                code: unknown;
+            }).code)
+            : 'unknown';
+        limitations.push(`dumpsys connectivity failed (code=${code})`);
+    }
+    try {
+        const w = await run(serial, ['shell', 'dumpsys', 'wifi'], {
+            timeout: 15000,
+            maxBuffer: 512 * 1024,
+        });
+        wifi = `${w.stdout}\n${w.stderr}`.slice(0, 256 * 1024);
+    }
+    catch (error) {
+        const code = error && typeof error === 'object' && 'code' in error
+            ? String((error as {
+                code: unknown;
+            }).code)
+            : 'unknown';
+        limitations.push(`dumpsys wifi failed (code=${code})`);
+    }
+    const status = connectivity && wifi
+        ? 'completed'
+        : connectivity || wifi
+            ? 'partial'
+            : 'unsupported';
+    const wrapped = connectivity || wifi
+        ? wrapUntrusted({ serial, connectivity, wifi }).structured
+        : null;
+    return {
+        status,
+        serial,
+        connectivity: typeof wrapped?.connectivity === 'string' ? wrapped.connectivity as string : null,
+        wifi: typeof wrapped?.wifi === 'string' ? wrapped.wifi as string : null,
+        untrustedContent: (wrapped?.untrustedContent as Record<string, unknown> | undefined) ?? null,
+        limitations: [
+            ...limitations,
+            'Device-side dumpsys only; not a transparent proxy or packet capture.',
+            'Proxy MITM and pcap capture remain operator-driven under CONTROLLED_EXECUTION.',
+            'Device output is untrusted target data.',
+        ],
+    };
+}

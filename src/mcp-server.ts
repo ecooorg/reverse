@@ -25,6 +25,7 @@ import { compareAndroidObservations } from './legacy-android-capture.js';
 import { planAndroidFridaSession } from './legacy-android-capture.js';
 import { detectAndroidProfilers } from './legacy-android-capture.js';
 import { collectAndroidFileObservations } from './legacy-android-capture.js';
+import { collectAndroidNetworkObservations } from './legacy-android-capture.js';
 import { listProcesses, inspectProcess, getProcessMetrics, getProcessTree } from './process-inspector.js';
 import { analyzeMemory, analyzeCpu, analyzeIo } from './process-inspector.js';
 import { profileProcess, monitorProcess, detectResourceAnomalies } from './profiling-profiler.js';
@@ -237,6 +238,13 @@ async function call(name: string, a: any, signal?: AbortSignal) {
                 confirm: a.confirm === true,
                 serial: a.serial,
                 packageName: a.package_name,
+            });
+        }
+        case 'collect_android_network_observations': {
+            return collectAndroidNetworkObservations({
+                sessionId: a.session_id,
+                confirm: a.confirm === true,
+                serial: a.serial,
             });
         }
         case 'analyze_legacy_mac': {
