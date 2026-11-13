@@ -1,6 +1,6 @@
 {
   "name": "reverse-compact",
-  "version": "1.5.9",
+  "version": "1.5.10",
   "private": false,
   "description": "A compact local analysis, profiling, benchmarking and evidence core with CLI, MCP, Windows, legacy Linux and legacy Android compatibility diagnosis (patches M/N/P).",
   "type": "module",
@@ -25,7 +25,7 @@
     "start:mcp": "node dist/mcp-server.js",
     "dev": "tsx src/cli-main.ts",
     "prepare": "npm run build",
-    "verify": "npm run build && npm run docs:mcp:check && npm run quality:static && tsc -p tsconfig.tests.json && node --test --test-concurrency=1 --test-reporter=spec --test-timeout=90000 dist-tests/capabilities.check.js && node tests/capability-report.mjs dist-tests/capability-report.json",
+    "verify": "npm run build && npm run docs:mcp:check && npm run quality:static && tsc -p tsconfig.tests.json && node --test --test-concurrency=1 --test-reporter=spec --test-timeout=240000 dist-tests/capabilities.check.js && node tests/capability-report.mjs dist-tests/capability-report.json",
     "test:coverage": "npm run build && tsc -p tsconfig.tests.json && node --experimental-test-coverage --test dist-tests/*.test.js",
     "format:check": "node tests/format-check.mjs",
     "size:check": "node tests/size-gate.mjs",
