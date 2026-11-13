@@ -71,3 +71,9 @@ export * from './legacy-android-tables.js';
 export { runAndroidWorksFailsMatrix, planAndroidControlledInstall, runAndroidBehaviorRoundTrip } from './legacy-android-behavior.js';
 export { collectAndroidDeviceObservations, wrapAndroidDeviceText } from './legacy-android-behavior.js';
 export { runAndroidReferenceTrials } from './legacy-android-reference-trials.js';
+export {
+    collectAndroidUiObservations,
+    replayAndroidSeededInput,
+    compareAndroidObservations,
+} from './legacy-android-capture.js';
+export type { AdbRunner, SeededMonkeyRun, AndroidObservationSnapshot } from './legacy-android-capture.js';

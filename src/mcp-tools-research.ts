@@ -426,3 +426,50 @@ researchTools.push({
         required: ['session_id', 'confirm']
     }
 });
+researchTools.push({
+    name: 'collect_android_ui_observations',
+    description: 'Capture a bounded Android UI hierarchy (uiautomator dump) and a SHA-256 of a screencap. '
+        + 'Requires CONTROLLED_EXECUTION, confirm=true, and research-session authorization. Raw pixels are not returned.',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            session_id: { type: 'string' },
+            confirm: { type: 'boolean' },
+            serial: { type: 'string' }
+        },
+        required: ['session_id', 'confirm']
+    }
+});
+researchTools.push({
+    name: 'replay_android_seeded_input',
+    description: 'Replay a deterministic monkey scenario with a fixed seed on an authorized device (1–3 runs, optional pm clear). '
+        + 'Mutating: injects input events. Requires CONTROLLED_EXECUTION, confirm=true, and research-session authorization.',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            session_id: { type: 'string' },
+            confirm: { type: 'boolean' },
+            serial: { type: 'string' },
+            package_name: { type: 'string' },
+            seed: { type: 'number' },
+            event_count: { type: 'number' },
+            runs: { type: 'number' },
+            throttle_ms: { type: 'number' },
+            clear_package: { type: 'boolean' }
+        },
+        required: ['session_id', 'confirm', 'package_name']
+    }
+});
+researchTools.push({
+    name: 'compare_android_observations',
+    description: 'Compare two Android observation snapshots (UI hierarchy and monkey outcome). '
+        + 'Pixel drift is reported separately and does not fail the comparison. Pure comparison; no device access.',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            left: { type: 'object' },
+            right: { type: 'object' }
+        },
+        required: ['left', 'right']
+    }
+});

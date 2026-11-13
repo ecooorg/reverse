@@ -18,6 +18,14 @@ for (const t of tools) {
         };
 }
 export const EXEC_TOOLS = new Set(['capture_baseline', 'run_benchmark', 'validate_changes', 'run_benchmark_suite']);
+/** Tools that mutate device or workspace state even when not in EXEC_TOOLS. */
+export const MUTATING_TOOLS = new Set([
+    'apply_change',
+    'adb_install',
+    'adb_pm_clear',
+    'adb_emu_snapshot_load',
+    'replay_android_seeded_input',
+]);
 const FULL_SCHEMA = process.env.REVERSE_MCP_SCHEMA_PROFILE === 'full';
 function makeStrict(schema: any): void {
     if (!schema || typeof schema !== 'object')
@@ -31,8 +39,15 @@ function makeStrict(schema: any): void {
 }
 for (const t of tools) {
     const exec = EXEC_TOOLS.has(t.name);
+    const mutating = exec || MUTATING_TOOLS.has(t.name);
     t.title = t.name.replaceAll('_', ' ');
-    t.annotations = { title: t.title, readOnlyHint: !exec, destructiveHint: exec, idempotentHint: !exec, openWorldHint: false };
+    t.annotations = {
+        title: t.title,
+        readOnlyHint: !mutating,
+        destructiveHint: mutating,
+        idempotentHint: !mutating,
+        openWorldHint: false,
+    };
     t.outputSchema = {
         type: 'object', properties: {
             schemaVersion: {
