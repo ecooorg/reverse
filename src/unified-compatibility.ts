@@ -142,36 +142,26 @@ export function buildUnifiedReport(input: {
         fields.push({ family, key, value, confidence, evidence });
     };
     const os = fieldValue(input.profile.osAndEra);
-    push(
-        'osAndEra',
-        os,
-        input.profile.osAndEra?.confidence ?? 0.3,
-        input.profile.osAndEra?.evidence ?? [],
-    );
-    push(
-        'cpu',
-        fieldValue(input.profile.cpu),
-        input.profile.cpu?.confidence ?? 0.3,
-        input.profile.cpu?.evidence ?? [],
-    );
-    push(
-        'bitness',
-        fieldValue(input.profile.bitness),
-        input.profile.bitness?.confidence ?? 0.3,
-        input.profile.bitness?.evidence ?? [],
-    );
-    push(
-        'abi',
-        fieldValue(input.profile.abi),
-        input.profile.abi?.confidence ?? 0.2,
-        input.profile.abi?.evidence ?? [],
-    );
-    push(
-        'toolchain',
-        fieldValue(input.profile.toolchainRuntimeFramework),
-        input.profile.toolchainRuntimeFramework?.confidence ?? 0.3,
-        input.profile.toolchainRuntimeFramework?.evidence ?? [],
-    );
+    const osConf = input.profile.osAndEra?.confidence ?? 0.3;
+    const osEv = input.profile.osAndEra?.evidence ?? [];
+    push('osAndEra', os, osConf, osEv);
+    const cpuVal = fieldValue(input.profile.cpu);
+    const cpuConf = input.profile.cpu?.confidence ?? 0.3;
+    const cpuEv = input.profile.cpu?.evidence ?? [];
+    push('cpu', cpuVal, cpuConf, cpuEv);
+    const bitVal = fieldValue(input.profile.bitness);
+    const bitConf = input.profile.bitness?.confidence ?? 0.3;
+    const bitEv = input.profile.bitness?.evidence ?? [];
+    push('bitness', bitVal, bitConf, bitEv);
+    const abiVal = fieldValue(input.profile.abi);
+    const abiConf = input.profile.abi?.confidence ?? 0.2;
+    const abiEv = input.profile.abi?.evidence ?? [];
+    push('abi', abiVal, abiConf, abiEv);
+    const tc = input.profile.toolchainRuntimeFramework;
+    const tcVal = fieldValue(tc);
+    const tcConf = tc?.confidence ?? 0.3;
+    const tcEv = tc?.evidence ?? [];
+    push('toolchain', tcVal, tcConf, tcEv);
     if (input.extraEvidence?.length)
         push('extraEvidence', input.extraEvidence.slice(0, 20), 0.5, input.extraEvidence.slice(0, 8));
     const eraLabel = os && typeof os === 'object' && os
