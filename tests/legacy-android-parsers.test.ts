@@ -1,19 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-    parseAxmlManifest,
-    parseAxmlSdkHints,
-    parseArscSummary,
-    parseDexClasses,
-    detectApkSignatures,
-    AXML_FILE_MAGIC,
-    RES_STRING_POOL_TYPE,
-    RES_XML_START_ELEMENT,
-    RES_TABLE_TYPE,
-    DEX_MAGIC,
-    APK_SIG_BLOCK_MAGIC,
-} from '../dist/legacy-android-parsers.js';
-
+import { parseAxmlManifest, parseAxmlSdkHints, parseArscSummary, } from '../dist/legacy-android-parsers.js';
+import { parseDexClasses, detectApkSignatures, } from '../dist/legacy-android-parsers.js';
+import { AXML_FILE_MAGIC, RES_STRING_POOL_TYPE, RES_XML_START_ELEMENT, } from '../dist/legacy-android-parsers.js';
+import { RES_TABLE_TYPE, DEX_MAGIC, APK_SIG_BLOCK_MAGIC, } from '../dist/legacy-android-parsers.js';
 /** Build a minimal ResStringPool (UTF-16) with the given strings. */
 function buildStringPool(strings: string[]): Buffer {
     const headerSize = 28;
@@ -45,18 +35,20 @@ function buildStringPool(strings: string[]): Buffer {
     header.writeUInt32LE(0, 24); // styles start
     return Buffer.concat([header, offsets, strData, pad]);
 }
-
 /** Minimal AXML with one start element and typed attributes. */
 function buildMinimalAxml(opts: {
     strings: string[];
     elementNameIdx: number;
-    attrs: Array<{ nameIdx: number; type: number; data: number }>;
+    attrs: Array<{
+        nameIdx: number;
+        type: number;
+        data: number;
+    }>;
 }): Buffer {
     const pool = buildStringPool(opts.strings);
     const fileHeader = Buffer.alloc(8);
     fileHeader.writeUInt32LE(AXML_FILE_MAGIC, 0);
     fileHeader.writeUInt32LE(0, 4); // size filled later
-
     const attrSize = 20;
     const attrCount = opts.attrs.length;
     const attrStart = 20; // relative to start of start-element chunk content after node?
@@ -95,7 +87,6 @@ function buildMinimalAxml(opts: {
     fileHeader.writeUInt32LE(8 + body.length, 4);
     return Buffer.concat([fileHeader, body]);
 }
-
 test('parseAxmlManifest extracts uses-sdk minSdk from crafted AXML', () => {
     // strings: 0=uses-sdk, 1=minSdkVersion, 2=targetSdkVersion
     const strings = ['uses-sdk', 'minSdkVersion', 'targetSdkVersion'];
@@ -112,7 +103,6 @@ test('parseAxmlManifest extracts uses-sdk minSdk from crafted AXML', () => {
     assert.equal(m.targetSdkVersion, 22);
     assert.ok(m.evidence.some(e => /minSdkVersion=16/.test(e)));
 });
-
 test('parseAxmlSdkHints delegates to full walker', () => {
     const strings = ['uses-sdk', 'minSdkVersion'];
     const axml = buildMinimalAxml({
@@ -123,7 +113,6 @@ test('parseAxmlSdkHints delegates to full walker', () => {
     const h = parseAxmlSdkHints(axml);
     assert.equal(h.minSdk, 19);
 });
-
 test('parseAxmlManifest does not throw on hostile buffers', () => {
     const cases = [
         Buffer.alloc(0),
@@ -138,7 +127,6 @@ test('parseAxmlManifest does not throw on hostile buffers', () => {
         assert.ok(Array.isArray(m.permissions));
     }
 });
-
 test('parseArscSummary reads packageCount from ResTable header', () => {
     const b = Buffer.alloc(32);
     b.writeUInt16LE(RES_TABLE_TYPE, 0);
@@ -149,12 +137,10 @@ test('parseArscSummary reads packageCount from ResTable header', () => {
     assert.equal(s.packageCount, 2);
     assert.ok(s.evidence.some(e => /packageCount=2/.test(e)));
 });
-
 test('parseArscSummary tolerates garbage', () => {
     const s = parseArscSummary(Buffer.alloc(3));
     assert.ok(s.limitations.length >= 1);
 });
-
 test('parseDexClasses reads magic and empty class list', () => {
     const b = Buffer.alloc(0x70);
     DEX_MAGIC.copy(b, 0);
@@ -168,13 +154,11 @@ test('parseDexClasses reads magic and empty class list', () => {
     assert.equal(d.endian, 'le');
     assert.equal(d.classCount, 0);
 });
-
 test('parseDexClasses rejects non-dex', () => {
     const d = parseDexClasses(Buffer.from('hello'));
     assert.equal(d.magicOk, false);
     assert.ok(d.limitations.length >= 1);
 });
-
 test('detectApkSignatures finds APK Sig Block magic', () => {
     // Minimal: EOCD + signing block footer
     // [block...][size u64][magic 16][CD empty][EOCD]
@@ -182,7 +166,10 @@ test('detectApkSignatures finds APK Sig Block magic', () => {
     const sizeLo = Buffer.alloc(8);
     sizeLo.writeUInt32LE(24, 0); // size
     const eocd = Buffer.alloc(22);
-    eocd[0] = 0x50; eocd[1] = 0x4b; eocd[2] = 0x05; eocd[3] = 0x06;
+    eocd[0] = 0x50;
+    eocd[1] = 0x4b;
+    eocd[2] = 0x05;
+    eocd[3] = 0x06;
     // cd offset = length of everything before CD = sizeLo+magic = 24, but we put block size field+magic = 24 bytes
     // Structure: [padding 8][size 8][magic 16] = 32 bytes before EOCD, cdOffset=32? 
     // Actually CD is empty at offset where magic ends.
@@ -194,7 +181,6 @@ test('detectApkSignatures finds APK Sig Block magic', () => {
     assert.equal(sig.hasSigningBlock, true);
     assert.ok(sig.schemes.includes('v2-block'));
 });
-
 test('detectApkSignatures lists v1 META-INF entries', () => {
     const sig = detectApkSignatures(Buffer.alloc(22), [
         'META-INF/CERT.RSA',

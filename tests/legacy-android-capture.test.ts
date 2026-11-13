@@ -1,27 +1,27 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-    collectAndroidUiObservations,
-    replayAndroidSeededInput,
-    compareAndroidObservations,
-    type AdbRunner,
-} from '../dist/legacy-android-capture.js';
+import { collectAndroidUiObservations, replayAndroidSeededInput, } from '../dist/legacy-android-capture.js';
+import { compareAndroidObservations, type AdbRunner, } from '../dist/legacy-android-capture.js';
 import { LegacyAuthorizationError } from '../dist/legacy-gate.js';
-
 const AUTH = {
     basis: 'open_source' as const,
     licenseOrConsentReference: 'test-fixture',
     declaredBy: 'legacy-android-capture.test',
     declaredAt: new Date().toISOString(),
 };
-
-function mockRunner(handlers: Record<string, { stdout?: string; stderr?: string; fail?: boolean }>): AdbRunner {
+function mockRunner(handlers: Record<string, {
+    stdout?: string;
+    stderr?: string;
+    fail?: boolean;
+}>): AdbRunner {
     return async (_serial, args) => {
         const key = args.join(' ');
         for (const [pattern, resp] of Object.entries(handlers)) {
             if (key.includes(pattern)) {
                 if (resp.fail) {
-                    const err = new Error('mock fail') as Error & { code: string };
+                    const err = new Error('mock fail') as Error & {
+                        code: string;
+                    };
                     err.code = 'MOCK';
                     throw err;
                 }
@@ -31,14 +31,9 @@ function mockRunner(handlers: Record<string, { stdout?: string; stderr?: string;
         return { stdout: '', stderr: '' };
     };
 }
-
 test('collectAndroidUiObservations refuses without authorization', async () => {
-    await assert.rejects(
-        () => collectAndroidUiObservations({ confirm: true, serial: 'emulator-5554' }),
-        LegacyAuthorizationError,
-    );
+    await assert.rejects(() => collectAndroidUiObservations({ confirm: true, serial: 'emulator-5554' }), LegacyAuthorizationError);
 });
-
 test('collectAndroidUiObservations refuses without CONTROLLED_EXECUTION/confirm', async () => {
     const prev = process.env.REVERSE_MODE;
     delete process.env.REVERSE_MODE;
@@ -53,11 +48,12 @@ test('collectAndroidUiObservations refuses without CONTROLLED_EXECUTION/confirm'
         assert.equal(r.hierarchyXml, null);
     }
     finally {
-        if (prev !== undefined) process.env.REVERSE_MODE = prev;
-        else delete process.env.REVERSE_MODE;
+        if (prev !== undefined)
+            process.env.REVERSE_MODE = prev;
+        else
+            delete process.env.REVERSE_MODE;
     }
 });
-
 test('collectAndroidUiObservations rejects invalid serial without calling adb', async () => {
     process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
     let called = false;
@@ -74,7 +70,6 @@ test('collectAndroidUiObservations rejects invalid serial without calling adb', 
     assert.equal(r.status, 'unsupported');
     assert.equal(called, false);
 });
-
 test('collectAndroidUiObservations returns hierarchy and screenshot digest', async () => {
     process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
     const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x01, 0x02]);
@@ -95,7 +90,6 @@ test('collectAndroidUiObservations returns hierarchy and screenshot digest', asy
     assert.equal(r.screenshotSha256?.length, 64);
     assert.ok(r.limitations.some(l => /raw pixels/i.test(l)));
 });
-
 test('replayAndroidSeededInput refuses without confirm', async () => {
     process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
     const r = await replayAndroidSeededInput({
@@ -108,7 +102,6 @@ test('replayAndroidSeededInput refuses without confirm', async () => {
     assert.equal(r.status, 'refused');
     assert.equal(r.runs.length, 0);
 });
-
 test('replayAndroidSeededInput rejects bad package without adb', async () => {
     process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
     let called = false;
@@ -126,7 +119,6 @@ test('replayAndroidSeededInput rejects bad package without adb', async () => {
     assert.equal(r.status, 'unsupported');
     assert.equal(called, false);
 });
-
 test('replayAndroidSeededInput runs monkey with fixed seed and reports stability', async () => {
     process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
     const runner = mockRunner({
@@ -151,7 +143,6 @@ test('replayAndroidSeededInput runs monkey with fixed seed and reports stability
     assert.ok(r.runs.every(x => x.pmCleared));
     assert.ok(r.runs.every(x => x.exitCode === 0));
 });
-
 test('compareAndroidObservations treats pixel drift as non-fatal', () => {
     const left = {
         hierarchyXml: '<hierarchy><node text="A"/></hierarchy>',
@@ -172,7 +163,6 @@ test('compareAndroidObservations treats pixel drift as non-fatal', () => {
     assert.equal(c.equal, true);
     assert.ok(c.differences.some(d => /pixel drift/i.test(d)));
 });
-
 test('compareAndroidObservations reports UI hierarchy differences', () => {
     const c = compareAndroidObservations({
         left: { hierarchyXml: '<hierarchy><node text="A"/></hierarchy>' },
@@ -181,7 +171,6 @@ test('compareAndroidObservations reports UI hierarchy differences', () => {
     assert.equal(c.uiEqual, false);
     assert.equal(c.equal, false);
 });
-
 test('collectAndroidUiObservations wraps untrusted hierarchy text', async () => {
     process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
     const long = 'X'.repeat(5000);
