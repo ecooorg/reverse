@@ -115,7 +115,10 @@ function excerptFor(content) {
     // (e.g. "ok 4 - compareObservations reports stdout drift", "biome lint --error-on-warnings").
     // Those must not be treated as failure signals.
     const trimmed = line.trim();
-    if (/^(?:✔|ℹ|ok\s+\d+\s+-|>\s+\S)/.test(trimmed)) return;
+    if (/^(?:✔|ℹ|ok\s+\d+\s+-|#\s*Subtest:|>\s+\S|\d+:\s*(?:✔|ok\s))/.test(trimmed)) return;
+    if (/^\s*(?:type:\s*'test'|\.+\s*$)/.test(trimmed)) return;
+    // Job summaries that only list green TAP must not open a failure brief.
+    if (/\bok\s+\d+\s+-/.test(line) && !/\bnot ok\b/.test(line)) return;
     if (ERROR_PATTERN.test(line)) errorIndexes.push(index);
     else if (WARNING_PATTERN.test(line)) warningIndexes.push(index);
   });
