@@ -1,7 +1,7 @@
 ## Status
 
 
-### Verification baseline (1.5.20 → docs 1.5.21)
+### Verification baseline (1.5.20 green → P closed 1.5.22)
 
 Green Capabilities run **43410508116** (commit `0235676`, 2026-11-13) on Linux/macOS/Windows × Node 22/24. Structure **43410586035**, Supply chain **43410611527**, Mutation **43410529473**.
 
@@ -388,3 +388,11 @@ Classic Mac / early macOS static analysis and limited execution adapters are **d
 | Operator APK oracle / higher L | 🚧 | No original-API oracle automation |
 | UI hierarchy / screenshots / seeded input replay | 🚧 | Remaining P step 6 |
 | Network / persisted-state diff, Frida and profiler ingestion | 🚧 | Remaining P step 6 |
+
+
+### Patch P closed (1.5.22)
+
+Additional delivered surface: build/Play-services path markers; Frida call-frequency script plan; proxy/pcap operator plan (not MITM).
+
+**Accepted residual limitations at P exit:** full ARSC configuration/value tables; full X.509 chain validation; continuous in-process Frida attach; transparent proxy and pcap; multi-API device oracle for L1+ preservation; TEXTREL/bionic deep ELF; resolved Maven/Play-services graphs. These are documented non-claims, not matrix failures.
+

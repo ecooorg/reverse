@@ -46,3 +46,13 @@ M/N legacy APIs now require a declared basis for Windows/Linux static analysis, 
 - The cgroup resource-control API requires `CONTROLLED_EXECUTION` and an explicit `confirm: true`; it is scoped to a callback and attempts to restore the original cgroup on exit. Path allowlists and broader approval gates for experiments remain planned.
 
 Report vulnerabilities privately to the repository maintainer. Do not publish exploit details before a fix is available.
+
+## Patch P (legacy Android) — security review note (1.5.22)
+
+- All Android device operations require `CONTROLLED_EXECUTION`, explicit `confirm` where mutating, research-session authorization, and a real serial/AVD when talking to a device. Output from the device is marked untrusted and capped (R-02).
+- Binary parsers (AXML/ARSC/DEX/signatures) are pure TypeScript Buffer walks with hostile-input property tests; they must not throw on malformed input.
+- Frida scripts and proxy/pcap steps are **operator-run**. Reverse generates skeletons and plans only; it does not attach, intercept TLS, or capture packets.
+- Certificate CN hints from v1 PKCS#7 are best-effort DER scans, not chain validation or trust-store decisions.
+- No bundled system images, no Google components, no DRM/license bypass. Authorization basis is an operator declaration, not legal verification.
+- Residual risk: operator-supplied Frida/proxy tooling and device trust remain outside Reverse’s process boundary.
+

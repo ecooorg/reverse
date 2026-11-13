@@ -1,3 +1,13 @@
+## Audit 31 — 2026-11-13 — Patch P closed (1.5.22)
+
+**Scope.** Close Patch P (legacy Android) with residual operator-plan surface and explicit limitations.
+
+**Delivered in close:** build/Play-services path markers; Frida call-frequency script plan; proxy/pcap plan (non-MITM); security review note; CAPABILITIES residual list; ROADMAP P → done.
+
+**Verification foundation:** Capabilities **43410508116** (6 environments) on 1.5.20 `0235676`; Structure/Supply/Mutation companion runs recorded in Audit 30.
+
+**Status:** Patch P closed in 1.5.22. Residual depth items are limitations, not open checklist blockers.
+
 ## Audit 30 — 2026-11-13 — Patch P green baseline 1.5.20 / docs close 1.5.21
 
 **Scope.** Record multi-workflow green verification of **1.5.20** (`0235676`) and close Patch P checklist debts that are proven by code and the capability matrix.
