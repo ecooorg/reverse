@@ -429,7 +429,6 @@ export async function analyzeLegacyAndroid(filePath: string, authorization: Lega
         abis,
         hasMultidex,
     });
-
     let buildSystems: string[] = [];
     let playServicesHints: string[] = [];
     try {

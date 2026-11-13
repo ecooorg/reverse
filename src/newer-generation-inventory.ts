@@ -32,14 +32,12 @@ export interface NewerGenerationInventory {
     evidence: string[];
     limitations: string[];
 }
-
 function u16(b: Buffer, o: number): number {
     return o + 2 <= b.length ? b.readUInt16LE(o) : 0;
 }
 function u32(b: Buffer, o: number): number {
     return o + 4 <= b.length ? b.readUInt32LE(o) : 0;
 }
-
 export function inventoryNewerGeneration(input: {
     buffer?: Buffer;
     entryNames?: string[];
@@ -100,7 +98,7 @@ export function inventoryNewerGeneration(input: {
             const coffChars = u16(b, peOff + 22);
             void coffChars;
             const optMagic = u16(b, peOff + 24);
-            const dllCharOff = optMagic === 0x20b ? peOff + 24 + 70 : peOff + 24 + 70;
+            void optMagic;
             // PE32+ optional header: Magic 0x20b; DLLCharacteristics at +90 from optional header start for PE32, +70 for fields...
             // Use standard: OptionalHeader + 0x46 (70) for PE32 DLLCharacteristics, PE32+ same offset 70 from optional start? 
             // Actually PE32: DLLCharacteristics at optional+0x46 (70); PE32+: optional+0x46 (70) as well in the common layout after

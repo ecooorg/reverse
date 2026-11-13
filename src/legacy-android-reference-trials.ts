@@ -195,7 +195,6 @@ export async function runAndroidReferenceTrials(): Promise<AndroidReferenceTrial
             ok: pres.level === 'L0' && pres.oracle?.available === false,
             detail: `level=${pres.level}; oracleAvailable=${pres.oracle?.available}`,
         });
-
         const freq = planAndroidFridaCallFrequency({ packageName: 'com.example.app', sampleWindowMs: 5000 });
         trials.push({
             id: 'frida-call-frequency-plan-l0',
@@ -220,7 +219,6 @@ export async function runAndroidReferenceTrials(): Promise<AndroidReferenceTrial
             ok: markers.buildSystems.includes('gradle'),
             detail: `systems=${markers.buildSystems.join(',')}`,
         });
-
         const diag = diagnoseAndroidFromTables({
             minSdk: 16,
             targetSdk: 16,

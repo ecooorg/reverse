@@ -681,7 +681,6 @@ export async function collectAndroidNetworkObservations(input: {
         ],
     };
 }
-
 /**
  * Expand Frida plan with an optional call-frequency sampling skeleton (host script only).
  * Does not attach; continuous profiling remains operator-driven.
@@ -724,7 +723,6 @@ ${freq}`,
         ],
     };
 }
-
 /**
  * Plan-only network proxy / capture guidance. Not a MITM implementation.
  */

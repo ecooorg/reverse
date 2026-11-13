@@ -280,7 +280,6 @@ async function call(name: string, a: any, signal?: AbortSignal) {
         case 'plan_android_proxy_capture': {
             return planAndroidProxyCapture({ packageName: a.package_name });
         }
-
         case 'build_unified_compatibility_report': {
             const engine = new EvidenceEngine();
             const session = await engine.requireLegacyAuthorization(a.session_id);
@@ -303,7 +302,6 @@ async function call(name: string, a: any, signal?: AbortSignal) {
                 entryNames: a.entry_names,
             });
         }
-
         case 'analyze_legacy_mac': {
             return analyzeLegacyMac(a.file, null, { sessionId: a.session_id });
         }

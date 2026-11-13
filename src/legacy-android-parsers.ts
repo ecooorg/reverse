@@ -831,7 +831,6 @@ export function detectApkSignatures(apk: Buffer, zipEntryNames?: string[]): ApkS
         out.limitations.push('No signing scheme detected');
     return out;
 }
-
 export interface ApkBuildMarkers {
     buildSystems: string[];
     playServicesHints: string[];
@@ -839,7 +838,6 @@ export interface ApkBuildMarkers {
     evidence: string[];
     limitations: string[];
 }
-
 /** Inventory-level build and Play-services markers from ZIP entry names (no Gradle execution). */
 export function detectApkBuildMarkers(entryNames: string[]): ApkBuildMarkers {
     const buildSystems: string[] = [];

@@ -5,9 +5,7 @@
  */
 import type { LegacyAuthorization, TargetProfile, ProfileField } from './legacy-types.js';
 import { assertAuthorizationPresent } from './legacy-gate.js';
-
 export type UnifiedFamily = 'windows' | 'linux' | 'mac' | 'android' | 'unknown';
-
 export interface UnifiedProfileField<T> {
     family: UnifiedFamily;
     key: string;
@@ -15,7 +13,6 @@ export interface UnifiedProfileField<T> {
     confidence: number;
     evidence: string[];
 }
-
 export interface UnifiedCompatibilityReport {
     authorization: LegacyAuthorization;
     family: UnifiedFamily;
@@ -25,9 +22,11 @@ export interface UnifiedCompatibilityReport {
     fields: UnifiedProfileField<unknown>[];
     crossFamilyNotes: string[];
     limitations: string[];
-    sourceProfiles: Array<{ family: UnifiedFamily; present: boolean }>;
+    sourceProfiles: Array<{
+        family: UnifiedFamily;
+        present: boolean;
+    }>;
 }
-
 export interface KnowledgeFact {
     id: string;
     family: UnifiedFamily;
@@ -38,7 +37,6 @@ export interface KnowledgeFact {
     scope: string;
     confidence: number;
 }
-
 /** In-tree knowledge facts (M–P tables summarized + Q newer-gen notes). */
 const KNOWLEDGE: KnowledgeFact[] = [
     {
@@ -82,13 +80,11 @@ const KNOWLEDGE: KnowledgeFact[] = [
         confidence: 0.8,
     },
 ];
-
 function fieldValue<T>(f: ProfileField<T> | undefined): T | null {
     if (!f)
         return null;
     return f.value ?? null;
 }
-
 export function detectFamilyFromProfile(profile: TargetProfile): UnifiedFamily {
     const family = profile.osAndEra?.value?.family?.toLowerCase?.() ?? '';
     if (family.includes('windows') || family.includes('dos'))
@@ -101,7 +97,6 @@ export function detectFamilyFromProfile(profile: TargetProfile): UnifiedFamily {
         return 'android';
     return 'unknown';
 }
-
 export function classifyGeneration(input: {
     family: UnifiedFamily;
     profile: TargetProfile;
@@ -131,7 +126,6 @@ export function classifyGeneration(input: {
         return 'legacy';
     return 'unknown';
 }
-
 /** Build one unified report from a single-family Target Profile. */
 export function buildUnifiedReport(input: {
     authorization: LegacyAuthorization;
@@ -148,18 +142,45 @@ export function buildUnifiedReport(input: {
         fields.push({ family, key, value, confidence, evidence });
     };
     const os = fieldValue(input.profile.osAndEra);
-    push('osAndEra', os, input.profile.osAndEra?.confidence ?? 0.3, input.profile.osAndEra?.evidence ?? []);
-    push('arch', fieldValue(input.profile.arch), input.profile.arch?.confidence ?? 0.3, input.profile.arch?.evidence ?? []);
-    push('bitness', fieldValue(input.profile.bitness), input.profile.bitness?.confidence ?? 0.3, input.profile.bitness?.evidence ?? []);
-    push('abi', fieldValue(input.profile.abi), input.profile.abi?.confidence ?? 0.2, input.profile.abi?.evidence ?? []);
-    push('format', fieldValue(input.profile.format), input.profile.format?.confidence ?? 0.3, input.profile.format?.evidence ?? []);
+    push(
+        'osAndEra',
+        os,
+        input.profile.osAndEra?.confidence ?? 0.3,
+        input.profile.osAndEra?.evidence ?? [],
+    );
+    push(
+        'cpu',
+        fieldValue(input.profile.cpu),
+        input.profile.cpu?.confidence ?? 0.3,
+        input.profile.cpu?.evidence ?? [],
+    );
+    push(
+        'bitness',
+        fieldValue(input.profile.bitness),
+        input.profile.bitness?.confidence ?? 0.3,
+        input.profile.bitness?.evidence ?? [],
+    );
+    push(
+        'abi',
+        fieldValue(input.profile.abi),
+        input.profile.abi?.confidence ?? 0.2,
+        input.profile.abi?.evidence ?? [],
+    );
+    push(
+        'toolchain',
+        fieldValue(input.profile.toolchainRuntimeFramework),
+        input.profile.toolchainRuntimeFramework?.confidence ?? 0.3,
+        input.profile.toolchainRuntimeFramework?.evidence ?? [],
+    );
     if (input.extraEvidence?.length)
         push('extraEvidence', input.extraEvidence.slice(0, 20), 0.5, input.extraEvidence.slice(0, 8));
-    const eraLabel = os && typeof os === 'object' && os && 'label' in (os as object)
-        ? String((os as { label?: string }).label ?? '')
-        : os
-            ? JSON.stringify(os).slice(0, 80)
-            : null;
+    const eraLabel = os && typeof os === 'object' && os
+        ? [(os as {
+                family?: string;
+            }).family, (os as {
+                era?: string | null;
+            }).era].filter(Boolean).join(' / ') || null
+        : null;
     return {
         authorization: input.authorization,
         family,
@@ -183,11 +204,13 @@ export function buildUnifiedReport(input: {
         ],
     };
 }
-
 export function queryKnowledgeBase(input: {
     family?: UnifiedFamily;
     text?: string;
-}): { facts: KnowledgeFact[]; limitations: string[] } {
+}): {
+    facts: KnowledgeFact[];
+    limitations: string[];
+} {
     const text = (input.text ?? '').toLowerCase();
     let facts = KNOWLEDGE.slice();
     if (input.family)
@@ -202,7 +225,6 @@ export function queryKnowledgeBase(input: {
         ],
     };
 }
-
 export function listKnowledgeFamilies(): UnifiedFamily[] {
     return ['windows', 'linux', 'mac', 'android'];
 }

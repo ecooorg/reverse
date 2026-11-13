@@ -558,7 +558,6 @@ researchTools.push({
         required: ['session_id']
     }
 });
-
 researchTools.push({
     name: 'plan_android_frida_call_frequency',
     description: 'Generate a Frida call-frequency sampling script skeleton for a package. '
@@ -583,7 +582,6 @@ researchTools.push({
         }
     }
 });
-
 researchTools.push({
     name: 'build_unified_compatibility_report',
     description: 'Aggregate a family Target Profile into the Patch Q unified compatibility report envelope. '
