@@ -35,5 +35,5 @@
     "low": 50,
     "break": 45
   },
-  "tsconfigFile": "tsconfig.json"
+  "tsconfigFile": "stryker-no-tsconfig.json"
 }
