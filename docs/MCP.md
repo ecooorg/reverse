@@ -16,10 +16,10 @@ Tool definitions include `title`, `annotations` and an `outputSchema`; command-e
 | `analyze_source` | `directory` | Inventory source files and external imports (comment- and string-aware) in a directory. |
 | `analyze_dependencies` | `directory` | Resolve dependencies from package.json plus lockfiles (npm, yarn, Cargo, Go, pip/poetry) when present. |
 | `analyze_android` | `file` | Static inventory of an APK/AAB: dex, native libs, ABIs, manifest presence, R8/ProGuard indicators. |
-| `get_inventory` | `pid` | List visible local processes. |
+| `get_inventory` | none | List visible local processes. |
 | `inspect_process` | `pid` | Inspect one process visible to the current user. |
 | `profile_process` | `pid` | Sample process CPU/RSS over a bounded interval. |
-| `list_processes` | `pid` | List visible processes with OS-provided resource metadata. |
+| `list_processes` | none | List visible processes with OS-provided resource metadata. |
 | `monitor_process` | `pid` | Observe process metrics over a bounded interval and persist a time series. |
 | `get_process_metrics` | `pid` | Get current process resource metrics. |
 | `get_process_tree` | `pid` | Get the visible descendant process tree. |
@@ -27,7 +27,7 @@ Tool definitions include `title`, `annotations` and an `outputSchema`; command-e
 | `analyze_cpu` | `pid` | Return current process CPU metrics. |
 | `analyze_io` | `pid` | Return current process disk I/O counters where available. |
 | `detect_resource_anomalies` | `series` | Detect high CPU and growing memory in supplied profile series. |
-| `get_resource_control_status` | `target` | Report whether enforceable OS resource controls are available; does not change a process. |
+| `get_resource_control_status` | none | Report whether enforceable OS resource controls are available; does not change a process. |
 | `trace_execution` | `target` | Dynamic trace via Frida under CONTROLLED_EXECUTION. Unsupported if Frida or mode missing. |
 | `get_hotspots` | `pid` | Function hotspots from a real profiler (perf/sample) when available; else process-level only. |
 | `get_process_io` | `pid` | Per-process disk I/O counters where the OS exposes them (Linux /proc/pid/io). |
@@ -35,11 +35,11 @@ Tool definitions include `title`, `annotations` and an `outputSchema`; command-e
 | `run_benchmark` | `command` | Run a command repeatedly without a shell and measure wall-clock duration, CPU time, peak RAM (direct child; sampled) and binary size. |
 | `compare_results` | `before`, `after` | Compare two Reverse benchmark result objects. |
 | `validate_changes` | `command`, `expected` | Check caller-provided expected stdout/stderr and exit code for a command. |
-| `get_environment_fingerprint` | `id` | Report the non-secret environment fingerprint (OS, CPU, memory, Node.js, Reverse version) used to judge benchmark comparability. |
+| `get_environment_fingerprint` | none | Report the non-secret environment fingerprint (OS, CPU, memory, Node.js, Reverse version) used to judge benchmark comparability. |
 | `get_evidence` | `id` | Find a persisted evidence record by ID. |
-| `list_analyzers` | `name`, `target` | List built-in analyzers, registered external adapters and extension points. |
+| `list_analyzers` | none | List built-in analyzers, registered external adapters and extension points. |
 | `run_provider` | `name`, `target` | Run a registered external provider (ghidra, rizin, jadx, apktool). Returns unsupported if the tool is not installed. |
-| `create_benchmark_suite` | `name`, `command` | Create an interleaved benchmark suite with two or more named cases. |
+| `create_benchmark_suite` | `cases` | Create an interleaved benchmark suite with two or more named cases. |
 | `run_benchmark_suite` | `id` | Run a previously created benchmark suite in round-robin order. |
 | `compare_benchmarks` | `before`, `after` | Compare two interleaved benchmark suite results by matching case name. |
 | `compare_baselines` | `before_id`, `after_id` | Compare two stored baseline IDs and return the statistical benchmark report. |
@@ -51,7 +51,7 @@ Tool definitions include `title`, `annotations` and an `outputSchema`; command-e
 | `add_research_evidence` | `session_id`, `type`, `source`, `measurement`, `confidence`, `limitations` | Attach typed measured evidence with source, confidence and limitations to a research session. |
 | `link_research_artifacts` | `session_id`, `relation`, `ids` | Link target, observations, profile, baseline, optimization, benchmark, comparison, validation or final report artifacts in a research session. |
 | `generate_change_report` | `target` | Before/after change report with validation, metrics, residual risks and next steps. |
-| `verify_evidence_integrity` | `directory` | Verify research session hash chain and optional HMAC signature (REVERSE_EVIDENCE_KEY). |
+| `verify_evidence_integrity` | none | Verify research session hash chain and optional HMAC signature (REVERSE_EVIDENCE_KEY). |
 | `run_validation_fixtures` | `directory` | Run JSON validation fixtures from a directory (command/expected/normalize). |
 | `declare_legacy_authorization` | `session_id`, `basis`, `license_or_consent_reference`, `declared_by` | Declare the operator-reported legal basis for legacy analysis; this is not legal verification. |
 | `analyze_legacy_windows` | `file`, `session_id` | Statically inspect DOS/Windows headers, PE imports and framework signatures. Includes session authorization; never executes the target. |
@@ -72,7 +72,7 @@ Tool definitions include `title`, `annotations` and an `outputSchema`; command-e
 | `apply_change` | `workspace_id`, `changeType`, `relativePath`, `confirm` | Apply change only inside workspace workPath. |
 | `rollback_change` | `workspace_id`, `confirm` | Restore workspace workPath from the original copy. |
 | `accept_change` | `workspace_id`, `confirm` | Mark workspace accepted without writing originalPath. |
-| `decide_optimization` | `apkPath`, `workDir`, `confirm` | Deterministic accept/roll_back/need_more_data/reject from evidence. |
+| `decide_optimization` | none | Deterministic accept/roll_back/need_more_data/reject from evidence. |
 | `run_apk_pipeline` | `apkPath`, `workDir`, `confirm` | Controlled APK decode/build/align/sign on a workDir copy. |
 | `create_git_worktree` | `path`, `confirm` | Create a git worktree workspace for changes. |
 | `remove_git_worktree` | `workspace_id`, `confirm` | Remove a git worktree workspace. |

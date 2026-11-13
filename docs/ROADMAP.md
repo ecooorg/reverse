@@ -18,15 +18,15 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.5.18** (Patch P in progress — MCP docs regenerated; 2026-11-13).
+State as of **1.5.19** (Patch P in progress — MCP docs matched to runtime tools; 2026-11-13).
 
 **Verification.** Product code for 1.5.12 adds pure-TypeScript binary parsers: AXML ResStringPool + element walker (package, SDK levels, permissions, components), ARSC package summary, DEX class_defs listing, APK Signing Block v2/v3 detection. R-04 property tests cover hostile buffers. Full `npm ci` / `npm run verify` was limited in the assistant environment; run locally after unpack. Prior CI baseline (1.5.10 / 9418a75): Capabilities 43374725628, Structure 43374831738, Supply chain 43374862389, Mutation 43374766507.
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.5.18** (Patch P step 3 — binary AXML, ARSC summary, DEX classes, signature schemes) |
+| What is the product version? | **1.5.19** (Patch P step 3 — binary AXML, ARSC summary, DEX classes, signature schemes) |
 | What is finished? | The 1.0 foundation (**patches A–L**), **Patch M** (Windows, **1.2.0**), **Patch N** (old Linux, **1.3.5**), and **Patch O** (Classic Mac / early macOS, **1.4.0**). |
-| What is being built? | **Patch P** in progress through **1.5.18**: static inventory no longer depends on JADX/Apktool for manifest SDK fields, DEX class names or signature scheme labels. |
+| What is being built? | **Patch P** in progress through **1.5.19**: static inventory no longer depends on JADX/Apktool for manifest SDK fields, DEX class names or signature scheme labels. |
 | What has not started? | **Patch Q** (newer generations and unified compatibility intelligence). Patch P is the next product unit. |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
 | What is the next concrete step? | Close Patch P step 8 remainders: R-15 golden/manual CI for P trials, record os:all run ID, security review note; residual step 6 (proxy/pcap, continuous Frida) as explicit limitations if not delivered. |
@@ -596,6 +596,10 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 ### 1.5.18 — Patch P: MCP docs contract (no product behavior change)
 
 - [x] Regenerate `docs/MCP.md` tool table for `collect_android_network_observations`, `android_preservation_report`, `android_migration_advice` (run 43405113736).
+
+### 1.5.19 — Patch P: MCP docs from runtime tools (no product behavior change)
+
+- [x] Regenerated `docs/MCP.md` via `node tests/mcp-docs.mjs --write` against `dist/mcp-tools.js` (Capabilities 43406607215). Check passes locally.
 
 ### Patch Q working plan — Newer generations and unified compatibility intelligence (target release 2.0, not started)
 
@@ -1325,6 +1329,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.5.16 | P: fix BufferEncoding utf16be; android_preservation_report / android_migration_advice MCP; close R-04/R-02 checklist boxes |
 | 1.5.17 | P: knip unused export RES_XML_END_ELEMENT (Capabilities 43403007140) |
 | 1.5.18 | P: regenerate docs/MCP.md for new Android tools (Capabilities 43405113736) |
+| 1.5.19 | P: docs/MCP.md regenerated from dist tools (Capabilities 43406607215) |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP
