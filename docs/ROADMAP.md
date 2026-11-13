@@ -18,13 +18,13 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **2.0.4** (knip unused re-export fix; 2026-11-13).
+State as of **2.0.5** (capability version gate aligned to 2.0.x; 2026-11-13).
 
-**Verification.** Product close **2.0.4** builds on green P baseline Capabilities **43410508116** (1.5.20 / `0235676`). Q adds unified/newer-gen modules and docs; confirm with a fresh Capabilities run after unpack.
+**Verification.** Product close **2.0.5** builds on green P baseline Capabilities **43410508116** (1.5.20 / `0235676`). Q adds unified/newer-gen modules and docs; confirm with a fresh Capabilities run after unpack.
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **2.0.4** (**Patch Q closed** — unified compatibility) |
+| What is the product version? | **2.0.5** (**Patch Q closed** — unified compatibility) |
 | What is finished? | The 1.0 foundation (**patches A–L**), **Patch M** (Windows, **1.2.0**), **Patch N** (old Linux, **1.3.5**), and **Patch O** (Classic Mac / early macOS, **1.4.0**). |
 | What is being built? | Product patches **A–Q complete**. Post-2.0 work is maintenance only. |
 | What has not started? | None of the roadmap product patches A–Q remain open. Residual items are explicit CAPABILITIES limitations. |
@@ -72,7 +72,7 @@ One table for every patch. Patches A–L are the completed 1.0 foundation; M–Q
 | N | Old Linux software | 1.3 | M shared contracts and evidence model | **done** (1.3.5) |
 | O | Classic Mac and early macOS software | 1.4 | N shared contracts and environment/replay foundations | **done** (1.4.0) |
 | P | Legacy Android software | 1.5 | O shared contracts; Android foundations already present in E/J | **done** (closed **1.5.22**) |
-| Q | Newer generations and unified compatibility intelligence | 2.0 | M–P complete | **done** (closed **2.0.4**) |
+| Q | Newer generations and unified compatibility intelligence | 2.0 | M–P complete | **done** (closed **2.0.5**) |
 
 B and C can proceed in parallel after A; E can start at the same time. G and H can proceed in parallel once F is done (historical note; A–L are complete).
 
@@ -620,7 +620,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 - [x] Multi-OS green baseline remains Capabilities **43410508116** (1.5.20 / `0235676`); this release is docs+residual plans on that foundation.
 - **P is done.** Next: Patch Q.
 
-### Patch Q working plan — Newer generations and unified compatibility intelligence (closed **2.0.4**)
+### Patch Q working plan — Newer generations and unified compatibility intelligence (closed **2.0.5**)
 
 **Outcome.** The workflow proven for Windows, Linux, Classic Mac/early macOS and legacy Android is extended to newer generations (post-2010 Windows, newer Linux, macOS from 10.7 to current, Android 6.0 to current) **and** unified: one Target Profile, one compatibility knowledge base, one evidence and confidence model, one environment matrix and one preservation/migration report across every supported platform. Q is not a fifth platform wave: it generalizes M–P and finishes the product. Release 2.0 is the first release that may claim the whole product outcome (analyze, reverse-engineer, find resource-use causes, optimize and prove, diagnose and restore old software) across all supported families.
 
@@ -649,7 +649,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 | 7 | **Unified preservation and migration:** one L0–L3 report across platforms, one ranked migration advisor that may recommend a cross-platform path (for example emulate, port, rebuild), differential validation reused for every family | G-05, G-06, G-10 (unified), H-07 | The same report structure for every family; no level above L0 without an oracle and provenance |
 | 8 | **Third-party-verifiable evidence:** per-session Merkle root, Ed25519 detached signatures, `reverse export` and `reverse verify` | R-14 | An exported bundle verifies with the public key on a machine without Reverse's state |
 | 9 | **Distribution and agent-evaluation completion:** the full live-agent evaluation corpus harness and the optional single-file binary | R-08, R-18, H-09 | The harness runs against the corpus and records pass rates; the binary starts the MCP server on the supported platforms or the limitation is recorded |
-| 10 | **Cross-platform reference trials, 2.0 stabilization and release:** two reference scenarios for each platform family on lawful fixtures; the run-all manual CI job with golden results on Linux, macOS and Windows; documentation freeze and an API/tool-stability and deprecation policy; a full security review; a final support matrix by platform, era and capability; an audit of every row of the debt register and the Audit 8 non-claims (each delivered, or recorded as an explicit limitation with the maintainer's sign-off); release record | Section 7; the "Q is done when" conditions | Definition of done holds and **no open debt remains** (see the debt closure schedule); the release is **2.0.4** |
+| 10 | **Cross-platform reference trials, 2.0 stabilization and release:** two reference scenarios for each platform family on lawful fixtures; the run-all manual CI job with golden results on Linux, macOS and Windows; documentation freeze and an API/tool-stability and deprecation policy; a full security review; a final support matrix by platform, era and capability; an audit of every row of the debt register and the Audit 8 non-claims (each delivered, or recorded as an explicit limitation with the maintainer's sign-off); release record | Section 7; the "Q is done when" conditions | Definition of done holds and **no open debt remains** (see the debt closure schedule); the release is **2.0.5** |
 
 **Detailed checklist.**
 
@@ -698,7 +698,11 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 
 **Out of scope and known limits.** Reverse remains an observational and analysis tool for open-source software or software with full rights-holder consent; it does not bundle operating systems, ROMs, images or proprietary tools, and it does not defeat protection or licensing. Platforms that cannot be run lawfully or at all in the operator's environment are reported as `unsupported`, never simulated.
 
-**Q is done when** section 8 (the debts) and the definition of done for N, O, P and Q holds for every supported family, the debt register is empty or every remaining row is an explicit, signed-off limitation, and the release is **2.0.4** with its release record. **Recorded:** closed at **2.0.4** with unified report + newer-gen inventory delivered; residual depth signed off as CAPABILITIES limitations (Audit 32).
+**Q is done when** section 8 (the debts) and the definition of done for N, O, P and Q holds for every supported family, the debt register is empty or every remaining row is an explicit, signed-off limitation, and the release is **2.0.5** with its release record. **Recorded:** closed at **2.0.5** with unified report + newer-gen inventory delivered; residual depth signed off as CAPABILITIES limitations (Audit 32).
+
+### 2.0.5 — Roadmap version gate for post-Q 2.0.x
+
+- [x] Capability "Patch O is recorded closed at 1.4.0" expected `/^1.5./`; product is 2.0.x after Q — accept `/^2.0./` (Capabilities 43424345452).
 
 ### 2.0.4 — knip unused re-export
 
@@ -1383,6 +1387,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 2.0.2 | Format-only: re-print unified-compatibility.ts (Capabilities 43420669383) |
 | 2.0.3 | Size gate: split long export in src/index.ts (Capabilities 43421472912) |
 | 2.0.4 | knip: drop unused re-export detectApkBuildMarkers from legacy-android (Capabilities 43422592035) |
+| 2.0.5 | Capability: Patch O check accepts 2.0.x after Q close (43424345452) |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP
