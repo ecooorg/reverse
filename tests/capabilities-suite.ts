@@ -1894,6 +1894,9 @@ const DOCUMENTED_TOOLS = [
     'analyze_legacy_mac',
     'analyze_legacy_android',
     'collect_android_device_observations',
+    'collect_android_ui_observations',
+    'replay_android_seeded_input',
+    'compare_android_observations',
     'create_change_workspace',
     'apply_change',
     'rollback_change',
@@ -2932,6 +2935,79 @@ check('Legacy Android', 'device observations mark all adb output as untrusted an
     assert.ok((wrapped.untrustedContent as any).notice.includes('untrusted data'));
     assert.ok((wrapped.untrustedContent as any).truncatedStrings >= 1);
     assert.match(wrapped.activityDump as string, /^x{4096}…\[truncated 904 chars\]$/);
+});
+check('Legacy Android', 'UI observation is authorization-gated and never runs adb without a serial', async () => {
+    const url = pathToFileURL(path.join(DIST, 'legacy-android-capture.js')).href;
+    const { collectAndroidUiObservations } = await import(url);
+    const previousMode = process.env.REVERSE_MODE;
+    const previousSerial = process.env.REVERSE_ANDROID_SERIAL;
+    process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
+    delete process.env.REVERSE_ANDROID_SERIAL;
+    try {
+        const report = await collectAndroidUiObservations({
+            authorization: {
+                basis: 'open_source',
+                licenseOrConsentReference: 'capability-fixture',
+                declaredBy: 'capability-suite',
+                declaredAt: new Date().toISOString(),
+            },
+            confirm: true,
+        });
+        assert.equal(report.status, 'unsupported');
+        assert.equal(report.hierarchyXml, null);
+        assert.equal(report.screenshotSha256, null);
+    }
+    finally {
+        if (previousMode === undefined)
+            delete process.env.REVERSE_MODE;
+        else
+            process.env.REVERSE_MODE = previousMode;
+        if (previousSerial === undefined)
+            delete process.env.REVERSE_ANDROID_SERIAL;
+        else
+            process.env.REVERSE_ANDROID_SERIAL = previousSerial;
+    }
+});
+check('Legacy Android', 'seeded input replay refuses without confirm', async () => {
+    const url = pathToFileURL(path.join(DIST, 'legacy-android-capture.js')).href;
+    const { replayAndroidSeededInput } = await import(url);
+    process.env.REVERSE_MODE = 'CONTROLLED_EXECUTION';
+    const report = await replayAndroidSeededInput({
+        authorization: {
+            basis: 'open_source',
+            licenseOrConsentReference: 'capability-fixture',
+            declaredBy: 'capability-suite',
+            declaredAt: new Date().toISOString(),
+        },
+        confirm: false,
+        serial: 'emulator-5554',
+        packageName: 'com.example.app',
+        runner: async () => ({ stdout: '', stderr: '' }),
+    });
+    assert.equal(report.status, 'refused');
+    assert.equal(report.runs.length, 0);
+});
+check('Legacy Android', 'observation comparison reports pixel drift without failing UI equality', async () => {
+    const url = pathToFileURL(path.join(DIST, 'legacy-android-capture.js')).href;
+    const { compareAndroidObservations } = await import(url);
+    const c = compareAndroidObservations({
+        left: {
+            hierarchyXml: '<hierarchy><node text="A"/></hierarchy>',
+            screenshotSha256: 'aaa',
+            monkeyExitCode: 0,
+            monkeyStdoutTail: 'Events injected: 10',
+        },
+        right: {
+            hierarchyXml: '<hierarchy><node text="A"/></hierarchy>',
+            screenshotSha256: 'bbb',
+            monkeyExitCode: 0,
+            monkeyStdoutTail: 'Events injected: 10',
+        },
+    });
+    assert.equal(c.uiEqual, true);
+    assert.equal(c.monkeyEqual, true);
+    assert.equal(c.pixelDrift, true);
+    assert.equal(c.equal, true);
 });
 check('Legacy Android', 'L0 reference trials pass on crafted fixtures', async () => {
     const url = pathToFileURL(path.join(DIST, 'legacy-android-reference-trials.js')).href;

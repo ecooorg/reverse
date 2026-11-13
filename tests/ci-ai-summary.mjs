@@ -111,6 +111,11 @@ function excerptFor(content) {
   const errorIndexes = [];
   const warningIndexes = [];
   lines.forEach((line, index) => {
+    // Passing TAP / npm headers often contain the substrings "error" or "drift"
+    // (e.g. "ok 4 - compareObservations reports stdout drift", "biome lint --error-on-warnings").
+    // Those must not be treated as failure signals.
+    const trimmed = line.trim();
+    if (/^(?:✔|ℹ|ok\s+\d+\s+-|>\s+\S)/.test(trimmed)) return;
     if (ERROR_PATTERN.test(line)) errorIndexes.push(index);
     else if (WARNING_PATTERN.test(line)) warningIndexes.push(index);
   });
