@@ -1,3 +1,21 @@
+## Audit 33 — 2026-11-13 — 2.0.1 repair of red 2.0.0 (compile + format)
+
+**Scope.** Fix TypeScript and format gates that failed on 2.0.0 (`8d4d9a7`).
+
+**Failures (evidence).**
+- Capabilities **43417613778**, Mutation **43417643951**, Nightly Full Verification **43417671212**:
+  - `TS6133` unused `dllCharOff` in `newer-generation-inventory.ts`
+  - `TS2339` `TargetProfile.arch` / `TargetProfile.format` (schema uses `cpu` and has no `format`)
+  - Format drift on 9 files (printer 5.9 not applied after Q edits)
+
+**Fixes.**
+- Map unified report fields to real `TargetProfile` keys (`cpu`, `toolchainRuntimeFramework`).
+- Remove unused PE offset temporary.
+- Re-print drifted sources with TypeScript 5.9 printer; line length ≤140.
+- Capability fixture for Patch Q uses a complete `schemaVersion: '1.0'` profile.
+
+**Status:** repair shipped as **2.0.1**. Re-run Capabilities / Structure / Mutation / Nightly to confirm green.
+
 ## Audit 31 — 2026-11-13 — Patch P closed (1.5.22)
 
 **Scope.** Close Patch P (legacy Android) with residual operator-plan surface and explicit limitations.
