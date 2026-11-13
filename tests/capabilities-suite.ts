@@ -2842,8 +2842,8 @@ check('Legacy Mac', 'works/fails matrix reports unsupported without operator ROM
 check('Roadmap', 'Patch O is recorded closed at 1.4.0', () => {
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
-    // version from package.json only
-    assert.match(pkg.version, /^1\.5\.\d+$/);
+    // After Q closed, product is 2.0.x (1.5.x was P-in-progress only).
+    assert.match(pkg.version, /^2\.0\.\d+$/);
     assert.match(roadmap, /Patch O.*done|closed at \*\*1\.4\.0\*\*/i);
     assert.match(roadmap, /1\.4\.0 — Patch O closed/i);
 });
