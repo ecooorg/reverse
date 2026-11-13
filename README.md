@@ -14,6 +14,8 @@ No Ghidra, Frida, Rizin, GDB, perf, eBPF, ETW, Instruments, or native compiler i
 
 ## Install from source
 
+For contributors with a full Node toolchain:
+
 ```bash
 git clone https://github.com/YOUR-USERNAME/reverse.git
 cd reverse
@@ -25,6 +27,8 @@ reverse --help
 ```
 
 Run without linking: `node dist/cli-main.js --help`.
+
+The repository owner applies changes through the GitHub web UI on an Android tablet (no local terminal). Verification is expected from GitHub Actions (Capabilities and related workflows), not from owner-side `npm` commands. See [GITHUB.md](docs/GITHUB.md) and AGENTS.md §3.0.
 
 ## Quick start
 
@@ -65,7 +69,7 @@ All GitHub Actions workflows publish a ZIP artifact with detailed logs and a sep
 
 ## MCP connection
 
-Reverse implements the MCP JSON-RPC stdio transport and exposes 61 tools, including process inspection, interleaved benchmark suites, stored baselines, typed evidence, hash-chained research sessions, hypothesis promotion and artifact linking, static analysis and provider tools, the controlled optimization loop, runtime analyzers and the initial legacy Windows analysis (the exact list is in [MCP.md](docs/MCP.md)). MCP prompts and resources are served too, and an optional token-gated HTTP transport exists (see MCP.md). Command-running tools require `REVERSE_MODE=CONTROLLED_EXECUTION` and a command allowlist. Process inventory supports offset pagination; tool results are capped at 1 MiB.
+Reverse implements the MCP JSON-RPC stdio transport and exposes 94 tools, including process inspection, interleaved benchmark suites, stored baselines, typed evidence, hash-chained research sessions, hypothesis promotion and artifact linking, static analysis and provider tools, the controlled optimization loop, runtime analyzers and the initial legacy Windows analysis (the exact list is in [MCP.md](docs/MCP.md)). MCP prompts and resources are served too, and an optional token-gated HTTP transport exists (see MCP.md). Command-running tools require `REVERSE_MODE=CONTROLLED_EXECUTION` and a command allowlist. Process inventory supports offset pagination; tool results are capped at 1 MiB.
 
 Example client configuration:
 
@@ -95,9 +99,10 @@ The server writes protocol messages to stdout. Do not add logging to stdout; dia
 
 ## Project status
 
-- **Done:** patches **A–L** are the 1.0 baseline, **M** (Windows, 1.2.0), **N** (old Linux, 1.3.5), and **O** (Classic Mac / early macOS, 1.4.0).
-- **In progress:** **Patch P** (legacy Android). Bounded read-only device observations are now available through MCP.
-- **Not started:** **Patch Q** (newer generations and unified compatibility intelligence).
+- **Done:** patches **A–L** (1.0 baseline), **M** (Windows, 1.2.x), **N** (old Linux, 1.3.x), **O** (Classic Mac / early macOS, 1.4.0), **P** (legacy Android, 1.5.22).
+- **Partial:** **Patch Q** (2.0.x) — unified compatibility report envelope, in-tree knowledge query, newer-generation static inventory, MCP tools and CLI entrypoints. Full Q checklist (KB contradictions, environment registry, Merkle/Ed25519 export-verify, live-agent harness, single-file binary, full modern-OS oracles) remains explicit residual in CAPABILITIES.md and Audit 36.
+- **Current product version:** **2.0.6** (audit-2.0.5 remediation). Green Capabilities baseline recorded for 2.0.5 as run **43426001819**.
+- **Not a separate open product patch:** nothing after Q is on the roadmap; further work is maintenance or scoped deepening of Q residuals.
 
 - **Where to start (people and AI assistants):** read [AGENTS.md](AGENTS.md), then the *Status at a glance* section of [docs/ROADMAP.md](docs/ROADMAP.md). See also [docs/CAPABILITIES.md](docs/CAPABILITIES.md), [docs/SECURITY.md](docs/SECURITY.md) and [docs/AUDIT.md](docs/AUDIT.md).
 
