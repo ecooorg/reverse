@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { readFile } from 'node:fs/promises';
 import readline from 'node:readline';
 import { VERSION } from './core-version.js';
 import { listPrompts, getPrompt } from './mcp-prompts.js';
@@ -29,6 +30,8 @@ import { collectAndroidFileObservations } from './legacy-android-capture.js';
 import { collectAndroidNetworkObservations } from './legacy-android-capture.js';
 import { planAndroidFridaCallFrequency } from './legacy-android-capture.js';
 import { planAndroidProxyCapture } from './legacy-android-capture.js';
+import { buildUnifiedReport, queryKnowledgeBase } from './unified-compatibility.js';
+import { inventoryNewerGeneration } from './newer-generation-inventory.js';
 import { listProcesses, inspectProcess, getProcessMetrics, getProcessTree } from './process-inspector.js';
 import { analyzeMemory, analyzeCpu, analyzeIo } from './process-inspector.js';
 import { profileProcess, monitorProcess, detectResourceAnomalies } from './profiling-profiler.js';
@@ -276,6 +279,29 @@ async function call(name: string, a: any, signal?: AbortSignal) {
         }
         case 'plan_android_proxy_capture': {
             return planAndroidProxyCapture({ packageName: a.package_name });
+        }
+
+        case 'build_unified_compatibility_report': {
+            const engine = new EvidenceEngine();
+            const session = await engine.requireLegacyAuthorization(a.session_id);
+            return buildUnifiedReport({
+                authorization: session.authorization as any,
+                profile: a.profile,
+                family: a.family,
+                hints: a.hints,
+            });
+        }
+        case 'query_compatibility_knowledge': {
+            return queryKnowledgeBase({ family: a.family, text: a.text });
+        }
+        case 'inventory_newer_generation': {
+            const engine = new EvidenceEngine();
+            await engine.requireLegacyAuthorization(a.session_id);
+            const buf = await readFile(a.path);
+            return inventoryNewerGeneration({
+                buffer: buf,
+                entryNames: a.entry_names,
+            });
         }
 
         case 'analyze_legacy_mac': {

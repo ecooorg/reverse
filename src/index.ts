@@ -80,3 +80,7 @@ export { extractDerNameHints } from './legacy-android.js';
 export { androidPreservationReport, androidMigrationAdvice } from './legacy-android-behavior.js';
 export { detectApkBuildMarkers } from './legacy-android-parsers.js';
 export { planAndroidFridaCallFrequency, planAndroidProxyCapture } from './legacy-android-capture.js';
+export { buildUnifiedReport, queryKnowledgeBase, listKnowledgeFamilies, detectFamilyFromProfile, classifyGeneration } from './unified-compatibility.js';
+export type { UnifiedCompatibilityReport, UnifiedFamily, KnowledgeFact } from './unified-compatibility.js';
+export { inventoryNewerGeneration } from './newer-generation-inventory.js';
+export type { NewerGenerationInventory } from './newer-generation-inventory.js';

@@ -583,3 +583,45 @@ researchTools.push({
         }
     }
 });
+
+researchTools.push({
+    name: 'build_unified_compatibility_report',
+    description: 'Aggregate a family Target Profile into the Patch Q unified compatibility report envelope. '
+        + 'Requires research-session authorization; does not re-parse binaries.',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            session_id: { type: 'string' },
+            family: { type: 'string' },
+            profile: { type: 'object' },
+            hints: { type: 'array', items: { type: 'string' } }
+        },
+        required: ['session_id', 'profile']
+    }
+});
+researchTools.push({
+    name: 'query_compatibility_knowledge',
+    description: 'Query the in-tree multi-family compatibility knowledge facts by family or text. '
+        + 'Bounded summary store, not a live CVE feed.',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            family: { type: 'string' },
+            text: { type: 'string' }
+        }
+    }
+});
+researchTools.push({
+    name: 'inventory_newer_generation',
+    description: 'Bounded newer-generation static inventory from a file buffer and optional ZIP entry names '
+        + '(PE mitigations, ELF class, Mach-O, AAB/MSIX markers). Does not execute the target.',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            session_id: { type: 'string' },
+            path: { type: 'string' },
+            entry_names: { type: 'array', items: { type: 'string' } }
+        },
+        required: ['session_id', 'path']
+    }
+});
