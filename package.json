@@ -1,8 +1,8 @@
 {
   "name": "reverse-compact",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "private": false,
-  "description": "A compact local analysis, profiling, benchmarking and evidence core with CLI, MCP, Windows, legacy Linux and legacy + unified compatibility intelligence (patches M–Q, release 2.0.4).",
+  "description": "A compact local analysis, profiling, benchmarking and evidence core with CLI, MCP, Windows, legacy Linux and legacy + unified compatibility intelligence (patches M–Q, release 2.0.5).",
   "type": "module",
   "bin": {
     "reverse": "dist/cli-main.js"
