@@ -1665,6 +1665,48 @@ check('Docs', 'the roadmap has one patch table A-Q and a status dashboard for th
         assert.ok(roadmap.includes(heading), `missing section ${heading}`);
 });
 // ---------------------------------------------------------------- 10. providers
+
+check('Patch Q', 'unified compatibility report builds from a minimal profile', async () => {
+    const url = pathToFileURL(path.join(DIST, 'unified-compatibility.js')).href;
+    const { buildUnifiedReport } = await import(url);
+    const report = buildUnifiedReport({
+        authorization: {
+            basis: 'open_source',
+            licenseOrConsentReference: 'q-fixture',
+            declaredBy: 'capability-suite',
+            declaredAt: new Date().toISOString(),
+        },
+        profile: {
+            osAndEra: { value: { family: 'Android', label: 'API 28' }, evidence: ['fixture'], confidence: 0.7 },
+            arch: { value: 'arm64', evidence: ['fixture'], confidence: 0.6 },
+            bitness: { value: 64, evidence: ['fixture'], confidence: 0.6 },
+            format: { value: 'APK', evidence: ['fixture'], confidence: 0.6 },
+        },
+        hints: ['api 28', 'aab'],
+    });
+    assert.equal(report.family, 'android');
+    assert.ok(report.generation === 'newer' || report.generation === 'mixed' || report.generation === 'unknown');
+    assert.ok(report.fields.length >= 1);
+});
+check('Patch Q', 'newer-generation inventory recognizes PE MZ header safely', async () => {
+    const url = pathToFileURL(path.join(DIST, 'newer-generation-inventory.js')).href;
+    const { inventoryNewerGeneration } = await import(url);
+    const buf = Buffer.alloc(512, 0);
+    buf[0] = 0x4d; buf[1] = 0x5a;
+    buf.writeUInt32LE(0x80, 0x3c);
+    buf.writeUInt32LE(0x4550, 0x80); // PE\0\0 as u32 LE is 0x4550
+    buf[0x80] = 0x50; buf[0x81] = 0x45; buf[0x82] = 0; buf[0x83] = 0;
+    const inv = inventoryNewerGeneration({ buffer: buf, entryNames: ['AppxManifest.xml'] });
+    assert.ok(Array.isArray(inv.familyHints));
+    assert.ok(inv.windows.msixMarkers.length >= 1);
+});
+check('Patch Q', 'knowledge base returns android runtime permission fact', async () => {
+    const url = pathToFileURL(path.join(DIST, 'unified-compatibility.js')).href;
+    const { queryKnowledgeBase } = await import(url);
+    const q = queryKnowledgeBase({ family: 'android', text: 'permission' });
+    assert.ok(q.facts.length >= 1);
+});
+
 check('Providers', 'built-ins implemented; Ghidra/Rizin/JADX/Apktool registered; others extension points', async (c) => {
     // ensure bootstrap ran
     await import('../dist/providers-bootstrap.js').catch(() => import('../dist/providers-registry.js'));
@@ -1905,6 +1947,9 @@ const DOCUMENTED_TOOLS = [
     'android_migration_advice',
     'plan_android_frida_call_frequency',
     'plan_android_proxy_capture',
+    'build_unified_compatibility_report',
+    'query_compatibility_knowledge',
+    'inventory_newer_generation',
     'create_change_workspace',
     'apply_change',
     'rollback_change',
