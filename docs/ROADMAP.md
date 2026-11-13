@@ -18,15 +18,15 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.5.12** (Patch P in progress — step 3 binary AXML / ARSC / DEX / signatures; 2026-11-13).
+State as of **1.5.13** (Patch P in progress — step 3 depth + step 6 Frida/profiler/file paths; format repair; 2026-11-13).
 
 **Verification.** Product code for 1.5.12 adds pure-TypeScript binary parsers: AXML ResStringPool + element walker (package, SDK levels, permissions, components), ARSC package summary, DEX class_defs listing, APK Signing Block v2/v3 detection. R-04 property tests cover hostile buffers. Full `npm ci` / `npm run verify` was limited in the assistant environment; run locally after unpack. Prior CI baseline (1.5.10 / 9418a75): Capabilities 43374725628, Structure 43374831738, Supply chain 43374862389, Mutation 43374766507.
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.5.12** (Patch P step 3 — binary AXML, ARSC summary, DEX classes, signature schemes) |
+| What is the product version? | **1.5.13** (Patch P step 3 — binary AXML, ARSC summary, DEX classes, signature schemes) |
 | What is finished? | The 1.0 foundation (**patches A–L**), **Patch M** (Windows, **1.2.0**), **Patch N** (old Linux, **1.3.5**), and **Patch O** (Classic Mac / early macOS, **1.4.0**). |
-| What is being built? | **Patch P** in progress through **1.5.12**: static inventory no longer depends on JADX/Apktool for manifest SDK fields, DEX class names or signature scheme labels. |
+| What is being built? | **Patch P** in progress through **1.5.13**: static inventory no longer depends on JADX/Apktool for manifest SDK fields, DEX class names or signature scheme labels. |
 | What has not started? | **Patch Q** (newer generations and unified compatibility intelligence). Patch P is the next product unit. |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
 | What is the next concrete step? | Continue Patch P step 6 remainders (Frida session scripts, network/proxy capture, file/db diffs, simpleperf/Perfetto) and deepen step 3 (full ARSC config tables, cert chain extraction) as needed for diagnosis quality. |
@@ -452,7 +452,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 *1. Target Profile and static inventory*
 - [x] Binary AXML decoding (permissions, components, SDK levels, features) without external tools (1.5.12). Intent-filter detail still shallow.
 - [x] `resources.arsc` summary reading (package count, package names, string samples) in 1.5.12. Full configuration/value tables still open.
-- [x] DEX header and class listing with obfuscation indicators (1.5.12). Method listing not yet expanded.
+- [x] DEX header, class listing and method name sample with obfuscation indicators (1.5.12–1.5.13). Method bodies not disassembled.
 - [x] Signature scheme detection v1/v2/v3 (1.5.12). Certificate chain metadata still open.
 - [ ] ABI inventory per native library; TEXTREL, hash style, bionic dependencies.
 - [ ] Build-system and dependency identification (Ant, ADT, Gradle files, bundled libraries, Play-services components).
@@ -469,7 +469,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 - [ ] First-failure diagnostics and a works/fails matrix across at least two API levels.
 
 *4. Behavior capture and replay*
-- [x] Partial device capture/replay (1.5.11): UI hierarchy (uiautomator dump), screenshot SHA-256, seeded `monkey` scenarios with fixed seed and optional `pm clear`, observation comparison (UI + monkey; pixel drift non-fatal). Bounded read-only `logcat`/`dumpsys` from 1.5.6. Still open: Frida session scripts and call-frequency profiles, proxy network capture, file/database diffs, `simpleperf` and Perfetto ingestion.
+- [x] Partial device capture/replay (1.5.11): UI hierarchy (uiautomator dump), screenshot SHA-256, seeded `monkey` scenarios with fixed seed and optional `pm clear`, observation comparison (UI + monkey; pixel drift non-fatal). Bounded read-only `logcat`/`dumpsys` from 1.5.6. Frida session script planner, simpleperf/Perfetto detect-only, bounded file path listing delivered in 1.5.13. Still open: continuous Frida call-frequency, proxy network capture, database content diffs, full profiler runs.
 
 *5. Preservation and migration*
 - [ ] Oracle comparisons on the original API level, retarget and repackage workflow, L0–L3 report, ranked migration options with evidence.
@@ -556,6 +556,14 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 - [x] Wired into `analyzeLegacyAndroid` structural detectors and Target Profile; no JADX/Apktool dependency for these fields.
 - [x] Hostile-input property tests (R-04) for AXML, ARSC, DEX and signature parsers.
 - [ ] Full ARSC configuration/value tables; certificate chain extraction; DEX method listing.
+
+### 1.5.13 — Patch P: format repair + step 3/6 depth
+
+- [x] TypeScript 5.9 printer formatting drift closed for Android capture/parsers and MCP wiring (Capabilities run 43388429000).
+- [x] DEX `method_ids` name sample in `parseDexClasses` / `analyzeLegacyAndroid`.
+- [x] `planAndroidFridaSession` (script only), `detectAndroidProfilers` (simpleperf/Perfetto), `collectAndroidFileObservations` (shared_prefs/databases paths).
+- [x] MCP tools and DOCUMENTED_TOOLS updated.
+- [ ] Proxy network capture; continuous Frida profiles; full ARSC configs; cert chains.
 
 ### Patch Q working plan — Newer generations and unified compatibility intelligence (target release 2.0, not started)
 
@@ -1279,6 +1287,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.5.10 | P step 6: capability suite timeout for Windows runners — whole-file limit 240 s, per-check limit 90 s, guard check (F-94) |
 | 1.5.11 | P step 6: UI hierarchy (uiautomator), screenshot SHA-256, seeded monkey replay, observation comparison; three MCP tools; MUTATING_TOOLS annotations; CI summary false-positive filter |
 | 1.5.12 | P step 3: binary AXML walker, ARSC summary, DEX class listing, APK Sig Block v2/v3; R-04 property tests |
+| 1.5.13 | P: format repair; DEX method listing; Frida plan, profiler detect, file path observations + MCP tools |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP
