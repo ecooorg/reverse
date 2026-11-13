@@ -119,7 +119,7 @@ Never weaken, skip or delete a test or a check to make a run pass. If a check is
 
 ## 8. Naming
 
-The product is **Reverse**. CLI command `reverse`, npm package `reverse-compact`, environment variables `REVERSE_*`, local store `~/.reverse`. Never reintroduce the former name or its old identifiers anywhere in code, docs, tests or workflows. MCP server name is `reverse`.
+The product is **Reverse**. CLI command `reverse`, npm package `reverse-compact`, environment variables `REVERSE_*`, local store `~/.reverse`. MCP server name is `reverse`.
 
 ## 9. Working with the user
 
