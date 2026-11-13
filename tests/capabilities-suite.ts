@@ -1903,6 +1903,8 @@ const DOCUMENTED_TOOLS = [
     'collect_android_network_observations',
     'android_preservation_report',
     'android_migration_advice',
+    'plan_android_frida_call_frequency',
+    'plan_android_proxy_capture',
     'create_change_workspace',
     'apply_change',
     'rollback_change',
