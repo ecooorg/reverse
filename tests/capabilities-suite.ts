@@ -2839,7 +2839,6 @@ check('Legacy Mac', 'works/fails matrix reports unsupported without operator ROM
             process.env.REVERSE_MAC_ROM = prev;
     }
 });
-
 check('Roadmap', 'README Project status matches ROADMAP finished/partial wording', () => {
     const readme = readFileSync(path.join(ROOT, 'README.md'), 'utf8');
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
@@ -2853,7 +2852,6 @@ check('Roadmap', 'product version is 2.0.x after Q partial', () => {
     const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
     assert.match(pkg.version, /^2\.0\.\d+$/);
 });
-
 check('Roadmap', 'Patch O is recorded closed at 1.4.0', () => {
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
