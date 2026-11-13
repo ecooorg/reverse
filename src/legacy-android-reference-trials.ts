@@ -17,6 +17,8 @@ import { RES_XML_START_ELEMENT } from './legacy-android-parsers.js';
 import { DEX_MAGIC } from './legacy-android-parsers.js';
 import { APK_SIG_BLOCK_MAGIC } from './legacy-android-parsers.js';
 import { compareAndroidObservations, planAndroidFridaSession } from './legacy-android-capture.js';
+import { planAndroidFridaCallFrequency, planAndroidProxyCapture } from './legacy-android-capture.js';
+import { detectApkBuildMarkers } from './legacy-android-parsers.js';
 import { androidPreservationReport } from './legacy-android-behavior.js';
 import type { LegacyAuthorization } from './legacy-types.js';
 const AUTH: LegacyAuthorization = {
@@ -193,6 +195,32 @@ export async function runAndroidReferenceTrials(): Promise<AndroidReferenceTrial
             ok: pres.level === 'L0' && pres.oracle?.available === false,
             detail: `level=${pres.level}; oracleAvailable=${pres.oracle?.available}`,
         });
+
+        const freq = planAndroidFridaCallFrequency({ packageName: 'com.example.app', sampleWindowMs: 5000 });
+        trials.push({
+            id: 'frida-call-frequency-plan-l0',
+            level: 'L0',
+            ok: !!freq.script && /call-frequency/.test(freq.script),
+            detail: freq.allowed ? 'freq script ok' : freq.limitations.join(';'),
+        });
+        const proxy = planAndroidProxyCapture({ packageName: 'com.example.app' });
+        trials.push({
+            id: 'proxy-plan-l0',
+            level: 'L0',
+            ok: proxy.allowed && proxy.steps.length >= 3,
+            detail: `steps=${proxy.steps.length}`,
+        });
+        const markers = detectApkBuildMarkers([
+            'META-INF/com/android/build/gradle/app-metadata.properties',
+            'okhttp.properties',
+        ]);
+        trials.push({
+            id: 'build-markers-l0',
+            level: 'L0',
+            ok: markers.buildSystems.includes('gradle'),
+            detail: `systems=${markers.buildSystems.join(',')}`,
+        });
+
         const diag = diagnoseAndroidFromTables({
             minSdk: 16,
             targetSdk: 16,

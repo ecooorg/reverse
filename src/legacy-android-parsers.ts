@@ -831,3 +831,57 @@ export function detectApkSignatures(apk: Buffer, zipEntryNames?: string[]): ApkS
         out.limitations.push('No signing scheme detected');
     return out;
 }
+
+export interface ApkBuildMarkers {
+    buildSystems: string[];
+    playServicesHints: string[];
+    bundledLibHints: string[];
+    evidence: string[];
+    limitations: string[];
+}
+
+/** Inventory-level build and Play-services markers from ZIP entry names (no Gradle execution). */
+export function detectApkBuildMarkers(entryNames: string[]): ApkBuildMarkers {
+    const buildSystems: string[] = [];
+    const playServicesHints: string[] = [];
+    const bundledLibHints: string[] = [];
+    const evidence: string[] = [];
+    const limitations = [
+        'Name-based markers only; does not parse Gradle model or resolve Maven coordinates.',
+        'Play-services hints are path/filename residues, not a dependency graph.',
+    ];
+    const lower = entryNames.map(n => n.replace(/\\/g, '/').toLowerCase());
+    const has = (re: RegExp) => lower.some(n => re.test(n));
+    if (has(/gradle|\.gradle\b|gradle-wrapper/)) {
+        buildSystems.push('gradle');
+        evidence.push('gradle marker in entry names');
+    }
+    if (has(/build\.xml$|ant\.properties|project\.properties/)) {
+        buildSystems.push('ant-or-adt');
+        evidence.push('Ant/ADT marker in entry names');
+    }
+    if (has(/pom\.xml$/)) {
+        buildSystems.push('maven-pom');
+        evidence.push('pom.xml present');
+    }
+    const playRe = /play-services|firebase-|com\/google\/android\/gms|com\/google\/firebase/;
+    for (const n of lower) {
+        if (playRe.test(n) && playServicesHints.length < 20) {
+            const base = n.split('/').filter(Boolean).slice(-2).join('/');
+            if (base && !playServicesHints.includes(base))
+                playServicesHints.push(base);
+        }
+        if ((/okhttp|retrofit|gson|kotlin|androidx\//.test(n)) && bundledLibHints.length < 20) {
+            const base = n.split('/').filter(Boolean).slice(-1)[0] ?? n;
+            if (base && !bundledLibHints.includes(base))
+                bundledLibHints.push(base);
+        }
+    }
+    if (playServicesHints.length)
+        evidence.push(`play-services-like paths=${playServicesHints.length}`);
+    if (bundledLibHints.length)
+        evidence.push(`bundled-lib hints=${bundledLibHints.length}`);
+    if (!buildSystems.length && !playServicesHints.length)
+        limitations.push('No build or Play-services markers found in entry names');
+    return { buildSystems, playServicesHints, bundledLibHints, evidence, limitations };
+}

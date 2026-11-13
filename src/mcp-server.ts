@@ -27,6 +27,8 @@ import { planAndroidFridaSession } from './legacy-android-capture.js';
 import { detectAndroidProfilers } from './legacy-android-capture.js';
 import { collectAndroidFileObservations } from './legacy-android-capture.js';
 import { collectAndroidNetworkObservations } from './legacy-android-capture.js';
+import { planAndroidFridaCallFrequency } from './legacy-android-capture.js';
+import { planAndroidProxyCapture } from './legacy-android-capture.js';
 import { listProcesses, inspectProcess, getProcessMetrics, getProcessTree } from './process-inspector.js';
 import { analyzeMemory, analyzeCpu, analyzeIo } from './process-inspector.js';
 import { profileProcess, monitorProcess, detectResourceAnomalies } from './profiling-profiler.js';
@@ -266,6 +268,16 @@ async function call(name: string, a: any, signal?: AbortSignal) {
                 targetSdk: a.target_sdk,
             });
         }
+        case 'plan_android_frida_call_frequency': {
+            return planAndroidFridaCallFrequency({
+                packageName: a.package_name,
+                sampleWindowMs: a.sample_window_ms,
+            });
+        }
+        case 'plan_android_proxy_capture': {
+            return planAndroidProxyCapture({ packageName: a.package_name });
+        }
+
         case 'analyze_legacy_mac': {
             return analyzeLegacyMac(a.file, null, { sessionId: a.session_id });
         }

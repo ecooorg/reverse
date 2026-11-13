@@ -681,3 +681,77 @@ export async function collectAndroidNetworkObservations(input: {
         ],
     };
 }
+
+/**
+ * Expand Frida plan with an optional call-frequency sampling skeleton (host script only).
+ * Does not attach; continuous profiling remains operator-driven.
+ */
+export function planAndroidFridaCallFrequency(input: {
+    packageName: string;
+    sampleWindowMs?: number;
+}): {
+    allowed: boolean;
+    script: string | null;
+    limitations: string[];
+} {
+    const base = planAndroidFridaSession({ packageName: input.packageName });
+    if (!base.allowed || !base.script) {
+        return base;
+    }
+    const windowMs = Math.max(1000, Math.min(input.sampleWindowMs ?? 10000, 120000));
+    const freq = `
+// Call-frequency skeleton (operator runs under Frida; Reverse does not attach).
+// Sample window: ${windowMs} ms
+var __revCounts = {};
+function __revBump(name) {
+  __revCounts[name] = (__revCounts[name] || 0) + 1;
+}
+setTimeout(function () {
+  var rows = Object.keys(__revCounts).map(function (k) {
+    return k + ':' + __revCounts[k];
+  });
+  send({ type: 'call-frequency', windowMs: ${windowMs}, counts: __revCounts, rows: rows });
+}, ${windowMs});
+`;
+    return {
+        allowed: true,
+        script: `${base.script}
+${freq}`,
+        limitations: [
+            ...base.limitations,
+            'Call-frequency block is a host-side script skeleton; Reverse does not maintain a continuous Frida session.',
+            'Operator must run Frida and collect send() payloads; not a built-in profiler service.',
+        ],
+    };
+}
+
+/**
+ * Plan-only network proxy / capture guidance. Not a MITM implementation.
+ */
+export function planAndroidProxyCapture(input: {
+    packageName?: string;
+}): {
+    allowed: boolean;
+    steps: string[];
+    limitations: string[];
+} {
+    const pkg = input.packageName?.trim();
+    return {
+        allowed: true,
+        steps: [
+            'Prefer device-side dumpsys connectivity/wifi via collect_android_network_observations (bounded, no MITM).',
+            'For traffic inspection, operator supplies a local proxy (e.g. mitmproxy) '
+                + 'and device proxy settings under CONTROLLED_EXECUTION.',
+            'Capture pcap only with operator-owned tooling (tcpdump/PCAPdroid); Reverse does not embed a packet sniffer.',
+            pkg
+                ? `Scope capture to package ${pkg} when the operator tool supports per-app filters.`
+                : 'Declare the target package when scoping per-app capture.',
+            'Record proxy/pcap artifacts as operator evidence; attach via research session if needed.',
+        ],
+        limitations: [
+            'Reverse does not implement transparent proxy, certificate pinning bypass, or pcap capture.',
+            'TLS interception requires operator consent and a lawful test environment.',
+            'Network observation in-tree remains dumpsys-level only.',
+        ],
+    };
+}

@@ -16,12 +16,14 @@ import { parseArscSummary } from './legacy-android-parsers.js';
 import { parseDexClasses } from './legacy-android-parsers.js';
 import { detectApkSignatures } from './legacy-android-parsers.js';
 import { extractDerNameHints } from './legacy-android-parsers.js';
+import { detectApkBuildMarkers } from './legacy-android-parsers.js';
 export { parseAxmlSdkHints } from './legacy-android-parsers.js';
 export { parseAxmlManifest } from './legacy-android-parsers.js';
 export { parseArscSummary } from './legacy-android-parsers.js';
 export { parseDexClasses } from './legacy-android-parsers.js';
 export { detectApkSignatures } from './legacy-android-parsers.js';
 export { extractDerNameHints } from './legacy-android-parsers.js';
+export { detectApkBuildMarkers } from './legacy-android-parsers.js';
 export type { LegacyAuthorization, TargetProfile } from './legacy-types.js';
 const DEX_MAGIC = Buffer.from('dex\n');
 export interface LegacyAndroidFinding {
@@ -35,6 +37,8 @@ export interface LegacyAndroidFinding {
     signingSchemes: string[];
     certificateSubjects: string[];
     certificateIssuers: string[];
+    buildSystems: string[];
+    playServicesHints: string[];
     /** Heuristic era / API band from package shape and AXML SDK fields. */
     apiBand: string | null;
     minSdk: number | null;
@@ -425,6 +429,30 @@ export async function analyzeLegacyAndroid(filePath: string, authorization: Lega
         abis,
         hasMultidex,
     });
+
+    let buildSystems: string[] = [];
+    let playServicesHints: string[] = [];
+    try {
+        const nameSet = [
+            ...dexFiles,
+            ...nativeLibs,
+            ...(hasManifest ? ['AndroidManifest.xml'] : []),
+            ...(hasArsc ? ['resources.arsc'] : []),
+        ];
+        const markers = detectApkBuildMarkers(nameSet);
+        buildSystems = markers.buildSystems;
+        playServicesHints = markers.playServicesHints;
+        if (markers.evidence.length) {
+            structuralDetectors.push({
+                name: 'apk-build-markers',
+                evidence: markers.evidence.slice(0, 8),
+                confidence: markers.buildSystems.length || markers.playServicesHints.length ? 0.55 : 0.25,
+            });
+        }
+    }
+    catch {
+        /* ignore */
+    }
     const finding: LegacyAndroidFinding = {
         format,
         abis,
@@ -435,6 +463,8 @@ export async function analyzeLegacyAndroid(filePath: string, authorization: Lega
         signingSchemes,
         certificateSubjects: certificateSubjects.slice(0, 10),
         certificateIssuers: certificateIssuers.slice(0, 10),
+        buildSystems: buildSystems.slice(0, 10),
+        playServicesHints: playServicesHints.slice(0, 20),
         apiBand,
         minSdk,
         targetSdk,
@@ -463,6 +493,7 @@ export async function analyzeLegacyAndroid(filePath: string, authorization: Lega
         'APK v2/v3 detection locates the signing block and scheme IDs; '
             + 'v1 cert CN hints are best-effort DER scans, not full chain validation.',
         'Authorization is an operator declaration, not legal verification.',
+        'Build/Play-services markers are ZIP path residues only; not a resolved dependency graph.',
     ];
     return result<LegacyAndroidFinding>(abs, 'legacy_android_analysis', [finding], {
         status: format === 'unknown' ? 'partial' : 'completed',

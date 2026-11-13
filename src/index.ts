@@ -78,3 +78,5 @@ export { planAndroidFridaSession, detectAndroidProfilers, collectAndroidFileObse
 export { collectAndroidNetworkObservations } from './legacy-android-capture.js';
 export { extractDerNameHints } from './legacy-android.js';
 export { androidPreservationReport, androidMigrationAdvice } from './legacy-android-behavior.js';
+export { detectApkBuildMarkers } from './legacy-android-parsers.js';
+export { planAndroidFridaCallFrequency, planAndroidProxyCapture } from './legacy-android-capture.js';

@@ -558,3 +558,28 @@ researchTools.push({
         required: ['session_id']
     }
 });
+
+researchTools.push({
+    name: 'plan_android_frida_call_frequency',
+    description: 'Generate a Frida call-frequency sampling script skeleton for a package. '
+        + 'Host script only; Reverse does not attach or run continuous profiling.',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            package_name: { type: 'string' },
+            sample_window_ms: { type: 'number' }
+        },
+        required: ['package_name']
+    }
+});
+researchTools.push({
+    name: 'plan_android_proxy_capture',
+    description: 'Return operator steps for proxy/pcap capture around an Android target. '
+        + 'Planning only; Reverse does not implement MITM or packet capture.',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            package_name: { type: 'string' }
+        }
+    }
+});
