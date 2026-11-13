@@ -1,3 +1,16 @@
+## Audit 32 — 2026-11-12 — Capability suite timeout on Windows Node 22 (1.5.10)
+
+**Scope.** Explain the red *Enforce required checks* step of Nightly Full Verification #3 (run 43302140821, commit de40f11) after the 1.5.9 shell repair.
+
+**Findings (closed in 1.5.10).**
+- F-94: `npm run verify` passed `--test-timeout=90000`. Node 22 applies that limit to the test file as a whole, so the cumulative run time counts, not each check. On Windows the suite needs about 92 s (the slowest checks are 23 s, 11 s, 9 s and 8 s); the file was cancelled after 129 passing checks and 0 failures, and the remaining checks never ran. Node 24 passed all 182 checks in the same run. `capabilities.yml` already uses 240000. `verify` now uses 240000 and every check keeps a 90 s limit of its own, so a hung check is still named. A capability check fails if the whole-file limit drops below 240000.
+
+**Confirmed by the same run.** The default bash shell of 1.5.9 works: static gates, build and the capability suite ran on Windows. The supply-chain job passed and the mutation job published its Markdown table within the summary limit (score 47.72 %, floor 45 %).
+
+**Verification.** In the 1.5.10 environment (Linux, Node 22.23, TypeScript 6.0.3 standing in for the locked 5.9 printer, `@types/node` 26; `npm ci` was not possible offline) the package build, the unit suite (160 tests; the two `fast-check` property files could not run), the capability suite (183 checks: 177 verified, 6 documented limitations, 0 drift, 0 failed), MCP docs, source and built structure, size and static-quality checks passed, and the printer reported no drift in 124 files. Nightly Full Verification #3 (run 43302140821, commit de40f11) showed on Windows Node 24 all 182 capability checks passing; on Windows Node 22 129 checks passed and the file hit the old 90 s limit, which 1.5.10 replaces; the supply-chain and mutation jobs of that run passed (mutation score 47.72 %, floor 45 %). The Windows Node 22 re-run of 1.5.10 is pending verification. Biome lint, `jscpd`, `knip`, the property tests, coverage, macOS and the manual `os: all` run were not run here.
+
+---
+
 ## Audit 31 — 2026-11-12 — Nightly Full Verification repair, Windows red (1.5.9)
 
 **Scope.** Explain and close the Windows failures of Nightly Full Verification #2 (run 43299003746, commit 753b5a1) and the annotation raised by its mutation job.
