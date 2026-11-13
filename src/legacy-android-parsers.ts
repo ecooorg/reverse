@@ -707,7 +707,14 @@ export function extractDerNameHints(der: Buffer, max = 8): {
                 if (len > 0 && len < 128 && p + 2 + len <= der.length) {
                     let s: string;
                     if (tag === 0x1e) {
-                        s = der.toString('utf16be', p + 2, p + 2 + len).replace(/\0/g, '');
+                        // BMPString is UTF-16BE; Node BufferEncoding has no utf16be — decode manually.
+                        const chars: string[] = [];
+                        for (let i = 0; i + 1 < len; i += 2) {
+                            const code = der.readUInt16BE(p + 2 + i);
+                            if (code !== 0)
+                                chars.push(String.fromCharCode(code));
+                        }
+                        s = chars.join('');
                     }
                     else {
                         s = der.toString('utf8', p + 2, p + 2 + len);

@@ -19,6 +19,7 @@ import { analyzeLegacyLinux } from './legacy-linux.js';
 import { analyzeLegacyAndroid } from './legacy-android.js';
 import { analyzeLegacyMac } from './legacy-mac.js';
 import { collectAndroidDeviceObservations } from './legacy-android-behavior.js';
+import { androidPreservationReport, androidMigrationAdvice } from './legacy-android-behavior.js';
 import { collectAndroidUiObservations } from './legacy-android-capture.js';
 import { replayAndroidSeededInput } from './legacy-android-capture.js';
 import { compareAndroidObservations } from './legacy-android-capture.js';
@@ -245,6 +246,24 @@ async function call(name: string, a: any, signal?: AbortSignal) {
                 sessionId: a.session_id,
                 confirm: a.confirm === true,
                 serial: a.serial,
+            });
+        }
+        case 'android_preservation_report': {
+            const engine = new EvidenceEngine();
+            const session = await engine.requireLegacyAuthorization(a.session_id);
+            return androidPreservationReport({
+                authorization: session.authorization as any,
+                packageName: a.package_name,
+            });
+        }
+        case 'android_migration_advice': {
+            const engine = new EvidenceEngine();
+            const session = await engine.requireLegacyAuthorization(a.session_id);
+            return androidMigrationAdvice({
+                authorization: session.authorization as any,
+                packageName: a.package_name,
+                minSdk: a.min_sdk,
+                targetSdk: a.target_sdk,
             });
         }
         case 'analyze_legacy_mac': {

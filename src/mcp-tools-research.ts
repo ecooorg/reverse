@@ -530,3 +530,31 @@ researchTools.push({
         required: ['session_id', 'confirm']
     }
 });
+researchTools.push({
+    name: 'android_preservation_report',
+    description: 'Build an Android behavior-preservation report. Without an available on-device oracle '
+        + 'the level is L0 and cannot be raised (H-07). Needs research-session authorization.',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            session_id: { type: 'string' },
+            package_name: { type: 'string' }
+        },
+        required: ['session_id']
+    }
+});
+researchTools.push({
+    name: 'android_migration_advice',
+    description: 'Rank migration options for a legacy Android package. Options cite evidence; '
+        + 'with no oracle, preservation stays L0. Needs research-session authorization.',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            session_id: { type: 'string' },
+            package_name: { type: 'string' },
+            min_sdk: { type: 'number' },
+            target_sdk: { type: 'number' }
+        },
+        required: ['session_id']
+    }
+});
