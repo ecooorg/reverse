@@ -3115,7 +3115,8 @@ check('Roadmap', 'M and N status, version and O entry criteria are internally co
     // O closed at 1.4.0 — status table and narrative must not say in progress.
     assert.match(roadmap, /Patch O.*(\*\*done\*\*|closed at)/i);
     assert.doesNotMatch(roadmap, /\| O \|[^\n]*in progress/i);
-    assert.match(roadmap, /Patch P.*in progress/i);
+    assert.match(roadmap, /Patch P.*(\*\*done\*\*|closed)/i);
+    assert.doesNotMatch(roadmap, /\| P \|[^\n]*in progress/i);
     assert.match(roadmap, /F-08 macOS|ps -p/);
     assert.doesNotMatch(architecture, /M remains open until its complete end-to-end acceptance criteria pass/);
 });
