@@ -1,4 +1,4 @@
-## Audit 33 — 2026-11-13 — 2.0.1 repair of red 2.0.0 (compile + format)
+## Audit 35 — 2026-11-13 — 2.0.1 repair of red 2.0.0 (compile + format)
 
 **Scope.** Fix TypeScript and format gates that failed on 2.0.0 (`8d4d9a7`).
 
@@ -16,7 +16,7 @@
 
 **Status:** repair shipped as **2.0.1**. Re-run Capabilities / Structure / Mutation / Nightly to confirm green.
 
-## Audit 31 — 2026-11-13 — Patch P closed (1.5.22)
+## Audit 34 — 2026-11-13 — Patch P closed (1.5.22)
 
 **Scope.** Close Patch P (legacy Android) with residual operator-plan surface and explicit limitations.
 
@@ -26,7 +26,7 @@
 
 **Status:** Patch P closed in 1.5.22. Residual depth items are limitations, not open checklist blockers.
 
-## Audit 30 — 2026-11-13 — Patch P green baseline 1.5.20 / docs close 1.5.21
+## Audit 33 — 2026-11-13 — Patch P green baseline 1.5.20 / docs close 1.5.21
 
 **Scope.** Record multi-workflow green verification of **1.5.20** (`0235676`) and close Patch P checklist debts that are proven by code and the capability matrix.
 
