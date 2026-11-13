@@ -1901,6 +1901,8 @@ const DOCUMENTED_TOOLS = [
     'detect_android_profilers',
     'collect_android_file_observations',
     'collect_android_network_observations',
+    'android_preservation_report',
+    'android_migration_advice',
     'create_change_workspace',
     'apply_change',
     'rollback_change',
@@ -3012,6 +3014,21 @@ check('Legacy Android', 'observation comparison reports pixel drift without fail
     assert.equal(c.monkeyEqual, true);
     assert.equal(c.pixelDrift, true);
     assert.equal(c.equal, true);
+});
+check('Legacy Android', 'android preservation report is L0 without oracle', async () => {
+    const url = pathToFileURL(path.join(DIST, 'legacy-android-behavior.js')).href;
+    const { androidPreservationReport } = await import(url);
+    const report = androidPreservationReport({
+        authorization: {
+            basis: 'open_source',
+            licenseOrConsentReference: 'capability-fixture',
+            declaredBy: 'capability-suite',
+            declaredAt: new Date().toISOString(),
+        },
+        packageName: 'com.example.app',
+    });
+    assert.equal(report.level, 'L0');
+    assert.equal(report.oracle?.available, false);
 });
 check('Legacy Android', 'L0 reference trials pass on crafted fixtures', async () => {
     const url = pathToFileURL(path.join(DIST, 'legacy-android-reference-trials.js')).href;
