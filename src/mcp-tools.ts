@@ -17,7 +17,11 @@ for (const t of tools) {
             type: 'string', description: 'Optional research session: the result is attached to it as typed evidence.'
         };
 }
-export const EXEC_TOOLS = new Set(['capture_baseline', 'run_benchmark', 'validate_changes', 'run_benchmark_suite']);
+export const EXEC_TOOLS = new Set([
+    'capture_baseline', 'run_benchmark', 'validate_changes', 'run_benchmark_suite',
+    'run_validation_fixtures', 'run_optimization_trial', 'run_all_reference_trials',
+    'run_apk_pipeline', 'run_provider', 'trace_execution',
+]);
 /** Tools that mutate device or workspace state even when not in EXEC_TOOLS. */
 export const MUTATING_TOOLS = new Set([
     'apply_change',

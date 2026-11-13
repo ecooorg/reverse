@@ -4,9 +4,9 @@
  * Never claims isolation it cannot enforce. Requires CONTROLLED_EXECUTION + confirm.
  */
 import { spawn } from 'node:child_process';
-import { mkdtemp, rm, writeFile, readFile, access } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile, readFile, access, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join, resolve, relative, dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { operatingMode } from './benchmark-gate.js';
 export interface SandboxLimits {
@@ -164,8 +164,10 @@ export async function runInSandbox(req: SandboxRequest): Promise<SandboxRunResul
     try {
         for (const seed of req.seedFiles ?? []) {
             const dest = resolve(scratch, seed.relativePath);
-            if (!dest.startsWith(scratch))
+            const relToScratch = relative(scratch, dest);
+            if (relToScratch.startsWith('..') || relToScratch === '..')
                 throw new Error(`seed path escapes scratch: ${seed.relativePath}`);
+            await mkdir(dirname(dest), { recursive: true });
             await writeFile(dest, seed.content);
         }
         const built = buildCommand(mechanism, scratch, req.command, req.args ?? []);

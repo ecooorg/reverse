@@ -37,6 +37,18 @@ const parsed = parseArgs({
         }, json: {
             type: 'boolean'
         },
+        confirm: {
+            type: 'string'
+        },
+        verdict: {
+            type: 'string'
+        },
+        validation: {
+            type: 'string'
+        },
+        bin: {
+            type: 'string'
+        },
     }
 });
 const [cmd, ...args] = parsed.positionals;
@@ -78,6 +90,9 @@ Commands:
   wasm <file>                   WebAssembly section inventory
   mcp-http                      Optional HTTP MCP (REVERSE_MCP_HTTP=1 + TOKEN)
   setup <agent> [--confirm true] Register MCP in cursor|claude|codex|vscode (dry-run default)
+  analyze-legacy-android <path>  Authorization-gated Android Target Profile (needs env session)
+  inventory-newer <path>         Newer-generation static inventory markers
+  unified-report                 Build unified report from JSON profile on stdin
   analyzers                     List adapters and providers
   doctor                        Check local runtime and store readiness
   mcp                           Start the MCP stdio server
