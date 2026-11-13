@@ -18,15 +18,15 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.5.16** (Patch P in progress — TS utf16be fix; preservation MCP tools; checklist debt closures; 2026-11-13).
+State as of **1.5.17** (Patch P in progress — knip unused export fix; 2026-11-13).
 
 **Verification.** Product code for 1.5.12 adds pure-TypeScript binary parsers: AXML ResStringPool + element walker (package, SDK levels, permissions, components), ARSC package summary, DEX class_defs listing, APK Signing Block v2/v3 detection. R-04 property tests cover hostile buffers. Full `npm ci` / `npm run verify` was limited in the assistant environment; run locally after unpack. Prior CI baseline (1.5.10 / 9418a75): Capabilities 43374725628, Structure 43374831738, Supply chain 43374862389, Mutation 43374766507.
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.5.16** (Patch P step 3 — binary AXML, ARSC summary, DEX classes, signature schemes) |
+| What is the product version? | **1.5.17** (Patch P step 3 — binary AXML, ARSC summary, DEX classes, signature schemes) |
 | What is finished? | The 1.0 foundation (**patches A–L**), **Patch M** (Windows, **1.2.0**), **Patch N** (old Linux, **1.3.5**), and **Patch O** (Classic Mac / early macOS, **1.4.0**). |
-| What is being built? | **Patch P** in progress through **1.5.16**: static inventory no longer depends on JADX/Apktool for manifest SDK fields, DEX class names or signature scheme labels. |
+| What is being built? | **Patch P** in progress through **1.5.17**: static inventory no longer depends on JADX/Apktool for manifest SDK fields, DEX class names or signature scheme labels. |
 | What has not started? | **Patch Q** (newer generations and unified compatibility intelligence). Patch P is the next product unit. |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
 | What is the next concrete step? | Close Patch P step 8 remainders: R-15 golden/manual CI for P trials, record os:all run ID, security review note; residual step 6 (proxy/pcap, continuous Frida) as explicit limitations if not delivered. |
@@ -587,6 +587,11 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 - [x] MCP `android_preservation_report` and `android_migration_advice` (session-authorized, L0 without oracle).
 - [x] ROADMAP checklist: R-04 property tests, R-02 untrusted device text, L0 preservation, L0 reference trials, diagnosis tables marked delivered with residual notes.
 - [ ] R-15 golden/manual job for P trials; recorded `os: all` run; oracle-backed L1+; proxy/pcap; continuous Frida; full ARSC values / full cert chains.
+
+### 1.5.17 — Patch P: knip unused export (no product behavior change)
+
+- [x] Un-export / use `RES_XML_END_ELEMENT` so `unused:check` (knip) passes (Capabilities run 43403007140).
+- Mutation / Structure / Supply chain on 10ce3b5 had no real failure (AI-DEBUG false positives from TAP "error-like" substrings).
 
 ### Patch Q working plan — Newer generations and unified compatibility intelligence (target release 2.0, not started)
 
@@ -1314,6 +1319,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.5.14 | P: lint fixes; v1 cert CN hints; ARSC typeSpec counts; network dumpsys; expanded L0 reference trials |
 | 1.5.15 | P: useConst lint; Android L0 preservation/migration helpers; owner tablet workflow in AGENTS/GITHUB; expanded L0 trial |
 | 1.5.16 | P: fix BufferEncoding utf16be; android_preservation_report / android_migration_advice MCP; close R-04/R-02 checklist boxes |
+| 1.5.17 | P: knip unused export RES_XML_END_ELEMENT (Capabilities 43403007140) |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP
