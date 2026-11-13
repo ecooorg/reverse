@@ -438,3 +438,7 @@ Additional delivered surface: build/Play-services path markers; Frida call-frequ
 
 **Accepted residual limitations at P exit:** full ARSC configuration/value tables; full X.509 chain validation; continuous in-process Frida attach; transparent proxy and pcap; multi-API device oracle for L1+ preservation; TEXTREL/bionic deep ELF; resolved Maven/Play-services graphs. These are documented non-claims, not matrix failures.
 
+### Stryker config (N-07)
+
+`stryker.config.json` sets `tsconfigFile` to `stryker-no-tsconfig.json` on purpose. Pointing Stryker at the real `tsconfig.json` under TypeScript 7 makes the preprocessor call `ts.parseConfigFileTextToJson`, which is not available in that API surface and crashes mutation CI. Mutation targets are already compiled `dist/*.js` files; a project tsconfig is not required. The stub name is retained for compatibility with the existing config key.
+

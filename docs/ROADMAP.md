@@ -18,13 +18,13 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **2.0.10** (sandbox result fields + docs gates; Q partial; 2026-11-13).
+State as of **2.0.11** (restore stryker-no-tsconfig for TS7/Stryker; Q partial; 2026-11-13).
 
 **Verification.** Green Capabilities **43426001819** on 2.0.5 (`de2984c`): 6 environments, 0 failed. Structure/Supply/Mutation companions from the same green archive. Prior P baseline 43410508116 remains historical.
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **2.0.10** (Q **partial**; audit remediation) |
+| What is the product version? | **2.0.11** (Q **partial**; audit remediation) |
 | What is finished? | Foundation A–L; product **M** (Windows), **N** (Linux), **O** (Mac), **P** (Android). **Q partial**: unified report envelope + newer-gen inventory + MCP/CLI surface; residual Q checklist is signed-off limitation until deepened. |
 | What is being built? | Product patches **A–Q complete**. Post-2.0 work is maintenance only. |
 | What has not started? | None of the roadmap product patches A–Q remain open. Residual items are explicit CAPABILITIES limitations. |
