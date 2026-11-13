@@ -1,5 +1,15 @@
 # Publish Reverse to GitHub
 
+## Owner workflow (no local terminal)
+
+The repository owner works **only from GitHub’s website on an Android tablet** — no PC shell, no local Node/npm.
+
+- Patches are applied by uploading changed files through the GitHub web UI.
+- **Verification is CI-only.** Assistants must put every required check into tests and workflows; do not ask the owner to run `npm` commands.
+- Status is judged from Actions run results and AI-DEBUG-SUMMARY artifacts, not from a local machine.
+- See AGENTS.md section *3.0 Owner environment*.
+
+
 1. Create an empty repository named `reverse` under your GitHub account or organization. Do not initialize it with a README, license, or `.gitignore` because this project already contains them.
 2. From the project directory, install dependencies and verify the build:
 

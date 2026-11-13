@@ -18,18 +18,18 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.5.14** (Patch P in progress — cert CN hints, ARSC type counts, network dumpsys, expanded L0 trials; lint repair; 2026-11-13).
+State as of **1.5.15** (Patch P in progress — L0 Android preservation/migration; owner-environment docs; useConst lint; 2026-11-13).
 
 **Verification.** Product code for 1.5.12 adds pure-TypeScript binary parsers: AXML ResStringPool + element walker (package, SDK levels, permissions, components), ARSC package summary, DEX class_defs listing, APK Signing Block v2/v3 detection. R-04 property tests cover hostile buffers. Full `npm ci` / `npm run verify` was limited in the assistant environment; run locally after unpack. Prior CI baseline (1.5.10 / 9418a75): Capabilities 43374725628, Structure 43374831738, Supply chain 43374862389, Mutation 43374766507.
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.5.14** (Patch P step 3 — binary AXML, ARSC summary, DEX classes, signature schemes) |
+| What is the product version? | **1.5.15** (Patch P step 3 — binary AXML, ARSC summary, DEX classes, signature schemes) |
 | What is finished? | The 1.0 foundation (**patches A–L**), **Patch M** (Windows, **1.2.0**), **Patch N** (old Linux, **1.3.5**), and **Patch O** (Classic Mac / early macOS, **1.4.0**). |
-| What is being built? | **Patch P** in progress through **1.5.14**: static inventory no longer depends on JADX/Apktool for manifest SDK fields, DEX class names or signature scheme labels. |
+| What is being built? | **Patch P** in progress through **1.5.15**: static inventory no longer depends on JADX/Apktool for manifest SDK fields, DEX class names or signature scheme labels. |
 | What has not started? | **Patch Q** (newer generations and unified compatibility intelligence). Patch P is the next product unit. |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Continue Patch P step 6 remainders (Frida session scripts, network/proxy capture, file/db diffs, simpleperf/Perfetto) and deepen step 3 (full ARSC config tables, cert chain extraction) as needed for diagnosis quality. |
+| What is the next concrete step? | Finish Patch P step 7–8 remainders (oracle-backed preservation when available, two reference scenarios on lawful fixtures, security review, manual os:all) and residual step 6 (proxy/pcap, continuous Frida). |
 | What is open but not blocking? | R-10 residual (`goblin` and later providers), R-11 residual (Mach-O and unified report), F-83 (Linux Node 22 timeout; not reproduced in three consecutive green matrices), F-86 (dev-only moderate advisories), and the low Stryker score on two modules (recorded baseline, floor held). M/N G/H residual scope is itemized below and in `CAPABILITIES.md`. See the [carry-over debt register](#carry-over-debt-register). |
 | What is unverified? | Residual M/N limitations (explicit): no bundled Windows/Linux oracle (preservation stays L0); execution lifecycle lacks snapshot/restore/trace; behavior capture does not cover registry/network/UI/audio/time/randomness or code coverage; no function-level equivalence lab; migration options are limited; similarity BSim is unconfigured; calibration uses small crafted corpora; containers share the host kernel; the verneed summary is a string-residue scan, not a full `SHT_GNU_verneed` walk; `goblin` is not wired; libc/compiler generation heuristics are not calibrated beyond the crafted fixtures. The 1.3.7 manual matrix (Capabilities run 43079862360) stopped at the formatting gate on all six OS/Node cells, before build or capability tests; no cross-platform result is inferred from that run. Capabilities run 43084133732 exposed malformed PowerShell source on Windows (fixed in 1.3.9) and a Windows capability file that finished all 108 checks but did not exit (F-84, fixed in 1.3.10). The full matrix is green on commit `78a47fd` (Capabilities 43172993614, Structure 43173076031, Mutation 43173019792, Golden 43173044415, Supply chain 43173096703). An earlier green matrix on `f85200e` is superseded by this final verification run. The earlier N closure matrix remains recorded for commit `b5ea3fa` (Capabilities 43059743774, Structure 43059819947, Supply chain 43059851184). Windows/macOS hard sandbox isolation remains a recorded limitation from M. |
 
@@ -573,6 +573,13 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 - [x] `collectAndroidNetworkObservations` (dumpsys connectivity/wifi; not MITM proxy).
 - [x] Expanded L0 reference trials: AXML minSdk, DEX parser, sig block, DER hints, observation compare, Frida plan.
 - [ ] Transparent proxy / pcap; continuous Frida profiles; full ARSC value tables; full cert chains.
+
+### 1.5.15 — Patch P: L0 preservation + owner workflow docs + lint
+
+- [x] `useConst` for certificate subject/issuer arrays (Capabilities run 43393872125).
+- [x] `androidPreservationReport` / `androidMigrationAdvice` — L0 only without oracle (H-07); wired into reference trials.
+- [x] AGENTS.md §3.0 and docs/GITHUB.md: owner has only GitHub web on Android tablet; no owner-side npm; all checks must live in tests/workflows.
+- [ ] Transparent proxy/pcap; continuous Frida; full ARSC values; full cert chains; step 8 release gates.
 
 ### Patch Q working plan — Newer generations and unified compatibility intelligence (target release 2.0, not started)
 
@@ -1298,6 +1305,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.5.12 | P step 3: binary AXML walker, ARSC summary, DEX class listing, APK Sig Block v2/v3; R-04 property tests |
 | 1.5.13 | P: format repair; DEX method listing; Frida plan, profiler detect, file path observations + MCP tools |
 | 1.5.14 | P: lint fixes; v1 cert CN hints; ARSC typeSpec counts; network dumpsys; expanded L0 reference trials |
+| 1.5.15 | P: useConst lint; Android L0 preservation/migration helpers; owner tablet workflow in AGENTS/GITHUB; expanded L0 trial |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP
