@@ -1,6 +1,6 @@
 {
   "name": "reverse-compact",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "private": false,
   "description": "Local analysis, profiling, benchmarking and evidence core with CLI and MCP; legacy Windows/Linux/Mac/Android; partial unified compatibility (2.0.x).",
   "type": "module",
