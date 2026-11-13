@@ -10,7 +10,7 @@ export const AXML_FILE_MAGIC = 0x00080003;
 export const RES_STRING_POOL_TYPE = 0x0001;
 export const RES_XML_TYPE = 0x0003;
 export const RES_XML_START_ELEMENT = 0x0102;
-export const RES_XML_END_ELEMENT = 0x0103;
+const RES_XML_END_ELEMENT = 0x0103;
 export const RES_TABLE_TYPE = 0x0002;
 export const RES_TABLE_PACKAGE_TYPE = 0x0200;
 export const DEX_MAGIC = Buffer.from('dex\n');
@@ -266,7 +266,10 @@ export function parseAxmlManifest(b: Buffer): AxmlManifest {
             off += 4;
             continue;
         }
-        if (chunkType === RES_XML_START_ELEMENT && headerSize >= 16) {
+        if (chunkType === RES_XML_END_ELEMENT) {
+            // end element — advance only
+        }
+        else if (chunkType === RES_XML_START_ELEMENT && headerSize >= 16) {
             elements++;
             // ResXMLTree_node: lineNumber(u32), comment(u32) then ext
             // ResXMLTree_attrExt at off+headerSize? Actually layout:
