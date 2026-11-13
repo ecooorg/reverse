@@ -18,7 +18,7 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **2.0.7** (full audit-2.0.5 cleanup: Q partial, residuals signed, D-series addressed where possible).
+State as of **2.0.8** (full audit-2.0.5 cleanup: Q partial, residuals signed, D-series addressed where possible).
 
 **Verification.** Green Capabilities **43426001819** on 2.0.5 (`de2984c`): 6 environments, 0 failed. Structure/Supply/Mutation companions from the same green archive. Prior P baseline 43410508116 remains historical.
 
@@ -700,7 +700,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 
 **Q is done when** section 8 (the debts) and the definition of done for N, O, P and Q holds for every supported family, the debt register is empty or every remaining row is an explicit, signed-off limitation, and the release is **2.0.5** with its release record. **Recorded:** closed at **2.0.5** with unified report + newer-gen inventory delivered; residual depth signed off as CAPABILITIES limitations (Audit 32).
 
-### 2.0.7 — Full audit-2.0.5 cleanup
+### 2.0.8 — Full audit-2.0.5 cleanup
 
 - [x] Q-01–Q-09 docs/status/MCP/SECURITY alignment; Q **partial** with residual register.
 - [x] D-01–D-06 actionable code fixes (EXEC_TOOLS, tree-kill group, path.relative, unshare probe, CLI options, CI summary).
@@ -783,7 +783,7 @@ Approved tasks that are **not** closed, collected from the backlog, the patch re
 
 ### Approved tasks without delivery or without recorded closure
 
-| ID | Task | Backlog assignment | State at 2.0.7 (debt rows below include signed residual after Q partial) | Handling |
+| ID | Task | Backlog assignment | State at 2.0.8 (debt rows below include signed residual after Q partial) | Handling |
 |---|---|---|---|---|
 | F-75 / R-03 | Pin the two remaining tag references in `.github/workflows/supply-chain.yml` to full commit SHAs | 1.0.1 (R-03 recorded closed) | **Closed** in this increment (step 0 of M): both remaining tags pinned to `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a` (v7.0.1); R-03 check is ✅ | *Closed:* work order step 0 |
 | R-20 | Sandbox for executed targets under `CONTROLLED_EXECUTION` (bwrap/unshare, sandbox-exec, Job Objects/AppContainer or a container provider; no network by default; scratch directory; rlimits) | G (done) | **Partial:** Linux bwrap/unshare + scratch dir + timeout + process-group kill delivered in M step 5; Windows/macOS hard isolation still open | *Approved:* inside M step 5 (Linux partial closed); Windows/macOS remainder tracked as residual |
@@ -1405,7 +1405,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 2.0.4 | knip: drop unused re-export detectApkBuildMarkers from legacy-android (Capabilities 43422592035) |
 | 2.0.5 | Capability: Patch O check accepts 2.0.x after Q close (43424345452) |
 | 2.0.6 | audit-2.0.5 remediation: Q→partial, EXEC_TOOLS gate, sandbox path, CLI options/commands, CI summary, docs |
-| 2.0.7 | Full audit-2.0.5 cleanup: sandbox/CLI/docs/residuals (Audit 37) |
+| 2.0.8 | Full audit-2.0.5 cleanup: sandbox/CLI/docs/residuals (Audit 37) |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP
