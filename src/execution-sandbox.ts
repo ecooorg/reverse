@@ -62,7 +62,6 @@ async function which(bin: string): Promise<string | null> {
     return null;
 }
 /** Probe which isolation mechanism this host can offer. */
-
 async function probeUnshareWorks(bin: string): Promise<boolean> {
     try {
         const r = spawn(bin, ['-U', '-r', 'true'], { stdio: 'ignore' });
@@ -89,7 +88,6 @@ async function probeUnshareWorks(bin: string): Promise<boolean> {
         return false;
     }
 }
-
 export async function detectSandboxMechanism(): Promise<SandboxMechanism> {
     if (process.platform === 'linux') {
         const bwrap = await which('bwrap');

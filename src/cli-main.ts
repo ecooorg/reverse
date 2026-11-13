@@ -259,11 +259,11 @@ async function main() {
         case 'mcp':
             await import('./mcp-server.js');
             return;
-
         case 'analyze-legacy-windows': {
             const { analyzeLegacyWindows } = await import('./legacy-windows.js');
             const file = args[0];
-            if (!file) throw new Error('usage: reverse analyze-legacy-windows <path>');
+            if (!file)
+                throw new Error('usage: reverse analyze-legacy-windows <path>');
             const auth = {
                 basis: (value('basis', 'operator_declaration') as any),
                 licenseOrConsentReference: value('ref', 'cli')!,
@@ -277,7 +277,8 @@ async function main() {
         case 'analyze-legacy-linux': {
             const { analyzeLegacyLinux } = await import('./legacy-linux.js');
             const file = args[0];
-            if (!file) throw new Error('usage: reverse analyze-legacy-linux <path>');
+            if (!file)
+                throw new Error('usage: reverse analyze-legacy-linux <path>');
             const auth = {
                 basis: (value('basis', 'operator_declaration') as any),
                 licenseOrConsentReference: value('ref', 'cli')!,
@@ -291,7 +292,8 @@ async function main() {
         case 'analyze-legacy-mac': {
             const { analyzeLegacyMac } = await import('./legacy-mac.js');
             const file = args[0];
-            if (!file) throw new Error('usage: reverse analyze-legacy-mac <path>');
+            if (!file)
+                throw new Error('usage: reverse analyze-legacy-mac <path>');
             const auth = {
                 basis: (value('basis', 'operator_declaration') as any),
                 licenseOrConsentReference: value('ref', 'cli')!,
@@ -311,7 +313,6 @@ async function main() {
             console.log(JSON.stringify(out, null, 2));
             break;
         }
-
         default: throw new Error(`Unknown command: ${cmd}. Run reverse --help.`);
     }
     console.log(JSON.stringify(out, null, 2));
