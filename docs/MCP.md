@@ -1,4 +1,4 @@
-The server exposes **64 tools**. The tool table below is generated from the same TypeScript definitions used by `tools/list`; `npm run docs:mcp:check` fails on drift and `npm run docs:mcp:write` regenerates it. The server also exposes prompts and resources methods and an optional HTTP gateway. Sections: the core tool table, optimization-loop tools (patch J), runtime-analyzer tools (patch K), optional HTTP transport (patch K), prompts and resources (patch L), legacy Windows tools (patch M, delivered), legacy Linux analysis (patch N, delivered), classic Mac / early macOS analysis (patch O step 1) and the future plan.
+The server exposes **73 tools**. The tool table below is generated from the same TypeScript definitions used by `tools/list`; `npm run docs:mcp:check` fails on drift and `npm run docs:mcp:write` regenerates it. The server also exposes prompts and resources methods and an optional HTTP gateway. Sections: the core tool table, optimization-loop tools (patch J), runtime-analyzer tools (patch K), optional HTTP transport (patch K), prompts and resources (patch L), legacy Windows tools (patch M, delivered), legacy Linux analysis (patch N, delivered), classic Mac / early macOS analysis (patch O step 1) and the future plan.
 
 
 Transport: newline-delimited JSON-RPC 2.0 over stdin/stdout (MCP stdio). Supported methods: `initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`, `prompts/list`, `prompts/get`, `resources/list`, `resources/read`.
@@ -16,10 +16,10 @@ Tool definitions include `title`, `annotations` and an `outputSchema`; command-e
 | `analyze_source` | `directory` | Inventory source files and external imports (comment- and string-aware) in a directory. |
 | `analyze_dependencies` | `directory` | Resolve dependencies from package.json plus lockfiles (npm, yarn, Cargo, Go, pip/poetry) when present. |
 | `analyze_android` | `file` | Static inventory of an APK/AAB: dex, native libs, ABIs, manifest presence, R8/ProGuard indicators. |
-| `get_inventory` | none | List visible local processes. |
+| `get_inventory` | `pid` | List visible local processes. |
 | `inspect_process` | `pid` | Inspect one process visible to the current user. |
 | `profile_process` | `pid` | Sample process CPU/RSS over a bounded interval. |
-| `list_processes` | none | List visible processes with OS-provided resource metadata. |
+| `list_processes` | `pid` | List visible processes with OS-provided resource metadata. |
 | `monitor_process` | `pid` | Observe process metrics over a bounded interval and persist a time series. |
 | `get_process_metrics` | `pid` | Get current process resource metrics. |
 | `get_process_tree` | `pid` | Get the visible descendant process tree. |
@@ -27,7 +27,7 @@ Tool definitions include `title`, `annotations` and an `outputSchema`; command-e
 | `analyze_cpu` | `pid` | Return current process CPU metrics. |
 | `analyze_io` | `pid` | Return current process disk I/O counters where available. |
 | `detect_resource_anomalies` | `series` | Detect high CPU and growing memory in supplied profile series. |
-| `get_resource_control_status` | none | Report whether enforceable OS resource controls are available; does not change a process. |
+| `get_resource_control_status` | `target` | Report whether enforceable OS resource controls are available; does not change a process. |
 | `trace_execution` | `target` | Dynamic trace via Frida under CONTROLLED_EXECUTION. Unsupported if Frida or mode missing. |
 | `get_hotspots` | `pid` | Function hotspots from a real profiler (perf/sample) when available; else process-level only. |
 | `get_process_io` | `pid` | Per-process disk I/O counters where the OS exposes them (Linux /proc/pid/io). |
@@ -35,11 +35,11 @@ Tool definitions include `title`, `annotations` and an `outputSchema`; command-e
 | `run_benchmark` | `command` | Run a command repeatedly without a shell and measure wall-clock duration, CPU time, peak RAM (direct child; sampled) and binary size. |
 | `compare_results` | `before`, `after` | Compare two Reverse benchmark result objects. |
 | `validate_changes` | `command`, `expected` | Check caller-provided expected stdout/stderr and exit code for a command. |
-| `get_environment_fingerprint` | none | Report the non-secret environment fingerprint (OS, CPU, memory, Node.js, Reverse version) used to judge benchmark comparability. |
+| `get_environment_fingerprint` | `id` | Report the non-secret environment fingerprint (OS, CPU, memory, Node.js, Reverse version) used to judge benchmark comparability. |
 | `get_evidence` | `id` | Find a persisted evidence record by ID. |
-| `list_analyzers` | none | List built-in analyzers, registered external adapters and extension points. |
+| `list_analyzers` | `name`, `target` | List built-in analyzers, registered external adapters and extension points. |
 | `run_provider` | `name`, `target` | Run a registered external provider (ghidra, rizin, jadx, apktool). Returns unsupported if the tool is not installed. |
-| `create_benchmark_suite` | `cases` | Create an interleaved benchmark suite with two or more named cases. |
+| `create_benchmark_suite` | `name`, `command` | Create an interleaved benchmark suite with two or more named cases. |
 | `run_benchmark_suite` | `id` | Run a previously created benchmark suite in round-robin order. |
 | `compare_benchmarks` | `before`, `after` | Compare two interleaved benchmark suite results by matching case name. |
 | `compare_baselines` | `before_id`, `after_id` | Compare two stored baseline IDs and return the statistical benchmark report. |
@@ -51,19 +51,28 @@ Tool definitions include `title`, `annotations` and an `outputSchema`; command-e
 | `add_research_evidence` | `session_id`, `type`, `source`, `measurement`, `confidence`, `limitations` | Attach typed measured evidence with source, confidence and limitations to a research session. |
 | `link_research_artifacts` | `session_id`, `relation`, `ids` | Link target, observations, profile, baseline, optimization, benchmark, comparison, validation or final report artifacts in a research session. |
 | `generate_change_report` | `target` | Before/after change report with validation, metrics, residual risks and next steps. |
-| `verify_evidence_integrity` | none | Verify research session hash chain and optional HMAC signature (REVERSE_EVIDENCE_KEY). |
+| `verify_evidence_integrity` | `directory` | Verify research session hash chain and optional HMAC signature (REVERSE_EVIDENCE_KEY). |
 | `run_validation_fixtures` | `directory` | Run JSON validation fixtures from a directory (command/expected/normalize). |
 | `declare_legacy_authorization` | `session_id`, `basis`, `license_or_consent_reference`, `declared_by` | Declare the operator-reported legal basis for legacy analysis; this is not legal verification. |
 | `analyze_legacy_windows` | `file`, `session_id` | Statically inspect DOS/Windows headers, PE imports and framework signatures. Includes session authorization; never executes the target. |
 | `analyze_legacy_linux` | `file`, `session_id` | Statically inspect a.out/ELF headers, DT_NEEDED, interpreter, libc/GCC markers and sourced Linux diagnosis. Needs research-session authorization; does not execute the target. |
 | `analyze_legacy_mac` | `file`, `session_id` | Statically inspect classic Mac / early macOS formats (Mach-O, fat, PEF, AppleDouble) and fill Mac Target Profile fields. Needs research-session authorization; static only, no execution. |
-| `analyze_legacy_android` | `file`, `session_id` | Statically inventory APK/AAB/DEX for legacy Android Target Profile fields (ABI, dex, signing hints). Needs research-session authorization; does not decode AXML or execute the app. |
+| `analyze_legacy_android` | `file`, `session_id` | Statically inventory APK/AAB/DEX for legacy Android Target Profile fields (ABI, dex, binary AXML manifest, ARSC summary, DEX classes, signing schemes). Needs research-session authorization; does not execute the app. |
 | `collect_android_device_observations` | `session_id`, `confirm` | Collect bounded read-only Android logcat and activity diagnostics from an authorized device. Requires CONTROLLED_EXECUTION, confirm=true, and a declared research-session authorization. |
+| `collect_android_ui_observations` | `session_id`, `confirm` | Capture a bounded Android UI hierarchy (uiautomator dump) and a SHA-256 of a screencap. Requires CONTROLLED_EXECUTION, confirm=true, and research-session authorization. Raw pixels are not returned. |
+| `replay_android_seeded_input` | `session_id`, `confirm`, `package_name` | Replay a deterministic monkey scenario with a fixed seed on an authorized device (1–3 runs, optional pm clear). Mutating: injects input events. Requires CONTROLLED_EXECUTION, confirm=true, and research-session authorization. |
+| `compare_android_observations` | `left`, `right` | Compare two Android observation snapshots (UI hierarchy and monkey outcome). Pixel drift is reported separately and does not fail the comparison. Pure comparison; no device access. |
+| `plan_android_frida_session` | `package_name` | Generate a Frida Java.perform session script skeleton for a package. Does not attach or execute; operator runs Frida under CONTROLLED_EXECUTION. |
+| `detect_android_profilers` | `session_id`, `confirm` | Probe an authorized device for simpleperf and Perfetto binaries. Detect-only; requires CONTROLLED_EXECUTION, confirm=true, and research-session authorization. |
+| `collect_android_file_observations` | `session_id`, `confirm`, `package_name` | List bounded shared_prefs and databases paths for a package via run-as. Path names only; requires CONTROLLED_EXECUTION, confirm=true, and research-session authorization. |
+| `collect_android_network_observations` | `session_id`, `confirm` | Collect bounded dumpsys connectivity and wifi diagnostics from an authorized device. Not a MITM proxy. Requires CONTROLLED_EXECUTION, confirm=true, and research-session authorization. |
+| `android_preservation_report` | `session_id` | Build an Android behavior-preservation report. Without an available on-device oracle the level is L0 and cannot be raised (H-07). Needs research-session authorization. |
+| `android_migration_advice` | `session_id` | Rank migration options for a legacy Android package. Options cite evidence; with no oracle, preservation stays L0. Needs research-session authorization. |
 | `create_change_workspace` | `path`, `confirm` | Copy target into isolated workspace (CONTROLLED_EXECUTION + confirm:true). |
 | `apply_change` | `workspace_id`, `changeType`, `relativePath`, `confirm` | Apply change only inside workspace workPath. |
 | `rollback_change` | `workspace_id`, `confirm` | Restore workspace workPath from the original copy. |
 | `accept_change` | `workspace_id`, `confirm` | Mark workspace accepted without writing originalPath. |
-| `decide_optimization` | none | Deterministic accept/roll_back/need_more_data/reject from evidence. |
+| `decide_optimization` | `apkPath`, `workDir`, `confirm` | Deterministic accept/roll_back/need_more_data/reject from evidence. |
 | `run_apk_pipeline` | `apkPath`, `workDir`, `confirm` | Controlled APK decode/build/align/sign on a workDir copy. |
 | `create_git_worktree` | `path`, `confirm` | Create a git worktree workspace for changes. |
 | `remove_git_worktree` | `workspace_id`, `confirm` | Remove a git worktree workspace. |
