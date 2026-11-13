@@ -18,13 +18,13 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **2.0.8** (full audit-2.0.5 cleanup: Q partial, residuals signed, D-series addressed where possible).
+State as of **2.0.10** (sandbox result fields + docs gates; Q partial; 2026-11-13).
 
 **Verification.** Green Capabilities **43426001819** on 2.0.5 (`de2984c`): 6 environments, 0 failed. Structure/Supply/Mutation companions from the same green archive. Prior P baseline 43410508116 remains historical.
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **2.0.6** (Q **partial**; audit-2.0.5 remediation) |
+| What is the product version? | **2.0.10** (Q **partial**; audit remediation) |
 | What is finished? | Foundation A–L; product **M** (Windows), **N** (Linux), **O** (Mac), **P** (Android). **Q partial**: unified report envelope + newer-gen inventory + MCP/CLI surface; residual Q checklist is signed-off limitation until deepened. |
 | What is being built? | Product patches **A–Q complete**. Post-2.0 work is maintenance only. |
 | What has not started? | None of the roadmap product patches A–Q remain open. Residual items are explicit CAPABILITIES limitations. |
@@ -647,7 +647,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 | 5 | **Newer-generation diagnosis and environments:** sourced tables and findings for post-2010 behavior (including mitigations, signing, sandboxes, background limits); environment providers for current Windows, Linux, macOS (on Apple hardware only where licensing allows) and Android; one environment matrix across all platforms and versions | G-01, G-03 for the new families | Real runs produce one cross-platform works/fails matrix |
 | 6 | **Unified capture, replay and profiling:** one scenario format across platforms; profile ingestion in standard formats (`perf`, pprof, `.cpuprofile`, Speedscope, Firefox Profiler, bpftrace; Windows ETW sessions; per-process network I/O); continuous Frida profiles for newer targets | G-04, R-12 (remainder) | A scenario recorded on one platform replays under the same contract on every platform that supports it |
 | 7 | **Unified preservation and migration:** one L0–L3 report across platforms, one ranked migration advisor that may recommend a cross-platform path (for example emulate, port, rebuild), differential validation reused for every family | G-05, G-06, G-10 (unified), H-07 | The same report structure for every family; no level above L0 without an oracle and provenance |
-| 8 | **Third-party-verifiable evidence:** per-session Merkle root, Ed25519 detached signatures, `reverse export` and `reverse verify` | R-14 (residual, signed Audit 37) | An exported bundle verifies with the public key on a machine without Reverse's state |
+| 8 | **Third-party-verifiable evidence:** per-session Merkle root, Ed25519 detached signatures, `reverse export` and `reverse verify` | R-14 | An exported bundle verifies with the public key on a machine without Reverse's state |
 | 9 | **Distribution and agent-evaluation completion:** the full live-agent evaluation corpus harness and the optional single-file binary | R-08, R-18, H-09 | The harness runs against the corpus and records pass rates; the binary starts the MCP server on the supported platforms or the limitation is recorded |
 | 10 | **Cross-platform reference trials, 2.0 stabilization and release:** two reference scenarios for each platform family on lawful fixtures; the run-all manual CI job with golden results on Linux, macOS and Windows; documentation freeze and an API/tool-stability and deprecation policy; a full security review; a final support matrix by platform, era and capability; an audit of every row of the debt register and the Audit 8 non-claims (each delivered, or recorded as an explicit limitation with the maintainer's sign-off); release record | Section 7; the "Q is done when" conditions | Definition of done holds and **no open debt remains** (see the debt closure schedule); the release is **2.0.5** |
 
@@ -1229,7 +1229,7 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | R-05 | Static gates: linter and formatter, `knip`, `jscpd`, own-line size gate | partial in 0.2.0-beta.6: strict TypeScript, format check and own-line size gate; knip/jscpd/dedicated linter remain open; 0.2.0-beta.7: format gate now covers every TypeScript file and the size gate limits line length to 140 characters; closed in 1.3.10: Biome linter, `jscpd` and `knip` are CI-gated |
 | R-06 | Reformat dense files, formatter check in the structure workflow | closed in 0.2.0-beta.7 (beta.6 had reformatted only part of the files and left 186 lines over 140 characters; now every `src/` and `tests/` file passes the format gate and the line-length gate) |
 | R-07 | Contract-first MCP: one definition generates `tools/list`, [MCP.md](MCP.md) and schemas; compact/full schema profile; structured error codes; pagination; size budgets | Core schemas/profiles/errors/pagination/size budget from 0.2.0-beta.6; tool table generated from the built registry and drift-gated in 1.3.6 |
-| R-08 (residual, signed Audit 37) | MCP prompts and resources; `reverse setup` for Claude Code, Codex, Cursor, Gemini CLI with dry run and backups; investigation skill file | **L** |
+| R-08 | MCP prompts and resources; `reverse setup` for Claude Code, Codex, Cursor, Gemini CLI with dry run and backups; investigation skill file | **L** |
 | R-09 | `reverse doctor` | closed in 0.2.0-beta.6 |
 | R-10 | Existing parsers and tools as opt-in providers (lief/goblin, objdump/readelf, rz-bin, capa, yara-x, diec, syft, osv-scanner, cargo-auditable, Go build info) | **E** (static), **F** (provider adapters), **H** (profiling); partly delivered; `diec`, `yara-x` and `capa` reassigned to **M** (approved 2026-11-11), the rest on demand |
 | R-11 | Hardening-flag report (PIE, NX, RELRO, canary, CFG, ASLR) | **E**; not delivered; PE flags reassigned to **M**, ELF flags to **N** (approved 2026-11-11) |
