@@ -2839,6 +2839,21 @@ check('Legacy Mac', 'works/fails matrix reports unsupported without operator ROM
             process.env.REVERSE_MAC_ROM = prev;
     }
 });
+
+check('Roadmap', 'README Project status matches ROADMAP finished/partial wording', () => {
+    const readme = readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+    const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
+    assert.match(readme, /Patch P.*1\.5\.22|Done:[\s\S]*\*\*P\*\*/i);
+    assert.match(readme, /Partial:[\s\S]*\*\*Patch Q\*\*/i);
+    assert.ok(!/Not started:\s*\*\*Patch Q\*\*/.test(readme), 'README must not say Q not started');
+    assert.ok(!/\*\*In progress:\*\*\s*\*\*Patch P\*\*/.test(readme), 'README must not say P in progress');
+    assert.match(roadmap, /Q partial|partial.*Q/i);
+});
+check('Roadmap', 'product version is 2.0.x after Q partial', () => {
+    const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+    assert.match(pkg.version, /^2\.0\.\d+$/);
+});
+
 check('Roadmap', 'Patch O is recorded closed at 1.4.0', () => {
     const roadmap = readFileSync(path.join(ROOT, 'docs/ROADMAP.md'), 'utf8');
     const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
