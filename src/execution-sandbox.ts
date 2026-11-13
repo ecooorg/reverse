@@ -40,6 +40,10 @@ export interface SandboxRunResult {
     signal: string | null;
     stdout: string;
     stderr: string;
+    /** True when stdout hit the in-memory character cap. */
+    stdoutTruncated: boolean;
+    /** True when stderr hit the in-memory character cap. */
+    stderrTruncated: boolean;
     durationMs: number;
     scratchDir: string;
     mechanism: SandboxMechanism;
