@@ -1,3 +1,17 @@
+## Audit 30 — 2026-11-13 — Patch P green baseline 1.5.20 / docs close 1.5.21
+
+**Scope.** Record multi-workflow green verification of **1.5.20** (`0235676`) and close Patch P checklist debts that are proven by code and the capability matrix.
+
+**Evidence.**
+- Capabilities **43410508116** — 6 environments, no failed must-work checks (AI-DEBUG “error-like” lines are TAP false positives).
+- Structure **43410586035**, Supply chain **43410611527**, Mutation testing **43410529473**.
+
+**Closed against P plan (docs 1.5.21):** multi-OS run ID; MCP docs contract; L0 reference trials (R-15 L0 share via capability suite); provider registration; install/clear gates; works/fails matrix; inventory-level ABI/build markers; G-09 Android rows as implemented.
+
+**Still open / explicit limitations:** full ARSC values, full cert chains, continuous Frida, proxy/pcap, multi-API oracle L1+, security-review narrative for release 1.5.0, deep TEXTREL/Play-services analysis.
+
+**Status:** verification recorded; residual items remain limitations until deepened or accepted at 1.5.0 exit.
+
 ## Audit 32 — 2026-11-12 — Capability suite timeout on Windows Node 22 (1.5.10)
 
 **Scope.** Explain the red *Enforce required checks* step of Nightly Full Verification #3 (run 43302140821, commit de40f11) after the 1.5.9 shell repair.

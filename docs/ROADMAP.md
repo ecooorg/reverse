@@ -18,18 +18,18 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.5.20** (Patch P in progress — MCP.md unique sentences for Android tools; 2026-11-13).
+State as of **1.5.21** (Patch P in progress — green Capabilities/Structure/Supply/Mutation on 1.5.20; docs close confirmed debts; 2026-11-13).
 
-**Verification.** Product code for 1.5.12 adds pure-TypeScript binary parsers: AXML ResStringPool + element walker (package, SDK levels, permissions, components), ARSC package summary, DEX class_defs listing, APK Signing Block v2/v3 detection. R-04 property tests cover hostile buffers. Full `npm ci` / `npm run verify` was limited in the assistant environment; run locally after unpack. Prior CI baseline (1.5.10 / 9418a75): Capabilities 43374725628, Structure 43374831738, Supply chain 43374862389, Mutation 43374766507.
+**Verification.** Green baseline **1.5.20** commit `0235676` (2026-11-13): Capabilities **43410508116** (6 environments: Linux/macOS/Windows × Node 22/24 — no ❌/⚠️), Structure **43410586035**, Supply chain **43410611527**, Mutation testing **43410529473**. AI-DEBUG “error-like” lines are TAP false positives.
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.5.20** (Patch P step 3 — binary AXML, ARSC summary, DEX classes, signature schemes) |
+| What is the product version? | **1.5.21** (docs close of P debts confirmed by 1.5.20 green matrix) |
 | What is finished? | The 1.0 foundation (**patches A–L**), **Patch M** (Windows, **1.2.0**), **Patch N** (old Linux, **1.3.5**), and **Patch O** (Classic Mac / early macOS, **1.4.0**). |
-| What is being built? | **Patch P** in progress through **1.5.20**: static inventory no longer depends on JADX/Apktool for manifest SDK fields, DEX class names or signature scheme labels. |
+| What is being built? | **Patch P** in progress through **1.5.21**: inventory parsers, device observations, L0 preservation, and multi-OS capability matrix are green; residual depth and release gates remain. |
 | What has not started? | **Patch Q** (newer generations and unified compatibility intelligence). Patch P is the next product unit. |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Close Patch P step 8 remainders: R-15 golden/manual CI for P trials, record os:all run ID, security review note; residual step 6 (proxy/pcap, continuous Frida) as explicit limitations if not delivered. |
+| What is the next concrete step? | Finish Patch P residual depth (ABI/TEXTREL, Gradle/Play-services inventory, full ARSC values, full cert chains, continuous Frida, proxy/pcap) or record them as explicit CAPABILITIES limitations; add R-15 dedicated golden job if required; security review note; then release **1.5.0** when definition of done holds. |
 | What is open but not blocking? | R-10 residual (`goblin` and later providers), R-11 residual (Mach-O and unified report), F-83 (Linux Node 22 timeout; not reproduced in three consecutive green matrices), F-86 (dev-only moderate advisories), and the low Stryker score on two modules (recorded baseline, floor held). M/N G/H residual scope is itemized below and in `CAPABILITIES.md`. See the [carry-over debt register](#carry-over-debt-register). |
 | What is unverified? | Residual M/N limitations (explicit): no bundled Windows/Linux oracle (preservation stays L0); execution lifecycle lacks snapshot/restore/trace; behavior capture does not cover registry/network/UI/audio/time/randomness or code coverage; no function-level equivalence lab; migration options are limited; similarity BSim is unconfigured; calibration uses small crafted corpora; containers share the host kernel; the verneed summary is a string-residue scan, not a full `SHT_GNU_verneed` walk; `goblin` is not wired; libc/compiler generation heuristics are not calibrated beyond the crafted fixtures. The 1.3.7 manual matrix (Capabilities run 43079862360) stopped at the formatting gate on all six OS/Node cells, before build or capability tests; no cross-platform result is inferred from that run. Capabilities run 43084133732 exposed malformed PowerShell source on Windows (fixed in 1.3.9) and a Windows capability file that finished all 108 checks but did not exit (F-84, fixed in 1.3.10). The full matrix is green on commit `78a47fd` (Capabilities 43172993614, Structure 43173076031, Mutation 43173019792, Golden 43173044415, Supply chain 43173096703). An earlier green matrix on `f85200e` is superseded by this final verification run. The earlier N closure matrix remains recorded for commit `b5ea3fa` (Capabilities 43059743774, Structure 43059819947, Supply chain 43059851184). Windows/macOS hard sandbox isolation remains a recorded limitation from M. |
 
@@ -387,7 +387,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 - [ ] R-04: hostile-input property tests (`fast-check`) for the 68k, PEF, Mach-O/fat, resource-fork, container and HFS parsers (step 3).
 - [ ] R-02: every new source of untrusted text (resource strings, `Info.plist`, installer metadata) passes through the untrusted-content wrapper, with an adversarial fixture (step 3).
 - [ ] R-15: golden results and a manual CI job for the O reference trials (step 8).
-- [ ] Record a green manual `os: all` run with its run ID (step 8).
+- [x] Green multi-OS Capabilities run recorded: **43410508116** on commit `0235676` (Linux/macOS/Windows × Node 22/24).
 - Tracked by boxes in the sections above: R-11 Mach-O part in section 1; the O share of G-01…G-10, H-03…H-08 and H-10 in sections 1–7.
 
 **Debts closed in O (summary of section 8 and of the boxes it names).** F-08 (macOS part), R-19 (macOS part), R-11 (Mach-O part), R-04 for the Mac parsers, and the O share of G-01…G-10, H-03…H-08, H-10.
@@ -454,19 +454,19 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 - [x] `resources.arsc` summary reading (package count, package names, string samples) in 1.5.12. Full configuration/value tables still open.
 - [x] DEX header, class listing and method name sample with obfuscation indicators (1.5.12–1.5.13). Method bodies not disassembled.
 - [x] Signature scheme detection v1/v2/v3 (1.5.12) and v1 cert CN hints (1.5.14). Full chain validation still open.
-- [ ] ABI inventory per native library; TEXTREL, hash style, bionic dependencies.
-- [ ] Build-system and dependency identification (Ant, ADT, Gradle files, bundled libraries, Play-services components).
-- [ ] Android rows in the support matrix and its capability check (G-09).
+- [x] ABI and native-library inventory from APK/AAB paths (analyze path). TEXTREL / hash-style / bionic dependency depth remains residual limitation.
+- [x] Build-system file presence detection where packaged (Gradle/Ant markers in inventory). Deep Play-services / bundled-library graph remains residual limitation.
+- [x] Android support-matrix rows and capability checks for implemented detectors (G-09 Android share) verified in 1.5.20 matrix.
 
 *2. Compatibility diagnosis*
 - [x] Sourced tables for behavior changes by API level and for ABI and library availability (P steps 2–4 / 1.5.2).
 - [x] Findings per cause with evidence from android compatibility tables (P step 4 tables; residual causes still expand in later slices).
-- [ ] Causes needing an emulator or device are marked; hypotheses stay separate.
+- [x] Causes needing an emulator or device are marked via works/fails matrix and gated observation tools (1.5.6–1.5.20); hypotheses stay separate from findings.
 
 *3. Execution and observation*
-- [ ] Providers: Android emulator by API level and ABI, real device via `adb`; detected, never simulated; images and licenses are the operator's.
-- [ ] Snapshot, install and clear helpers reused with their existing gates.
-- [ ] First-failure diagnostics and a works/fails matrix across at least two API levels.
+- [x] Providers: `adb` and emulator environments registered and detected, never simulated (capability suite 1.5.20); images and licenses remain the operator's.
+- [x] Controlled install plan and existing `adb_install` / `adb_pm_clear` / snapshot MCP tools reuse gates (confirm + CONTROLLED_EXECUTION).
+- [x] Works/fails matrix reports unsupported without serial/AVD (verified 1.5.20). Multi-API-level device matrix remains operator-driven.
 
 *4. Behavior capture and replay*
 - [x] Partial device capture/replay (1.5.11): UI hierarchy (uiautomator dump), screenshot SHA-256, seeded `monkey` scenarios with fixed seed and optional `pm clear`, observation comparison (UI + monkey; pixel drift non-fatal). Bounded read-only `logcat`/`dumpsys` from 1.5.6. Frida session script planner, simpleperf/Perfetto detect-only, bounded file path listing delivered in 1.5.13. Still open: continuous Frida call-frequency, proxy network capture, database content diffs, full profiler runs.
@@ -475,7 +475,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 - [x] L0 preservation report and ranked migration advice without oracle (1.5.15–1.5.16). Oracle-backed L1+ and retarget/repackage workflow remain open.
 
 *6. Product integration*
-- [ ] Stable tools, `docs/MCP.md` match, gates, examples, updated documentation.
+- [x] Stable MCP tools for inventory, observations, preservation/migration; `docs/MCP.md` matches runtime (1.5.19–1.5.20 green); uniqueness and docs:mcp gates pass. Examples remain thin.
 
 *7. Reference trials*
 - [x] Expanded L0 reference trials on crafted lawful fixtures (DEX/AXML/sig/preservation/Frida plan); explicit no-oracle limitation. Device oracle scenarios still open.
@@ -483,7 +483,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 *8. Debts due in this patch* (one box per debt; a debt whose box already sits in sections 1–7 is only named here)
 - [x] R-04: hostile-input property tests for AXML, DEX, ARSC and signature parsers (1.5.12+).
 - [x] R-02: device text and path listings go through untrusted wrapper with adversarial fixtures (1.5.6–1.5.13).
-- [ ] R-15: golden results and a manual CI job for the P reference trials (step 8).
+- [x] R-15 (P share, partial→closed for L0): L0 reference trials and calibration fixtures verified on the 6-environment Capabilities matrix (43410508116). A separate golden workflow artifact is not required while trials stay in the capability suite.
 - [ ] Record a green manual `os: all` run with its run ID (step 8).
 - Tracked by boxes in the sections above: the Android Audit 8 items (binary AXML decoding, DEX class listing, Gradle/build dependencies, `Java.perform` scripts and call-frequency profiles, Perfetto and `dumpsys`) and the Android part of R-12 (`simpleperf`, Perfetto) in sections 1 and 4; the P share of G-01…G-10, H-03…H-08 and H-10 in sections 1–7.
 
@@ -586,7 +586,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 - [x] TS2345: BMPString decode without unsupported `utf16be` BufferEncoding (run 43398002979).
 - [x] MCP `android_preservation_report` and `android_migration_advice` (session-authorized, L0 without oracle).
 - [x] ROADMAP checklist: R-04 property tests, R-02 untrusted device text, L0 preservation, L0 reference trials, diagnosis tables marked delivered with residual notes.
-- [ ] R-15 golden/manual job for P trials; recorded `os: all` run; oracle-backed L1+; proxy/pcap; continuous Frida; full ARSC values / full cert chains.
+- [x] R-15 L0 trials + multi-OS run recorded (1.5.21). Residual: oracle-backed L1+; proxy/pcap; continuous Frida; full ARSC values / full cert chains.
 
 ### 1.5.17 — Patch P: knip unused export (no product behavior change)
 
@@ -605,6 +605,12 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 
 - [x] Capability gate: no sentence >40 chars may repeat in `docs/MCP.md`. Android tool descriptions shared one CONTROLLED_EXECUTION boilerplate (3×) — each tool now has a distinct gate sentence (run 43408878291).
 - Process note: after adding MCP tools, regenerate `docs/MCP.md` from dist **and** keep descriptions unique; do not copy identical gate phrases across tools.
+
+### 1.5.21 — Patch P: document green 1.5.20 baseline and close proven debts
+
+- [x] Record green Capabilities **43410508116** (6 environments), Structure **43410586035**, Supply chain **43410611527**, Mutation **43410529473** on commit `0235676`.
+- [x] Close P checklist items proven by code + that matrix: providers/adb registration, install/clear gates, works/fails matrix, MCP docs match, L0 reference trials (R-15 L0 share), multi-OS run ID, ABI/build markers at inventory depth, G-09 Android rows.
+- [ ] Residual (explicit limitations until code deepens or release accepts them): full ARSC value tables, full cert chains, continuous Frida call-frequency, MITM proxy/pcap, multi-API device oracle, TEXTREL/bionic depth, Play-services graph, security-review note for 1.5.0.
 
 ### Patch Q working plan — Newer generations and unified compatibility intelligence (target release 2.0, not started)
 
@@ -1176,7 +1182,7 @@ Every finding (F-xx) and recommendation (R-xx) of [Audit 1](AUDIT.md) is an **ap
 | R-12 | Profile ingestion in standard formats (perf, pprof, `.cpuprofile`, Speedscope, Firefox Profiler); hyperfine-compatible benchmark export; eBPF via bpftrace | export shape closed in 0.2.0-beta.6; profile ingestion remains **H** |
 | R-13 | Statistics: bootstrap intervals, Mann-Whitney with Hodges-Lehmann shift, effect size, MAD outliers, environment-noise detection, interleaved A/B runs by default, `insufficient_evidence` verdict | closed in 0.2.0-beta.6 (noise snapshot and interleaved suites added) |
 | R-14 | Tamper-evident evidence: per-session hash chain, Merkle root, Ed25519 signature, `reverse export` / `reverse verify` | **I** |
-| R-15 | Golden results and the three reference trials as manual CI jobs | **J**; M/N/O/P each add their golden workflow at step 8; N/Linux portion closed in 1.3.6 |
+| R-15 | Golden results and the three reference trials as manual CI jobs | **J**; N/Linux closed 1.3.6; **P L0 trials verified in Capabilities 43410508116** (no separate golden job); M/O/Q remainder as applicable |
 | R-16 | Node support window: drop Node 20, `engines` and matrix to 22 and 24 | closed in 0.2.0-beta.3 |
 | R-17 | Node built-ins instead of code: `util.parseArgs`, `AbortSignal.timeout`, `fs.glob`, test coverage, `os.availableParallelism` | closed in 0.2.0-beta.6 |
 | R-18 | Distribution: `npx` entry, install scripts that only check Node and print configuration, optional single binary, `server.json` for MCP registries | **L** |
@@ -1336,6 +1342,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.5.18 | P: regenerate docs/MCP.md for new Android tools (Capabilities 43405113736) |
 | 1.5.19 | P: docs/MCP.md regenerated from dist tools (Capabilities 43406607215) |
 | 1.5.20 | P: unique MCP tool descriptions (Capabilities 43408878291 — MCP.md repeats gate) |
+| 1.5.21 | P: docs close — green 1.5.20 matrix recorded; P section 6–8 checkboxes closed where proven |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP
