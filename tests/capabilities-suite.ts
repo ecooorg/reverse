@@ -1900,6 +1900,7 @@ const DOCUMENTED_TOOLS = [
     'plan_android_frida_session',
     'detect_android_profilers',
     'collect_android_file_observations',
+    'collect_android_network_observations',
     'create_change_workspace',
     'apply_change',
     'rollback_change',

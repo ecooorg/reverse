@@ -51,7 +51,6 @@ function buildMinimalAxml(opts: {
     fileHeader.writeUInt32LE(0, 4); // size filled later
     const attrSize = 20;
     const attrCount = opts.attrs.length;
-    const attrStart = 20; // relative to start of start-element chunk content after node?
     // Chunk layout:
     // 0 type u16, 2 headerSize u16, 4 size u32
     // 8 lineNumber u32, 12 comment u32
