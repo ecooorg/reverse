@@ -1,7 +1,7 @@
 /**
- * Legacy Android static analysis (Patch P steps 0–1).
+ * Legacy Android static analysis (Patch P steps 0–3).
  * Authorization-gated Target Profile over APK/AAB/DEX inventory.
- * Reuses ZIP inventory from analysis-android; does not decode AXML or disassemble DEX.
+ * Binary AXML/ARSC/DEX/signature parsers in legacy-android-parsers (no JADX/Apktool).
  */
 import path from 'node:path';
 import { createHash } from 'node:crypto';
@@ -11,62 +11,19 @@ import { analyzeAndroid } from './analysis-android.js';
 import { profileField, type LegacyAuthorization, type TargetProfile } from './legacy-types.js';
 import { assertAuthorizationPresent, requireLegacyGate } from './legacy-gate.js';
 import { diagnoseAndroidFromTables, type AndroidCompatDiagnosis } from './legacy-android-tables.js';
+import {
+    parseAxmlManifest,
+    parseAxmlSdkHints,
+    parseArscSummary,
+    parseDexClasses,
+    detectApkSignatures,
+} from './legacy-android-parsers.js';
+
+export { parseAxmlSdkHints, parseAxmlManifest, parseArscSummary, parseDexClasses, detectApkSignatures } from './legacy-android-parsers.js';
 export type { LegacyAuthorization, TargetProfile } from './legacy-types.js';
+
 const DEX_MAGIC = Buffer.from('dex\n');
-/**
- * Best-effort scan of binary AndroidManifest AXML for minSdk/targetSdk.
- * Looks for UTF-16LE "minSdkVersion" / "targetSdkVersion" attribute names and a
- * nearby typed int (AXML type 0x10) — not a full AXML tree walker.
- */
-export function parseAxmlSdkHints(b: Buffer): {
-    minSdk: number | null;
-    targetSdk: number | null;
-    evidence: string[];
-} {
-    const evidence: string[] = [];
-    let minSdk: number | null = null;
-    let targetSdk: number | null = null;
-    if (b.length < 8)
-        return { minSdk, targetSdk, evidence: ['AXML buffer too short'] };
-    // AXML file magic little-endian 0x00080003
-    const magic = b.readUInt32LE(0);
-    if (magic !== 0x00080003 && magic !== 0x00080001)
-        evidence.push(`AXML magic=0x${magic.toString(16)} (non-standard; still scanning)`);
-    else
-        evidence.push(`AXML magic ok 0x${magic.toString(16)}`);
-    const asUtf16 = (label: string): number | null => {
-        const needle = Buffer.from(label, 'utf16le');
-        const idx = b.indexOf(needle);
-        if (idx < 0)
-            return null;
-        // Search forward up to 64 bytes for type=0x10 (int) value LE
-        const end = Math.min(b.length - 8, idx + 96);
-        for (let i = idx; i < end; i++) {
-            if (b[i] === 0x10 && i + 5 < b.length) {
-                // common pattern: type byte 0x10 then 3 bytes pad then int32 LE
-                const v = b.readInt32LE(i + 4);
-                if (v >= 1 && v <= 36)
-                    return v;
-            }
-            // also try int32 immediately after attribute structure
-            if (i + 4 < b.length) {
-                const v = b.readInt32LE(i);
-                if (v >= 1 && v <= 36 && i > idx + needle.length)
-                    return v;
-            }
-        }
-        return null;
-    };
-    minSdk = asUtf16('minSdkVersion');
-    targetSdk = asUtf16('targetSdkVersion');
-    if (minSdk != null)
-        evidence.push(`minSdkVersion~${minSdk}`);
-    if (targetSdk != null)
-        evidence.push(`targetSdkVersion~${targetSdk}`);
-    if (minSdk == null && targetSdk == null)
-        evidence.push('minSdk/targetSdk not located in bounded scan');
-    return { minSdk, targetSdk, evidence };
-}
+
 export interface LegacyAndroidFinding {
     format: 'APK' | 'AAB' | 'DEX' | 'unknown';
     abis: string[];
@@ -74,12 +31,25 @@ export interface LegacyAndroidFinding {
     nativeLibs: string[];
     hasAndroidManifest: boolean;
     hasResourcesArsc: boolean;
-    /** Best-effort signing scheme labels (v1 JAR META-INF; v2/v3 block not fully parsed). */
+    /** Signing scheme labels: v1-jar, v2, v3, v2-block. */
     signingSchemes: string[];
-    /** Heuristic era / API band from package shape and optional AXML hints. */
+    /** Heuristic era / API band from package shape and AXML SDK fields. */
     apiBand: string | null;
     minSdk: number | null;
     targetSdk: number | null;
+    packageName: string | null;
+    versionCode: number | null;
+    versionName: string | null;
+    permissions: string[];
+    components: {
+        activities: string[];
+        services: string[];
+        receivers: string[];
+        providers: string[];
+    };
+    dexClassCount: number | null;
+    dexClassNamesSample: string[];
+    arscPackageNames: string[];
     runtimeHints: string[];
     obfuscationIndicators: string[];
     structuralDetectors: Array<{
@@ -92,29 +62,37 @@ export interface LegacyAndroidFinding {
     authorization: LegacyAuthorization;
     sha256: string;
 }
+
 function detectDexFile(b: Buffer): boolean {
     return b.length >= 8 && b.subarray(0, 4).equals(DEX_MAGIC);
 }
+
 function apiBandFromShape(args: {
     abis: string[];
     dexCount: number;
     hasMultidex: boolean;
+    minSdk?: number | null;
 }): string | null {
-    if (args.abis.includes('arm64-v8a') || args.abis.includes('x86_64'))
+    if (args.minSdk != null) {
+        if (args.minSdk <= 10) return `API-${args.minSdk}–22 era (minSdk=${args.minSdk})`;
+        if (args.minSdk <= 22) return `API-${args.minSdk}+ legacy band (minSdk=${args.minSdk})`;
+        return `API-${args.minSdk}+ (minSdk=${args.minSdk})`;
+    }
+    if (args.abis.includes('arm64-v8a') || args.abis.includes('x86_64')) {
         return 'API-21+ candidate (64-bit ABI present)';
-    if (args.hasMultidex || args.dexCount > 1)
-        return 'API-14+ multidex-era candidate';
-    if (args.abis.includes('armeabi') && !args.abis.includes('armeabi-v7a'))
+    }
+    if (args.hasMultidex || args.dexCount > 1) return 'API-14+ multidex-era candidate';
+    if (args.abis.includes('armeabi') && !args.abis.includes('armeabi-v7a')) {
         return 'early-API armeabi candidate (pre-v7a emphasis)';
-    if (args.abis.length)
-        return 'API-9–22 candidate (32-bit ABIs only; minSdk not decoded)';
+    }
+    if (args.abis.length) return 'API-9–22 candidate (32-bit ABIs only; minSdk not decoded)';
     return null;
 }
+
 async function readZipEntry(file: string, entryName: string, max = 512 * 1024): Promise<Buffer | null> {
     const buf = await readFile(file);
     for (let offset = 0; offset + 30 < buf.length;) {
-        if (buf.readUInt32LE(offset) !== 0x04034b50)
-            return null;
+        if (buf.readUInt32LE(offset) !== 0x04034b50) return null;
         const method = buf.readUInt16LE(offset + 8);
         const compSize = buf.readUInt32LE(offset + 18);
         const nameLen = buf.readUInt16LE(offset + 26);
@@ -123,8 +101,9 @@ async function readZipEntry(file: string, entryName: string, max = 512 * 1024): 
         const dataStart = offset + 30 + nameLen + extraLen;
         const dataEnd = dataStart + compSize;
         if (name === entryName || name.endsWith('/' + entryName)) {
-            if (method === 0 && dataEnd <= buf.length)
+            if (method === 0 && dataEnd <= buf.length) {
                 return buf.subarray(dataStart, Math.min(dataEnd, dataStart + max));
+            }
             if (method === 8 && dataEnd <= buf.length) {
                 try {
                     const { inflateRawSync } = await import('node:zlib');
@@ -136,15 +115,17 @@ async function readZipEntry(file: string, entryName: string, max = 512 * 1024): 
             }
             return null;
         }
-        if (compSize === 0 && nameLen === 0)
-            return null;
+        if (compSize === 0 && nameLen === 0) return null;
         offset = dataEnd;
     }
     return null;
 }
-export async function analyzeLegacyAndroid(filePath: string, authorization: LegacyAuthorization | null = null, options: {
-    sessionId?: string;
-} = {}): Promise<ReturnType<typeof result<LegacyAndroidFinding>>> {
+
+export async function analyzeLegacyAndroid(
+    filePath: string,
+    authorization: LegacyAuthorization | null = null,
+    options: { sessionId?: string } = {},
+): Promise<ReturnType<typeof result<LegacyAndroidFinding>>> {
     const auth = await requireLegacyGate({
         sessionId: options.sessionId,
         authorization,
@@ -156,7 +137,8 @@ export async function analyzeLegacyAndroid(filePath: string, authorization: Lega
     const head = st.size > 0
         ? await readFile(abs, { encoding: null }).then(b => b.subarray(0, Math.min(b.length, 64)))
         : Buffer.alloc(0);
-    const sha256 = createHash('sha256').update(await readFile(abs)).digest('hex');
+    const wholeFile = await readFile(abs);
+    const sha256 = createHash('sha256').update(wholeFile).digest('hex');
     const structuralDetectors: LegacyAndroidFinding['structuralDetectors'] = [];
     let format: LegacyAndroidFinding['format'] = 'unknown';
     let abis: string[] = [];
@@ -167,6 +149,7 @@ export async function analyzeLegacyAndroid(filePath: string, authorization: Lega
     let signingSchemes: string[] = [];
     let obfuscation: string[] = [];
     const runtimeHints: string[] = [];
+
     if (detectDexFile(head)) {
         format = 'DEX';
         structuralDetectors.push({
@@ -207,37 +190,61 @@ export async function analyzeLegacyAndroid(filePath: string, authorization: Lega
                 ],
                 confidence: 0.9,
             });
-            if (hasManifest)
+            if (hasManifest) {
                 structuralDetectors.push({
                     name: 'android-manifest-present',
-                    evidence: ['AndroidManifest.xml present (AXML not decoded)'],
+                    evidence: ['AndroidManifest.xml present'],
                     confidence: 0.85,
                 });
-            if (hasArsc)
+            }
+            if (hasArsc) {
                 structuralDetectors.push({
                     name: 'resources-arsc',
                     evidence: ['resources.arsc present'],
                     confidence: 0.85,
                 });
-            if ((f as {
-                hasV1Signing?: boolean;
-            }).hasV1Signing)
-                signingSchemes = ['v1-jar'];
+            }
+            if (f.hasV1Signing) signingSchemes = ['v1-jar'];
         }
     }
+
     let minSdk: number | null = null;
     let targetSdk: number | null = null;
+    let packageName: string | null = null;
+    let versionCode: number | null = null;
+    let versionName: string | null = null;
+    let permissions: string[] = [];
+    let components = {
+        activities: [] as string[],
+        services: [] as string[],
+        receivers: [] as string[],
+        providers: [] as string[],
+    };
+    let dexClassCount: number | null = null;
+    let dexClassNamesSample: string[] = [];
+    let arscPackageNames: string[] = [];
+
     if (format === 'APK' || format === 'AAB' || hasManifest) {
         try {
-            const axml = await readZipEntry(abs, 'AndroidManifest.xml');
+            const axml = await readZipEntry(abs, 'AndroidManifest.xml', 1024 * 1024);
             if (axml && axml.length > 0) {
-                const hints = parseAxmlSdkHints(axml);
-                minSdk = hints.minSdk;
-                targetSdk = hints.targetSdk;
+                const manifest = parseAxmlManifest(axml);
+                minSdk = manifest.minSdkVersion;
+                targetSdk = manifest.targetSdkVersion;
+                packageName = manifest.packageName;
+                versionCode = manifest.versionCode;
+                versionName = manifest.versionName;
+                permissions = manifest.permissions;
+                components = {
+                    activities: manifest.activities,
+                    services: manifest.services,
+                    receivers: manifest.receivers,
+                    providers: manifest.providers,
+                };
                 structuralDetectors.push({
-                    name: 'axml-sdk-hints',
-                    evidence: hints.evidence.slice(0, 6),
-                    confidence: minSdk != null || targetSdk != null ? 0.7 : 0.35,
+                    name: 'axml-manifest',
+                    evidence: manifest.evidence.slice(0, 10),
+                    confidence: minSdk != null || packageName != null ? 0.9 : 0.45,
                 });
             }
         }
@@ -245,23 +252,82 @@ export async function analyzeLegacyAndroid(filePath: string, authorization: Lega
             /* ignore */
         }
     }
-    if (minSdk != null)
-        runtimeHints.push(`minSdk~${minSdk}`);
-    if (targetSdk != null)
-        runtimeHints.push(`targetSdk~${targetSdk}`);
+
+    if (hasArsc || format === 'APK' || format === 'AAB') {
+        try {
+            const arsc = await readZipEntry(abs, 'resources.arsc', 2 * 1024 * 1024);
+            if (arsc && arsc.length > 0) {
+                const summary = parseArscSummary(arsc);
+                arscPackageNames = summary.packageNames;
+                structuralDetectors.push({
+                    name: 'resources-arsc-parse',
+                    evidence: summary.evidence.slice(0, 8),
+                    confidence: summary.packageCount != null ? 0.85 : 0.4,
+                });
+            }
+        }
+        catch {
+            /* ignore */
+        }
+    }
+
+    try {
+        let dexBuf: Buffer | null = null;
+        if (format === 'DEX') {
+            dexBuf = wholeFile;
+        }
+        else if (dexFiles.length) {
+            const primary = dexFiles.find(d => /classes\.dex$/i.test(d)) ?? dexFiles[0]!;
+            dexBuf = await readZipEntry(abs, primary, 4 * 1024 * 1024);
+        }
+        if (dexBuf && dexBuf.length > 0) {
+            const listing = parseDexClasses(dexBuf, 300);
+            dexClassCount = listing.classCount;
+            dexClassNamesSample = listing.classNames.slice(0, 40);
+            if (listing.obfuscationIndicators.length) {
+                obfuscation = [...new Set([...obfuscation, ...listing.obfuscationIndicators])];
+            }
+            structuralDetectors.push({
+                name: 'dex-class-listing',
+                evidence: listing.evidence.slice(0, 8),
+                confidence: listing.magicOk ? 0.9 : 0.3,
+            });
+        }
+    }
+    catch {
+        /* ignore */
+    }
+
+    if (format === 'APK' || format === 'AAB') {
+        try {
+            const sig = detectApkSignatures(wholeFile);
+            if (signingSchemes.includes('v1-jar') && !sig.schemes.includes('v1-jar')) {
+                sig.schemes.unshift('v1-jar');
+            }
+            signingSchemes = sig.schemes.length ? sig.schemes : signingSchemes;
+            structuralDetectors.push({
+                name: 'apk-signatures',
+                evidence: sig.evidence.slice(0, 8),
+                confidence: sig.schemes.length ? 0.85 : 0.3,
+            });
+        }
+        catch {
+            /* ignore */
+        }
+    }
+
+    if (minSdk != null) runtimeHints.push(`minSdk=${minSdk}`);
+    if (targetSdk != null) runtimeHints.push(`targetSdk=${targetSdk}`);
+    if (packageName) runtimeHints.push(`package=${packageName}`);
     const hasMultidex = dexFiles.some(d => /classes\d+\.dex$/i.test(d)) || dexFiles.length > 1;
-    if (hasMultidex)
-        runtimeHints.push('multidex');
-    if (dexFiles.length || format === 'DEX')
-        runtimeHints.push('Dalvik/ART bytecode container');
-    if (abis.some(a => a.startsWith('arm')))
-        runtimeHints.push('ARM native');
-    const apiBand = apiBandFromShape({ abis, dexCount: dexFiles.length, hasMultidex });
-    const bitness = abis.some(a => a.includes('64'))
-        ? 64
-        : abis.length
-            ? 32
-            : null;
+    if (hasMultidex) runtimeHints.push('multidex');
+    if (dexFiles.length || format === 'DEX') runtimeHints.push('Dalvik/ART bytecode container');
+    if (abis.some(a => a.startsWith('arm'))) runtimeHints.push('ARM native');
+    if (dexClassCount != null) runtimeHints.push(`dexClasses=${dexClassCount}`);
+
+    const apiBand = apiBandFromShape({ abis, dexCount: dexFiles.length, hasMultidex, minSdk });
+    const bitness = abis.some(a => a.includes('64')) ? 64 : abis.length ? 32 : null;
+
     const targetProfile: TargetProfile = {
         schemaVersion: '1.0',
         osAndEra: profileField({
@@ -269,10 +335,13 @@ export async function analyzeLegacyAndroid(filePath: string, authorization: Lega
             evidence: [
                 format !== 'unknown' ? `format=${format}` : 'format unknown',
                 ...(apiBand ? [apiBand] : []),
+                ...(minSdk != null ? [`minSdk=${minSdk}`] : []),
             ],
-            confidence: format === 'unknown' ? 0.2 : 0.7,
-            complete: false,
-            coverageNotes: ['AXML SDK hints are best-effort; full resource table walk is P later.'],
+            confidence: format === 'unknown' ? 0.2 : minSdk != null ? 0.85 : 0.7,
+            complete: minSdk != null,
+            coverageNotes: [
+                'Binary AXML/ARSC/DEX parsers (P step 3); residual resource configs and full cert chain not expanded.',
+            ],
         }),
         cpu: profileField({
             value: abis[0] ?? (format === 'DEX' ? 'dalvik-bytecode' : 'unknown'),
@@ -295,12 +364,8 @@ export async function analyzeLegacyAndroid(filePath: string, authorization: Lega
                 ...signingSchemes.map(s => `signing:${s}`),
                 ...(obfuscation.length ? ['obfuscation-indicators'] : []),
             ],
-            evidence: [
-                ...runtimeHints,
-                ...signingSchemes,
-                ...obfuscation.slice(0, 4),
-            ],
-            confidence: runtimeHints.length ? 0.65 : 0.3,
+            evidence: [...runtimeHints, ...signingSchemes, ...obfuscation.slice(0, 4)],
+            confidence: runtimeHints.length ? 0.7 : 0.3,
             complete: false,
         }),
         installer: profileField({
@@ -313,21 +378,23 @@ export async function analyzeLegacyAndroid(filePath: string, authorization: Lega
             evidence: nativeLibs.slice(0, 8).map(n => `native ${n}`),
             confidence: nativeLibs.length ? 0.7 : 0.2,
             complete: false,
-            coverageNotes: ['Native .so paths only; Java deps not resolved in P step 1.'],
+            coverageNotes: ['Native .so paths only; Java deps not resolved from DEX constants.'],
         }),
         codeModel: profileField({
             value: format === 'unknown' ? null : format.toLowerCase(),
-            evidence: structuralDetectors.flatMap(d => d.evidence).slice(0, 4),
+            evidence: structuralDetectors.flatMap(d => d.evidence).slice(0, 6),
             confidence: format === 'unknown' ? 0.15 : 0.9,
             complete: format !== 'unknown',
         }),
     };
+
     const compatibilityFindings = diagnoseAndroidFromTables({
         minSdk,
         targetSdk,
         abis,
         hasMultidex,
     });
+
     const finding: LegacyAndroidFinding = {
         format,
         abis,
@@ -339,6 +406,14 @@ export async function analyzeLegacyAndroid(filePath: string, authorization: Lega
         apiBand,
         minSdk,
         targetSdk,
+        packageName,
+        versionCode,
+        versionName,
+        permissions: permissions.slice(0, 200),
+        components,
+        dexClassCount,
+        dexClassNamesSample,
+        arscPackageNames,
         runtimeHints,
         obfuscationIndicators: obfuscation.slice(0, 50),
         structuralDetectors,
@@ -347,12 +422,15 @@ export async function analyzeLegacyAndroid(filePath: string, authorization: Lega
         authorization: auth,
         sha256,
     };
+
     const limitations = [
-        'AXML is scanned for minSdk/targetSdk hints only; not a full manifest decoder.',
-        'No DEX class enumeration or disassembly.',
-        'APK Signature Scheme v2/v3 blocks are not parsed in P step 1.',
+        'Binary AXML decoder covers manifest elements and typed attributes; nested resource refs are not fully resolved.',
+        'ARSC parse is summary-level (packages + string samples); full config/value tables are not expanded.',
+        'DEX class listing is name-only; no method bodies or disassembly.',
+        'APK v2/v3 detection locates the signing block and scheme IDs; certificate chains are not extracted.',
         'Authorization is an operator declaration, not legal verification.',
     ];
+
     return result<LegacyAndroidFinding>(abs, 'legacy_android_analysis', [finding], {
         status: format === 'unknown' ? 'partial' : 'completed',
         limitations,
@@ -360,8 +438,10 @@ export async function analyzeLegacyAndroid(filePath: string, authorization: Lega
             examined: true,
             complete: false,
             notes: [
-                'Patch P steps 0–2: authorization, Target Profile, AXML SDK hints, calibration.',
-                `format=${format}; abis=${abis.join(',') || 'none'}; dex=${dexFiles.length}`,
+                'Patch P step 3: binary AXML, ARSC summary, DEX class listing, signature scheme detection.',
+                `format=${format}; abis=${abis.join(',') || 'none'}; dex=${dexFiles.length}`
+                    + (minSdk != null ? `; minSdk=${minSdk}` : '')
+                    + (dexClassCount != null ? `; classes=${dexClassCount}` : ''),
             ],
         },
     });

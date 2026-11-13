@@ -65,7 +65,7 @@ export { createQemuUserEnvironment, createChrootEnvironment, createOssShimEnviro
 export * from './legacy-linux-reference-trials.js';
 export * from './legacy-linux-behavior.js';
 export { diffDiskImageHashes, runMacWorksFailsMatrix, runMacBehaviorRoundTrip } from './legacy-mac-behavior.js';
-export { analyzeLegacyAndroid, parseAxmlSdkHints } from './legacy-android.js';
+export { analyzeLegacyAndroid, parseAxmlSdkHints, parseAxmlManifest, parseArscSummary, parseDexClasses, detectApkSignatures } from './legacy-android.js';
 export { runAndroidCalibration } from './legacy-android-calibration.js';
 export * from './legacy-android-tables.js';
 export { runAndroidWorksFailsMatrix, planAndroidControlledInstall, runAndroidBehaviorRoundTrip } from './legacy-android-behavior.js';

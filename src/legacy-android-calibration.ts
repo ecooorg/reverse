@@ -87,7 +87,7 @@ export async function runAndroidCalibration(): Promise<AndroidCalibrationReport>
     const cases: AndroidCalibrationReport['cases'] = [];
     const limitations = [
         'Crafted fixtures only (H-06).',
-        'AXML hints are best-effort, not a full manifest parser.',
+        'AXML uses binary ResStringPool walker with utf16 fallback; ARSC/DEX are summary parsers.',
     ];
     try {
         const dexPath = join(dir, 'classes.dex');

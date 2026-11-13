@@ -404,7 +404,7 @@ researchTools.push({
 researchTools.push({
     name: 'analyze_legacy_android',
     description: 'Statically inventory APK/AAB/DEX for legacy Android Target Profile fields (ABI, dex, '
-        + 'signing hints). Needs research-session authorization; does not decode AXML or execute the app.',
+        + 'binary AXML manifest, ARSC summary, DEX classes, signing schemes). Needs research-session authorization; does not execute the app.',
     inputSchema: {
         type: 'object',
         properties: { file: { type: 'string' }, session_id: { type: 'string' } },
