@@ -415,7 +415,7 @@ researchTools.push({
 researchTools.push({
     name: 'collect_android_device_observations',
     description: 'Collect bounded read-only Android logcat and activity diagnostics from an authorized device. '
-        + 'Requires CONTROLLED_EXECUTION, confirm=true, and a declared research-session authorization.',
+        + 'Gate: CONTROLLED_EXECUTION mode, confirm=true, and a declared research-session authorization.',
     inputSchema: {
         type: 'object',
         properties: {
@@ -430,7 +430,7 @@ researchTools.push({
 researchTools.push({
     name: 'collect_android_ui_observations',
     description: 'Capture a bounded Android UI hierarchy (uiautomator dump) and a SHA-256 of a screencap. '
-        + 'Requires CONTROLLED_EXECUTION, confirm=true, and research-session authorization. Raw pixels are not returned.',
+        + 'Gate: controlled mode plus confirm; research-session authorization required. Raw pixels are not returned.',
     inputSchema: {
         type: 'object',
         properties: {
@@ -444,7 +444,7 @@ researchTools.push({
 researchTools.push({
     name: 'replay_android_seeded_input',
     description: 'Replay a deterministic monkey scenario with a fixed seed on an authorized device (1–3 runs, optional pm clear). '
-        + 'Mutating: injects input events. Requires CONTROLLED_EXECUTION, confirm=true, and research-session authorization.',
+        + 'Mutating: injects input events. Needs controlled execution, confirm flag, and research-session auth.',
     inputSchema: {
         type: 'object',
         properties: {
@@ -490,7 +490,7 @@ researchTools.push({
 researchTools.push({
     name: 'detect_android_profilers',
     description: 'Probe an authorized device for simpleperf and Perfetto binaries. '
-        + 'Detect-only; requires CONTROLLED_EXECUTION, confirm=true, and research-session authorization.',
+        + 'Detect-only probe; controlled execution, confirm=true, and research-session auth are mandatory.',
     inputSchema: {
         type: 'object',
         properties: {
@@ -504,7 +504,7 @@ researchTools.push({
 researchTools.push({
     name: 'collect_android_file_observations',
     description: 'List bounded shared_prefs and databases paths for a package via run-as. '
-        + 'Path names only; requires CONTROLLED_EXECUTION, confirm=true, and research-session authorization.',
+        + 'Path names only; run under controlled execution with confirm and research-session authorization.',
     inputSchema: {
         type: 'object',
         properties: {
@@ -519,7 +519,7 @@ researchTools.push({
 researchTools.push({
     name: 'collect_android_network_observations',
     description: 'Collect bounded dumpsys connectivity and wifi diagnostics from an authorized device. '
-        + 'Not a MITM proxy. Requires CONTROLLED_EXECUTION, confirm=true, and research-session authorization.',
+        + 'Not a MITM proxy. Uses controlled execution with confirm and research-session authorization.',
     inputSchema: {
         type: 'object',
         properties: {
