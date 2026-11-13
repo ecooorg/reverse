@@ -23,7 +23,6 @@ export { parseArscSummary } from './legacy-android-parsers.js';
 export { parseDexClasses } from './legacy-android-parsers.js';
 export { detectApkSignatures } from './legacy-android-parsers.js';
 export { extractDerNameHints } from './legacy-android-parsers.js';
-export { detectApkBuildMarkers } from './legacy-android-parsers.js';
 export type { LegacyAuthorization, TargetProfile } from './legacy-types.js';
 const DEX_MAGIC = Buffer.from('dex\n');
 export interface LegacyAndroidFinding {
