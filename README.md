@@ -2,7 +2,7 @@
 
 Reverse is a compact, local-first analysis core for software investigation and optimization experiments. It provides a CLI and a standalone Model Context Protocol (MCP) stdio server. It focuses on deterministic observations, repeatable interleaved benchmarks, behavior checks, and typed, hash-chained research evidence rather than embedding an AI planner or reimplementing specialist reverse-engineering tools.
 
-> **Product status:** releases through **2.0.8** cover foundation A–L and product patches M–P, with **Q partial**. Extension points and signed residuals are listed in [CAPABILITIES.md](docs/CAPABILITIES.md); read it before relying on a result.
+> **Product status:** releases through **2.0.10** cover foundation A–L and product patches M–P, with **Q partial**. Extension points and signed residuals are listed in [CAPABILITIES.md](docs/CAPABILITIES.md); read it before relying on a result.
 
 ## Requirements
 
@@ -101,7 +101,7 @@ The server writes protocol messages to stdout. Do not add logging to stdout; dia
 
 - **Done:** patches **A–L** (1.0 baseline), **M** (Windows, 1.2.x), **N** (old Linux, 1.3.x), **O** (Classic Mac / early macOS, 1.4.0), **P** (legacy Android, 1.5.22).
 - **Partial:** **Patch Q** (2.0.x) — unified compatibility report envelope, in-tree knowledge query, newer-generation static inventory, MCP tools and CLI entrypoints. Full Q checklist (KB contradictions, environment registry, Merkle/Ed25519 export-verify, live-agent harness, single-file binary, full modern-OS oracles) remains explicit residual in CAPABILITIES.md and Audit 36.
-- **Current product version:** **2.0.8** (audit-2.0.5 remediation). Green Capabilities baseline recorded for 2.0.5 as run **43426001819**.
+- **Current product version:** **2.0.10** (audit-2.0.5 remediation). Green Capabilities baseline recorded for 2.0.5 as run **43426001819**.
 - **Not a separate open product patch:** nothing after Q is on the roadmap; further work is maintenance or scoped deepening of Q residuals.
 
 - **Where to start (people and AI assistants):** read [AGENTS.md](AGENTS.md), then the *Status at a glance* section of [docs/ROADMAP.md](docs/ROADMAP.md). See also [docs/CAPABILITIES.md](docs/CAPABILITIES.md), [docs/SECURITY.md](docs/SECURITY.md) and [docs/AUDIT.md](docs/AUDIT.md).
