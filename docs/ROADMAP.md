@@ -18,18 +18,18 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **1.5.11** (Patch P in progress — step 6 UI hierarchy / seeded input / observation comparison; 2026-11-13).
+State as of **1.5.12** (Patch P in progress — step 3 binary AXML / ARSC / DEX / signatures; 2026-11-13).
 
-**Verification.** Product code for 1.5.11 (UI hierarchy via uiautomator, screenshot SHA-256, seeded monkey replay, observation comparison, three MCP tools, honest mutating-tool annotations, CI summary false-positive filter) is in the tree with unit and capability checks. Full `npm ci` / `npm run verify` could not be completed in the assistant environment (registry tar extraction errors). CI run IDs for the prior 1.5.10 baseline on commit 9418a75: Capabilities 43374725628, Structure 43374831738, Supply chain 43374862389, Mutation 43374766507 (score 47.72 %, floor 45 %). Windows Node 22 re-run of the 1.5.10 timeout fix remains pending verification. Binary AXML/ARSC/DEX parsers (step 3) are still heuristic / presence-only.
+**Verification.** Product code for 1.5.12 adds pure-TypeScript binary parsers: AXML ResStringPool + element walker (package, SDK levels, permissions, components), ARSC package summary, DEX class_defs listing, APK Signing Block v2/v3 detection. R-04 property tests cover hostile buffers. Full `npm ci` / `npm run verify` was limited in the assistant environment; run locally after unpack. Prior CI baseline (1.5.10 / 9418a75): Capabilities 43374725628, Structure 43374831738, Supply chain 43374862389, Mutation 43374766507.
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **1.5.11** (Patch P step 6 — UI hierarchy, seeded input replay, observation comparison) |
+| What is the product version? | **1.5.12** (Patch P step 3 — binary AXML, ARSC summary, DEX classes, signature schemes) |
 | What is finished? | The 1.0 foundation (**patches A–L**), **Patch M** (Windows, **1.2.0**), **Patch N** (old Linux, **1.3.5**), and **Patch O** (Classic Mac / early macOS, **1.4.0**). |
-| What is being built? | **Patch P** in progress through **1.5.11**: device-side UI hierarchy + screenshot digest, seeded monkey replay and observation comparison via gated MCP tools. |
+| What is being built? | **Patch P** in progress through **1.5.12**: static inventory no longer depends on JADX/Apktool for manifest SDK fields, DEX class names or signature scheme labels. |
 | What has not started? | **Patch Q** (newer generations and unified compatibility intelligence). Patch P is the next product unit. |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Complete Patch P step 3 (binary AXML / ARSC / DEX / signatures) so inventory no longer depends on JADX/Apktool, then continue remaining step 6 items (Frida session scripts, network/proxy, file/db diffs, simpleperf/Perfetto). |
+| What is the next concrete step? | Continue Patch P step 6 remainders (Frida session scripts, network/proxy capture, file/db diffs, simpleperf/Perfetto) and deepen step 3 (full ARSC config tables, cert chain extraction) as needed for diagnosis quality. |
 | What is open but not blocking? | R-10 residual (`goblin` and later providers), R-11 residual (Mach-O and unified report), F-83 (Linux Node 22 timeout; not reproduced in three consecutive green matrices), F-86 (dev-only moderate advisories), and the low Stryker score on two modules (recorded baseline, floor held). M/N G/H residual scope is itemized below and in `CAPABILITIES.md`. See the [carry-over debt register](#carry-over-debt-register). |
 | What is unverified? | Residual M/N limitations (explicit): no bundled Windows/Linux oracle (preservation stays L0); execution lifecycle lacks snapshot/restore/trace; behavior capture does not cover registry/network/UI/audio/time/randomness or code coverage; no function-level equivalence lab; migration options are limited; similarity BSim is unconfigured; calibration uses small crafted corpora; containers share the host kernel; the verneed summary is a string-residue scan, not a full `SHT_GNU_verneed` walk; `goblin` is not wired; libc/compiler generation heuristics are not calibrated beyond the crafted fixtures. The 1.3.7 manual matrix (Capabilities run 43079862360) stopped at the formatting gate on all six OS/Node cells, before build or capability tests; no cross-platform result is inferred from that run. Capabilities run 43084133732 exposed malformed PowerShell source on Windows (fixed in 1.3.9) and a Windows capability file that finished all 108 checks but did not exit (F-84, fixed in 1.3.10). The full matrix is green on commit `78a47fd` (Capabilities 43172993614, Structure 43173076031, Mutation 43173019792, Golden 43173044415, Supply chain 43173096703). An earlier green matrix on `f85200e` is superseded by this final verification run. The earlier N closure matrix remains recorded for commit `b5ea3fa` (Capabilities 43059743774, Structure 43059819947, Supply chain 43059851184). Windows/macOS hard sandbox isolation remains a recorded limitation from M. |
 
@@ -450,10 +450,10 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 **Detailed checklist.**
 
 *1. Target Profile and static inventory*
-- [ ] Binary AXML decoding (permissions, components, SDK levels, features, intent filters) without external tools.
-- [ ] `resources.arsc` reading (configurations, string and resource tables).
-- [ ] DEX header, class and method listing, multidex, obfuscation indicators.
-- [ ] Signature scheme detection (v1, v2, v3) and certificate metadata.
+- [x] Binary AXML decoding (permissions, components, SDK levels, features) without external tools (1.5.12). Intent-filter detail still shallow.
+- [x] `resources.arsc` summary reading (package count, package names, string samples) in 1.5.12. Full configuration/value tables still open.
+- [x] DEX header and class listing with obfuscation indicators (1.5.12). Method listing not yet expanded.
+- [x] Signature scheme detection v1/v2/v3 (1.5.12). Certificate chain metadata still open.
 - [ ] ABI inventory per native library; TEXTREL, hash style, bionic dependencies.
 - [ ] Build-system and dependency identification (Ant, ADT, Gradle files, bundled libraries, Play-services components).
 - [ ] Android rows in the support matrix and its capability check (G-09).
@@ -545,6 +545,17 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 - [x] CI AI summary no longer treats passing TAP lines / npm script headers that contain the substrings "error" or "drift" as failures.
 - [ ] Full Android capture/replay still open: Frida session scripts and call-frequency profiles, proxy network capture, file/database diffs, `simpleperf` and Perfetto ingestion.
 - [ ] Step 3 static inventory (binary AXML decoder, ARSC, DEX class/method listing, signature schemes) remains open; `parseAxmlSdkHints` is still a bounded heuristic.
+
+### 1.5.12 — Patch P step 3: binary AXML / ARSC / DEX / signatures
+
+- [x] `parseAxmlManifest`: ResStringPool + XML start-element walker for package, version, minSdk/targetSdk, permissions, activities/services/receivers/providers, uses-feature, debuggable.
+- [x] `parseAxmlSdkHints` uses the walker with UTF-16 fallback for partial/crafted buffers.
+- [x] `parseArscSummary`: ResTable header packageCount, package names, string-pool samples.
+- [x] `parseDexClasses`: DEX header, class_defs name listing via type_ids/string_ids, obfuscation indicators.
+- [x] `detectApkSignatures`: v1 META-INF markers; APK Signing Block magic + v2/v3 scheme IDs.
+- [x] Wired into `analyzeLegacyAndroid` structural detectors and Target Profile; no JADX/Apktool dependency for these fields.
+- [x] Hostile-input property tests (R-04) for AXML, ARSC, DEX and signature parsers.
+- [ ] Full ARSC configuration/value tables; certificate chain extraction; DEX method listing.
 
 ### Patch Q working plan — Newer generations and unified compatibility intelligence (target release 2.0, not started)
 
@@ -1267,6 +1278,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 1.5.9 | P step 6: Nightly Full Verification repair — default bash shell for Windows runners, Markdown mutation summary, workflow capability check (F-92, F-93) |
 | 1.5.10 | P step 6: capability suite timeout for Windows runners — whole-file limit 240 s, per-check limit 90 s, guard check (F-94) |
 | 1.5.11 | P step 6: UI hierarchy (uiautomator), screenshot SHA-256, seeded monkey replay, observation comparison; three MCP tools; MUTATING_TOOLS annotations; CI summary false-positive filter |
+| 1.5.12 | P step 3: binary AXML walker, ARSC summary, DEX class listing, APK Sig Block v2/v3; R-04 property tests |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP
