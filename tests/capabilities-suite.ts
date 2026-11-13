@@ -62,7 +62,8 @@ const WORK = await mkdtemp(path.join(os.tmpdir(), 'reverse-verify-'));
 const HOME = path.join(WORK, 'reverse-home');
 process.env.REVERSE_HOME = HOME; // keep evidence/benchmark artifacts out of the real home directory
 function check(area: string, name: string, fn: (c: Ctx) => Promise<void> | void) {
-    test(`${area} — ${name}`, async () => {
+    // The whole file has its own limit (--test-timeout); each check keeps this one so a hung check is named.
+    test(`${area} — ${name}`, { timeout: 90000 }, async () => {
         let status: Status = 'verified';
         const details: string[] = [];
         const c: Ctx = {
@@ -1598,6 +1599,12 @@ check('Workflows', 'Windows-capable workflows default to bash and never append r
             problems.push(`${name}: raw JSON appended to the step summary (1 MiB limit)`);
     }
     assert.deepEqual(problems, []);
+});
+check('Workflows', 'npm run verify allows the whole capability file at least 240 s (Windows runners need about 92 s)', () => {
+    const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+    const m = /--test-timeout=(\d+)/.exec(pkg.scripts.verify);
+    assert.ok(m, 'npm run verify sets --test-timeout');
+    assert.ok(Number(m[1]) >= 240000, `--test-timeout=${m[1]} is below 240000; the whole file counts, not each check`);
 });
 check('Source', 'no source or test line exceeds 140 characters, and the gate can fail', async () => {
     const gate = path.join(ROOT, 'tests', 'size-gate.mjs');
