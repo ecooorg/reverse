@@ -60,3 +60,7 @@ Report vulnerabilities privately to the repository maintainer. Do not publish ex
 
 Unified and newer-generation APIs inherit the same authorization gate and untrusted-input rules as M–P. Inventory helpers do not execute targets. Knowledge-base facts are non-normative summaries with source labels. Optional external providers remain operator-supplied.
 
+## Command-gated MCP tools (2.0.6)
+
+`EXEC_TOOLS` includes measurement and trial runners that may invoke operator commands or providers: `capture_baseline`, `run_benchmark`, `validate_changes`, `run_benchmark_suite`, `run_validation_fixtures`, `run_optimization_trial`, `run_all_reference_trials`, `run_apk_pipeline`, `run_provider`, `trace_execution`. These require the controlled-execution command gate (`checkCommandGate`), not only a UI `confirm` flag.
+

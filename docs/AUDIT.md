@@ -1,3 +1,24 @@
+## Audit 36 — 2026-11-13 — audit-2.0.5 remediation (2.0.6)
+
+**Scope.** Address maintainer audit-2.0.5 against green 2.0.5 (Capabilities **43426001819**).
+
+**P0 documentation.**
+- Q status corrected from blanket "done" to **partial** with residual checklist explicit.
+- Status at a glance / verification updated to run **43426001819**.
+- README project status aligned; package description clarified.
+- This entry is the maintainer-facing sign-off that Q residual items are limitations, not silent opens (Q-02).
+
+**Code.**
+- D-01: expanded `EXEC_TOOLS` so validation/trial/provider/trace paths use `checkCommandGate`.
+- D-03: sandbox seed paths validated with `path.relative`; nested seeds get `mkdir`.
+- D-05: CLI `parseArgs` declares `confirm`, `verdict`, `validation`, `bin`.
+- D-06: CI AI summary ignores additional TAP-success patterns.
+- N-01: CLI commands `analyze-legacy-android`, `inventory-newer`, `unified-report`.
+
+**Not in this change (still residual / N-series):** R-14 Merkle/Ed25519 export-verify; full harness/single-binary; complete M–O MCP parity with Android; HTTP MCP tool subset documentation depth; full Q detailed checklist implementation.
+
+**Status:** remediation shipped as **2.0.6**. Re-run Capabilities after unpack.
+
 ## Audit 35 — 2026-11-13 — 2.0.1 repair of red 2.0.0 (compile + format)
 
 **Scope.** Fix TypeScript and format gates that failed on 2.0.0 (`8d4d9a7`).

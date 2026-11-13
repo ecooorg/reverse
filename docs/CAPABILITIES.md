@@ -1,5 +1,9 @@
 # Capabilities
 
+## Product status 2.0.6
+
+**Q is partial (Audit 36 / audit-2.0.5).** Delivered: unified report envelope, knowledge query, newer-gen inventory, MCP+CLI entrypoints. Not delivered: full multi-family KB contradiction checker, full environment registry, Merkle/Ed25519 export-verify, full live-agent harness, single-file binary, full modern-OS oracles. Green matrix: Capabilities **43426001819**.
+
 ## Product status 2.0.0
 
 Patches **A–Q** are closed. Reverse covers legacy Windows/Linux/Mac/Android analysis plus a **unified compatibility report envelope** and **bounded newer-generation inventory** (PE mitigations, ELF/Mach-O markers, AAB/MSIX paths).

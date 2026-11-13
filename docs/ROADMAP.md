@@ -18,18 +18,18 @@ This file is the single source of truth for **what is done, what is not done and
 
 ## Status at a glance
 
-State as of **2.0.5** (capability version gate aligned to 2.0.x; 2026-11-13).
+State as of **2.0.6** (audit-2.0.5 remediation: Q recorded as **partial**; gates/docs/CLI/sandbox; green Capabilities **43426001819**).
 
-**Verification.** Product close **2.0.5** builds on green P baseline Capabilities **43410508116** (1.5.20 / `0235676`). Q adds unified/newer-gen modules and docs; confirm with a fresh Capabilities run after unpack.
+**Verification.** Green Capabilities **43426001819** on 2.0.5 (`de2984c`): 6 environments, 0 failed. Structure/Supply/Mutation companions from the same green archive. Prior P baseline 43410508116 remains historical.
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **2.0.5** (**Patch Q closed** — unified compatibility) |
-| What is finished? | The 1.0 foundation (**patches A–L**), **Patch M** (Windows, **1.2.0**), **Patch N** (old Linux, **1.3.5**), and **Patch O** (Classic Mac / early macOS, **1.4.0**). |
+| What is the product version? | **2.0.6** (**Patch Q closed** — unified compatibility) |
+| What is finished? | Foundation A–L; product **M** (Windows), **N** (Linux), **O** (Mac), **P** (Android). **Q partial**: unified report envelope + newer-gen inventory + MCP/CLI surface; residual Q checklist is signed-off limitation until deepened. |
 | What is being built? | Product patches **A–Q complete**. Post-2.0 work is maintenance only. |
 | What has not started? | None of the roadmap product patches A–Q remain open. Residual items are explicit CAPABILITIES limitations. |
 | When must the accumulated debts be closed? | Each debt is a checkbox inside the plan of its patch (section 8 *Debts due in this patch* of M, N, O, P, Q); the [debt closure schedule](#debt-closure-schedule) is only an index. Step 0 of M closes F-75; nothing may stay open past the exit of Q (release 2.0.0). |
-| What is the next concrete step? | Maintenance: keep capability matrix green; deepen individual limitations only by new maintainer-approved work. |
+| What is the next concrete step? | Maintenance and audit remediation: keep matrix green; deepen Q residual only under explicit maintainer scope. |
 | What is open but not blocking? | R-10 residual (`goblin` and later providers), R-11 residual (Mach-O and unified report), F-83 (Linux Node 22 timeout; not reproduced in three consecutive green matrices), F-86 (dev-only moderate advisories), and the low Stryker score on two modules (recorded baseline, floor held). M/N G/H residual scope is itemized below and in `CAPABILITIES.md`. See the [carry-over debt register](#carry-over-debt-register). |
 | What is unverified? | Residual M/N limitations (explicit): no bundled Windows/Linux oracle (preservation stays L0); execution lifecycle lacks snapshot/restore/trace; behavior capture does not cover registry/network/UI/audio/time/randomness or code coverage; no function-level equivalence lab; migration options are limited; similarity BSim is unconfigured; calibration uses small crafted corpora; containers share the host kernel; the verneed summary is a string-residue scan, not a full `SHT_GNU_verneed` walk; `goblin` is not wired; libc/compiler generation heuristics are not calibrated beyond the crafted fixtures. The 1.3.7 manual matrix (Capabilities run 43079862360) stopped at the formatting gate on all six OS/Node cells, before build or capability tests; no cross-platform result is inferred from that run. Capabilities run 43084133732 exposed malformed PowerShell source on Windows (fixed in 1.3.9) and a Windows capability file that finished all 108 checks but did not exit (F-84, fixed in 1.3.10). The full matrix is green on commit `78a47fd` (Capabilities 43172993614, Structure 43173076031, Mutation 43173019792, Golden 43173044415, Supply chain 43173096703). An earlier green matrix on `f85200e` is superseded by this final verification run. The earlier N closure matrix remains recorded for commit `b5ea3fa` (Capabilities 43059743774, Structure 43059819947, Supply chain 43059851184). Windows/macOS hard sandbox isolation remains a recorded limitation from M. |
 
@@ -699,6 +699,16 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 **Out of scope and known limits.** Reverse remains an observational and analysis tool for open-source software or software with full rights-holder consent; it does not bundle operating systems, ROMs, images or proprietary tools, and it does not defeat protection or licensing. Platforms that cannot be run lawfully or at all in the operator's environment are reported as `unsupported`, never simulated.
 
 **Q is done when** section 8 (the debts) and the definition of done for N, O, P and Q holds for every supported family, the debt register is empty or every remaining row is an explicit, signed-off limitation, and the release is **2.0.5** with its release record. **Recorded:** closed at **2.0.5** with unified report + newer-gen inventory delivered; residual depth signed off as CAPABILITIES limitations (Audit 32).
+
+### 2.0.6 — audit-2.0.5 remediation
+
+- [x] Q-01/Q-05: Q status **partial**; status-at-a-glance + verification run **43426001819**.
+- [x] D-01: `run_validation_fixtures` and related tools in `EXEC_TOOLS` + command gate.
+- [x] D-03: sandbox seed path uses `path.relative` + `mkdir` for nested seeds.
+- [x] D-05: CLI declares `confirm`, `verdict`, `validation`, `bin`.
+- [x] D-06: CI summary skips more TAP-success noise.
+- [x] N-01: CLI `analyze-legacy-android`, `inventory-newer`, `unified-report`.
+- [x] Audit 36 records maintainer-facing sign-off of Q residual as limitations.
 
 ### 2.0.5 — Roadmap version gate for post-Q 2.0.x
 
@@ -1388,6 +1398,7 @@ One line per release, oldest first. Details are in the patch records above and t
 | 2.0.3 | Size gate: split long export in src/index.ts (Capabilities 43421472912) |
 | 2.0.4 | knip: drop unused re-export detectApkBuildMarkers from legacy-android (Capabilities 43422592035) |
 | 2.0.5 | Capability: Patch O check accepts 2.0.x after Q close (43424345452) |
+| 2.0.6 | audit-2.0.5 remediation: Q→partial, EXEC_TOOLS gate, sandbox path, CLI options/commands, CI summary, docs |
 | 1.4 / 1.5 / 2.0 | Patches O / P / Q (planned) | — |
 
 ### 0.1.0 — compact MVP
@@ -1605,7 +1616,7 @@ The core is considered ready for first production use when it:
 Trials cover at least two scenarios: detecting a real performance problem, and verifying an optimization with a measurable result. Three things are never traded for size: Evidence (otherwise the agent decides on unreliable assumptions), Profiler plus Benchmark (otherwise optimization effectiveness cannot be established objectively), and Validation (otherwise a faster but broken program can result).
 
 
-## Debt register (1.4.2 / Audit 27)
+## Debt register (updated 2.0.6 / Audit 36; historical 1.4.2 / Audit 27 text retained below where still accurate)
 
 Authoritative narrative: **Audit 27**. Summary:
 
