@@ -64,3 +64,7 @@ Unified and newer-generation APIs inherit the same authorization gate and untrus
 
 `EXEC_TOOLS` includes measurement and trial runners that may invoke operator commands or providers: `capture_baseline`, `run_benchmark`, `validate_changes`, `run_benchmark_suite`, `run_validation_fixtures`, `run_optimization_trial`, `run_all_reference_trials`, `run_apk_pipeline`, `run_provider`, `trace_execution`. These require the controlled-execution command gate (`checkCommandGate`), not only a UI `confirm` flag.
 
+## Security review note (Audit 37 / 2.0.7)
+
+Full Q step-10 narrative security review is not a separate long-form paper in-tree. Controls in force: authorization gates on legacy tools, EXEC_TOOLS + command allowlist for runners, untrusted wrapping of device text, sandbox isolation best-effort on Linux, no bundled OS images, no protection-bypass features. Residual risks (operator Frida/proxy, host kernel shared with containers, incomplete tree-kill on some hosts) stay in CAPABILITIES.
+

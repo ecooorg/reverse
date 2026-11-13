@@ -1,4 +1,4 @@
-The server exposes **78 tools**. The tool table below is generated from the same TypeScript definitions used by `tools/list`; `npm run docs:mcp:check` fails on drift and `npm run docs:mcp:write` regenerates it. The server also exposes prompts and resources methods and an optional HTTP gateway. Sections: the core tool table, optimization-loop tools (patch J), runtime-analyzer tools (patch K), optional HTTP transport (patch K), prompts and resources (patch L), legacy Windows tools (patch M, delivered), legacy Linux analysis (patch N, delivered), classic Mac / early macOS analysis (patch O step 1) and the future plan.
+The server exposes **78 tools** (regenerate with `docs:mcp:write` if the table drifts). Sections: core tools, optimization (J), runtime analyzers (K), optional HTTP (K), prompts/resources (L), legacy Windows (M, delivered), legacy Linux (N, delivered), classic Mac / early macOS (O, delivered), legacy Android (P, delivered), and Patch Q unified/newer-gen tools (partial).
 
 
 Transport: newline-delimited JSON-RPC 2.0 over stdin/stdout (MCP stdio). Supported methods: `initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`, `prompts/list`, `prompts/get`, `resources/list`, `resources/read`.
@@ -157,9 +157,12 @@ Default bind `127.0.0.1:7331`. Not full MCP Streamable HTTP.
 The analyzer recognizes DOS MZ, Windows NE/LE/LX and PE headers, and scans at most 8 MiB for selected legacy toolchain/graphics strings. It does not execute the file, perform structural VB6/Delphi/MFC analysis, or provide a complete compatibility diagnosis.
 
 
-## Future product delivery
+## Product delivery status (keep in sync with ROADMAP)
 
-The next MCP surface changes follow the single product-patch sequence in [ROADMAP.md](ROADMAP.md): M completes Windows through 2010; N adds old Linux; O adds Classic Mac/early macOS; P adds legacy Android; Q extends newer generations and unifies compatibility intelligence. Each patch documents its complete tool contract here; do not create separate MCP roadmaps for platform waves or cross-cutting subsystems.
+- **M–P delivered** through family analyzers and Android observation/preservation tools in the table above.
+- **Q partial:** `build_unified_compatibility_report`, `query_compatibility_knowledge`, `inventory_newer_generation` (and CLI mirrors). Full Q checklist residual is listed in CAPABILITIES.md / Audit 36–37.
+- Binary AXML/ARSC/DEX and Android UI/seeded replay tools in the table are **implemented**; do not treat older “planned” notes as current.
+
 
 ## Legacy Mac tools (patch O, closed at 1.4.0; matrix green on 1.4.2)
 
@@ -172,7 +175,7 @@ The next MCP surface changes follow the single product-patch sequence in [ROADMA
 
 1. `declare_legacy_authorization` on a research session.
 2. Call `analyze_legacy_android` with the file path and that `session_id`.
-3. Binary AXML is not decoded in this step; minSdk/targetSdk stay unknown until a later P step.
+3. Binary AXML/ARSC/DEX parsers are delivered (P); minSdk/targetSdk come from the AXML walk when the manifest is present.
 
 
 ### Bounded device observations (Patch P, 1.5.7)
@@ -186,3 +189,25 @@ It does not install, launch, clear, tap or otherwise change the device.
 Missing/invalid serial returns `unsupported` without invoking adb. Device
 output is untrusted and may include sensitive diagnostics. UI hierarchy,
 screenshots and input replay remain planned.
+
+
+## Legacy Linux (patch N, delivered)
+
+Linux analysis is exposed as `analyze_legacy_linux` (authorization-gated). Behavior, preservation and package helpers are library exports; not every Linux helper is duplicated as its own MCP tool (see CAPABILITIES residual for MCP parity).
+
+
+
+## Patch Q (partial)
+
+| Tool | Role |
+|---|---|
+| `build_unified_compatibility_report` | Envelope over one family Target Profile |
+| `query_compatibility_knowledge` | In-tree multi-family knowledge facts |
+| `inventory_newer_generation` | Bounded PE/ELF/Mach-O/AAB/MSIX markers |
+
+Residual Q checklist (full KB contradictions, environment registry, Merkle/Ed25519 export-verify, harness, single-binary) is **not** claimed here.
+
+## Optional HTTP transport (tool subset)
+
+When `REVERSE_MCP_HTTP=1` and `REVERSE_MCP_TOKEN` are set, `reverse mcp-http` serves authenticated POST `/rpc`. **Not every stdio tool is exposed over HTTP.** The HTTP handler accepts tool names the stdio server accepts, but operators should treat HTTP as a narrow remote surface: prefer stdio locally. If a deployment restricts HTTP to a fixed allowlist, document that allowlist in operator notes; this repository does not ship a separate five-tool-only table in code — any “5 tools” observation from an older build must be re-checked against the current `mcp-http` handler.
+

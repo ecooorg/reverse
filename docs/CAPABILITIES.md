@@ -1,3 +1,20 @@
+
+## Signed residual register (Audit 37 / audit-2.0.5) — why not now
+
+These items are **explicit non-claims**. Green Capabilities **43426001819** does not prove them.
+
+| ID | Item | Why it cannot move now without new scope |
+|---|---|---|
+| N-03 / R-14 | Merkle root, Ed25519, `reverse export` / `verify` | Needs new crypto design, key UX, and capability tests; HMAC chain exists but is not public-key export. |
+| N-04 / R-08,R-18,H-09 | Full live-agent harness + single-file binary | Large packaging and eval-corpus work; lite `evaluateAgentPrompts` only. |
+| N-02 | Full MCP parity (Windows/Linux/Mac preservation/capture tools) | Library exports exist for many helpers; duplicating every Android-style MCP tool is product scope, not a bugfix. |
+| Q full checklist | KB contradiction engine, env registry, unified L0–L3 report, stability policy | Only envelope + inventory + knowledge facts shipped; claiming "Q done" was incorrect (corrected to **partial**). |
+| Matrix limitations | No disassembler, no CVE DB, Windows CPU%, Validation limits, Merkle/signatures, macOS hard limits, optional providers | OS/API or missing corpus; documented as 🚧 in the matrix, not ❌. |
+| D-04 residual | bwrap runtime effectiveness | Binary presence is detected; full user-namespace self-test for bwrap is best-effort and host-dependent. |
+
+**Maintainer sign-off:** residual rows above are accepted for 2.0.7 so documentation matches code (audit-2.0.5). Deepening requires an explicit new task, not silent checkbox ticks.
+
+
 # Capabilities
 
 ## Product status 2.0.6

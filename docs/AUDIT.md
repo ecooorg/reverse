@@ -1,3 +1,13 @@
+## Audit 37 — 2026-11-13 — Full audit-2.0.5 cleanup (2.0.7)
+
+**Scope.** Second-pass remediation of maintainer audit-2.0.5: every actionable defect that can be fixed in-tree without multi-month features; every non-actionable item recorded as signed residual with rationale.
+
+**Fixed in code:** D-01 EXEC_TOOLS expansion; D-02 detached process-group kill; D-03 path.relative + mkdir (prior); D-04 unshare runtime probe; sandbox truncation flags; D-05 CLI options + family commands; D-06 summary filters (prior + tests); N-01 CLI for Windows/Linux/Mac/Android/unified/knowledge; docs MCP/SECURITY/README/ROADMAP consistency; Q→partial; capability checks for README/ROADMAP status.
+
+**Signed residual (cannot honestly claim done now):** N-03 R-14 crypto export; N-04 harness/single-binary; N-02 full MCP parity; full Q checklist; matrix 🚧 limitations. See CAPABILITIES signed residual register.
+
+**Verification target:** Capabilities after unpack of 2.0.7; baseline green run remains **43426001819** (2.0.5).
+
 ## Audit 36 — 2026-11-13 — audit-2.0.5 remediation (2.0.6)
 
 **Scope.** Address maintainer audit-2.0.5 against green 2.0.5 (Capabilities **43426001819**).
