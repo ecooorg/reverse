@@ -19,11 +19,12 @@ import { analyzeLegacyLinux } from './legacy-linux.js';
 import { analyzeLegacyAndroid } from './legacy-android.js';
 import { analyzeLegacyMac } from './legacy-mac.js';
 import { collectAndroidDeviceObservations } from './legacy-android-behavior.js';
-import {
-    collectAndroidUiObservations,
-    replayAndroidSeededInput,
-    compareAndroidObservations,
-} from './legacy-android-capture.js';
+import { collectAndroidUiObservations } from './legacy-android-capture.js';
+import { replayAndroidSeededInput } from './legacy-android-capture.js';
+import { compareAndroidObservations } from './legacy-android-capture.js';
+import { planAndroidFridaSession } from './legacy-android-capture.js';
+import { detectAndroidProfilers } from './legacy-android-capture.js';
+import { collectAndroidFileObservations } from './legacy-android-capture.js';
 import { listProcesses, inspectProcess, getProcessMetrics, getProcessTree } from './process-inspector.js';
 import { analyzeMemory, analyzeCpu, analyzeIo } from './process-inspector.js';
 import { profileProcess, monitorProcess, detectResourceAnomalies } from './profiling-profiler.js';
@@ -216,6 +217,27 @@ async function call(name: string, a: any, signal?: AbortSignal) {
         }
         case 'compare_android_observations': {
             return compareAndroidObservations({ left: a.left ?? {}, right: a.right ?? {} });
+        }
+        case 'plan_android_frida_session': {
+            return planAndroidFridaSession({
+                packageName: a.package_name,
+                hooks: a.hooks,
+            });
+        }
+        case 'detect_android_profilers': {
+            return detectAndroidProfilers({
+                sessionId: a.session_id,
+                confirm: a.confirm === true,
+                serial: a.serial,
+            });
+        }
+        case 'collect_android_file_observations': {
+            return collectAndroidFileObservations({
+                sessionId: a.session_id,
+                confirm: a.confirm === true,
+                serial: a.serial,
+                packageName: a.package_name,
+            });
         }
         case 'analyze_legacy_mac': {
             return analyzeLegacyMac(a.file, null, { sessionId: a.session_id });

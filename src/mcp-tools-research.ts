@@ -404,7 +404,8 @@ researchTools.push({
 researchTools.push({
     name: 'analyze_legacy_android',
     description: 'Statically inventory APK/AAB/DEX for legacy Android Target Profile fields (ABI, dex, '
-        + 'binary AXML manifest, ARSC summary, DEX classes, signing schemes). Needs research-session authorization; does not execute the app.',
+        + 'binary AXML manifest, ARSC summary, DEX classes, signing schemes). '
+        + 'Needs research-session authorization; does not execute the app.',
     inputSchema: {
         type: 'object',
         properties: { file: { type: 'string' }, session_id: { type: 'string' } },
@@ -471,5 +472,47 @@ researchTools.push({
             right: { type: 'object' }
         },
         required: ['left', 'right']
+    }
+});
+researchTools.push({
+    name: 'plan_android_frida_session',
+    description: 'Generate a Frida Java.perform session script skeleton for a package. '
+        + 'Does not attach or execute; operator runs Frida under CONTROLLED_EXECUTION.',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            package_name: { type: 'string' },
+            hooks: { type: 'array', items: { type: 'string' } }
+        },
+        required: ['package_name']
+    }
+});
+researchTools.push({
+    name: 'detect_android_profilers',
+    description: 'Probe an authorized device for simpleperf and Perfetto binaries. '
+        + 'Detect-only; requires CONTROLLED_EXECUTION, confirm=true, and research-session authorization.',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            session_id: { type: 'string' },
+            confirm: { type: 'boolean' },
+            serial: { type: 'string' }
+        },
+        required: ['session_id', 'confirm']
+    }
+});
+researchTools.push({
+    name: 'collect_android_file_observations',
+    description: 'List bounded shared_prefs and databases paths for a package via run-as. '
+        + 'Path names only; requires CONTROLLED_EXECUTION, confirm=true, and research-session authorization.',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            session_id: { type: 'string' },
+            confirm: { type: 'boolean' },
+            serial: { type: 'string' },
+            package_name: { type: 'string' }
+        },
+        required: ['session_id', 'confirm', 'package_name']
     }
 });

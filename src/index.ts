@@ -65,15 +65,13 @@ export { createQemuUserEnvironment, createChrootEnvironment, createOssShimEnviro
 export * from './legacy-linux-reference-trials.js';
 export * from './legacy-linux-behavior.js';
 export { diffDiskImageHashes, runMacWorksFailsMatrix, runMacBehaviorRoundTrip } from './legacy-mac-behavior.js';
-export { analyzeLegacyAndroid, parseAxmlSdkHints, parseAxmlManifest, parseArscSummary, parseDexClasses, detectApkSignatures } from './legacy-android.js';
+export { analyzeLegacyAndroid, parseAxmlSdkHints, parseAxmlManifest } from './legacy-android.js';
+export { parseArscSummary, parseDexClasses, detectApkSignatures } from './legacy-android.js';
 export { runAndroidCalibration } from './legacy-android-calibration.js';
 export * from './legacy-android-tables.js';
 export { runAndroidWorksFailsMatrix, planAndroidControlledInstall, runAndroidBehaviorRoundTrip } from './legacy-android-behavior.js';
 export { collectAndroidDeviceObservations, wrapAndroidDeviceText } from './legacy-android-behavior.js';
 export { runAndroidReferenceTrials } from './legacy-android-reference-trials.js';
-export {
-    collectAndroidUiObservations,
-    replayAndroidSeededInput,
-    compareAndroidObservations,
-} from './legacy-android-capture.js';
+export { collectAndroidUiObservations, replayAndroidSeededInput, compareAndroidObservations, } from './legacy-android-capture.js';
 export type { AdbRunner, SeededMonkeyRun, AndroidObservationSnapshot } from './legacy-android-capture.js';
+export { planAndroidFridaSession, detectAndroidProfilers, collectAndroidFileObservations, } from './legacy-android-capture.js';

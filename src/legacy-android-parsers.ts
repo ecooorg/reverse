@@ -16,12 +16,10 @@ export const RES_TABLE_PACKAGE_TYPE = 0x0200;
 export const DEX_MAGIC = Buffer.from('dex\n');
 /** APK Signing Block magic (16 bytes, little-endian ASCII). */
 export const APK_SIG_BLOCK_MAGIC = Buffer.from('APK Sig Block 42');
-
 const TYPE_INT_DEC = 0x10;
 const TYPE_STRING = 0x03;
 const TYPE_REFERENCE = 0x01;
 const TYPE_INT_BOOLEAN = 0x12;
-
 export interface AxmlManifest {
     packageName: string | null;
     versionCode: number | null;
@@ -40,7 +38,6 @@ export interface AxmlManifest {
     evidence: string[];
     limitations: string[];
 }
-
 export interface ArscSummary {
     packageCount: number | null;
     typeStringsSample: string[];
@@ -49,7 +46,6 @@ export interface ArscSummary {
     evidence: string[];
     limitations: string[];
 }
-
 export interface DexClassListing {
     magicOk: boolean;
     version: string | null;
@@ -57,11 +53,13 @@ export interface DexClassListing {
     fileSize: number | null;
     classCount: number;
     classNames: string[];
+    /** Sample of method names (class->name) from method_ids, bounded. */
+    methodNamesSample: string[];
+    methodCount: number | null;
     obfuscationIndicators: string[];
     evidence: string[];
     limitations: string[];
 }
-
 export interface ApkSignatureInfo {
     schemes: string[];
     v1Entries: string[];
@@ -70,7 +68,6 @@ export interface ApkSignatureInfo {
     evidence: string[];
     limitations: string[];
 }
-
 function u16(b: Buffer, o: number): number {
     return o + 2 <= b.length ? b.readUInt16LE(o) : 0;
 }
@@ -80,27 +77,31 @@ function u32(b: Buffer, o: number): number {
 function i32(b: Buffer, o: number): number {
     return o + 4 <= b.length ? b.readInt32LE(o) : 0;
 }
-
 /** Decode ResStringPool (type 0x0001). Returns UTF-8/UTF-16 strings; empty on hostile input. */
 export function parseStringPool(b: Buffer, poolOffset: number): string[] {
     const out: string[] = [];
-    if (poolOffset < 0 || poolOffset + 28 > b.length) return out;
+    if (poolOffset < 0 || poolOffset + 28 > b.length)
+        return out;
     const type = u16(b, poolOffset);
-    if (type !== RES_STRING_POOL_TYPE) return out;
+    if (type !== RES_STRING_POOL_TYPE)
+        return out;
     const headerSize = u16(b, poolOffset + 2);
     const chunkSize = u32(b, poolOffset + 4);
-    if (headerSize < 28 || chunkSize < headerSize || poolOffset + chunkSize > b.length) return out;
+    if (headerSize < 28 || chunkSize < headerSize || poolOffset + chunkSize > b.length)
+        return out;
     const stringCount = u32(b, poolOffset + 8);
     const flags = u32(b, poolOffset + 16);
     const stringsStart = u32(b, poolOffset + 20);
-    if (stringCount > 100_000) return out; // hostile cap
+    if (stringCount > 100000)
+        return out; // hostile cap
     const utf8 = (flags & (1 << 8)) !== 0;
     const offsetsBase = poolOffset + headerSize;
     const stringsBase = poolOffset + stringsStart;
-    const max = Math.min(stringCount, 50_000);
+    const max = Math.min(stringCount, 50000);
     for (let i = 0; i < max; i++) {
         const offPos = offsetsBase + i * 4;
-        if (offPos + 4 > b.length) break;
+        if (offPos + 4 > b.length)
+            break;
         const rel = u32(b, offPos);
         const abs = stringsBase + rel;
         if (abs < 0 || abs >= b.length) {
@@ -117,7 +118,8 @@ export function parseStringPool(b: Buffer, poolOffset: number): string[] {
                     out.push('');
                     continue;
                 }
-                if ((c0 & 0x80) !== 0) p++; // high bit → 2-byte length
+                if ((c0 & 0x80) !== 0)
+                    p++; // high bit → 2-byte length
                 if (p >= b.length) {
                     out.push('');
                     continue;
@@ -168,14 +170,10 @@ export function parseStringPool(b: Buffer, poolOffset: number): string[] {
     }
     return out;
 }
-
-function attrValue(
-    b: Buffer,
-    attrOff: number,
-    strings: string[],
-): string | number | boolean | null {
+function attrValue(b: Buffer, attrOff: number, strings: string[]): string | number | boolean | null {
     // Res_value at attrOff+12: size(u16), res0(u8), dataType(u8), data(u32)
-    if (attrOff + 20 > b.length) return null;
+    if (attrOff + 20 > b.length)
+        return null;
     const dataType = b[attrOff + 15] ?? 0;
     const data = u32(b, attrOff + 16);
     if (dataType === TYPE_STRING) {
@@ -192,7 +190,6 @@ function attrValue(
     }
     return null;
 }
-
 /**
  * Walk binary AndroidManifest AXML and extract structured manifest fields.
  * Never throws; returns limitations on malformed input.
@@ -230,7 +227,8 @@ export function parseAxmlManifest(b: Buffer): AxmlManifest {
     // First chunk after file header is usually the string pool
     let poolOff = 8;
     // Some files put XML resource type at 0; string pool follows file header
-    if (u16(b, 0) === RES_XML_TYPE) poolOff = u16(b, 2) >= 8 ? 8 : 0;
+    if (u16(b, 0) === RES_XML_TYPE)
+        poolOff = u16(b, 2) >= 8 ? 8 : 0;
     const strings = parseStringPool(b, poolOff);
     if (strings.length === 0) {
         // try scan for string pool magic
@@ -256,7 +254,7 @@ export function parseAxmlManifest(b: Buffer): AxmlManifest {
     let off = 8;
     const limit = Math.min(b.length, 2 * 1024 * 1024);
     let elements = 0;
-    while (off + 8 <= limit && elements < 10_000) {
+    while (off + 8 <= limit && elements < 10000) {
         const chunkType = u16(b, off);
         const headerSize = u16(b, off + 2);
         const chunkSize = u32(b, off + 4);
@@ -281,7 +279,8 @@ export function parseAxmlManifest(b: Buffer): AxmlManifest {
             if (attrSize >= 20 && attrCount > 0 && attrCount < 256) {
                 for (let a = 0; a < attrCount; a++) {
                     const aOff = off + attrStart + a * attrSize;
-                    if (aOff + 20 > off + chunkSize || aOff + 20 > b.length) break;
+                    if (aOff + 20 > off + chunkSize || aOff + 20 > b.length)
+                        break;
                     const aNameIdx = u32(b, aOff + 4);
                     const aName = aNameIdx < strings.length ? strings[aNameIdx]! : `attr${a}`;
                     attrs[aName] = attrValue(b, aOff, strings);
@@ -293,8 +292,10 @@ export function parseAxmlManifest(b: Buffer): AxmlManifest {
             };
             const num = (k: string): number | null => {
                 const v = attrs[k];
-                if (typeof v === 'number' && Number.isFinite(v)) return v;
-                if (typeof v === 'string' && /^\d+$/.test(v)) return Number(v);
+                if (typeof v === 'number' && Number.isFinite(v))
+                    return v;
+                if (typeof v === 'string' && /^\d+$/.test(v))
+                    return Number(v);
                 return null;
             };
             if (elName === 'manifest') {
@@ -310,43 +311,57 @@ export function parseAxmlManifest(b: Buffer): AxmlManifest {
             }
             else if (elName === 'uses-permission' || elName === 'uses-permission-sdk-23') {
                 const p = str('name');
-                if (p && !empty.permissions.includes(p)) empty.permissions.push(p);
+                if (p && !empty.permissions.includes(p))
+                    empty.permissions.push(p);
             }
             else if (elName === 'activity' || elName === 'activity-alias') {
                 const n = str('name');
-                if (n && !empty.activities.includes(n)) empty.activities.push(n);
+                if (n && !empty.activities.includes(n))
+                    empty.activities.push(n);
             }
             else if (elName === 'service') {
                 const n = str('name');
-                if (n && !empty.services.includes(n)) empty.services.push(n);
+                if (n && !empty.services.includes(n))
+                    empty.services.push(n);
             }
             else if (elName === 'receiver') {
                 const n = str('name');
-                if (n && !empty.receivers.includes(n)) empty.receivers.push(n);
+                if (n && !empty.receivers.includes(n))
+                    empty.receivers.push(n);
             }
             else if (elName === 'provider') {
                 const n = str('name');
-                if (n && !empty.providers.includes(n)) empty.providers.push(n);
+                if (n && !empty.providers.includes(n))
+                    empty.providers.push(n);
             }
             else if (elName === 'uses-feature') {
                 const n = str('name');
-                if (n && !empty.usesFeatures.includes(n)) empty.usesFeatures.push(n);
+                if (n && !empty.usesFeatures.includes(n))
+                    empty.usesFeatures.push(n);
             }
             else if (elName === 'application') {
                 empty.applicationLabel = str('label') ?? empty.applicationLabel;
                 const d = attrs['debuggable'];
-                if (typeof d === 'boolean') empty.debuggable = d;
-                else if (typeof d === 'number') empty.debuggable = d !== 0;
+                if (typeof d === 'boolean')
+                    empty.debuggable = d;
+                else if (typeof d === 'number')
+                    empty.debuggable = d !== 0;
             }
         }
         off += chunkSize;
     }
-    if (empty.minSdkVersion != null) empty.evidence.push(`minSdkVersion=${empty.minSdkVersion}`);
-    if (empty.targetSdkVersion != null) empty.evidence.push(`targetSdkVersion=${empty.targetSdkVersion}`);
-    if (empty.packageName) empty.evidence.push(`package=${empty.packageName}`);
-    if (empty.permissions.length) empty.evidence.push(`permissions=${empty.permissions.length}`);
-    if (empty.activities.length) empty.evidence.push(`activities=${empty.activities.length}`);
-    if (elements === 0) empty.limitations.push('No XML start elements parsed');
+    if (empty.minSdkVersion != null)
+        empty.evidence.push(`minSdkVersion=${empty.minSdkVersion}`);
+    if (empty.targetSdkVersion != null)
+        empty.evidence.push(`targetSdkVersion=${empty.targetSdkVersion}`);
+    if (empty.packageName)
+        empty.evidence.push(`package=${empty.packageName}`);
+    if (empty.permissions.length)
+        empty.evidence.push(`permissions=${empty.permissions.length}`);
+    if (empty.activities.length)
+        empty.evidence.push(`activities=${empty.activities.length}`);
+    if (elements === 0)
+        empty.limitations.push('No XML start elements parsed');
     // Cap list sizes for MCP budgets
     empty.permissions = empty.permissions.slice(0, 200);
     empty.activities = empty.activities.slice(0, 100);
@@ -356,7 +371,6 @@ export function parseAxmlManifest(b: Buffer): AxmlManifest {
     empty.usesFeatures = empty.usesFeatures.slice(0, 50);
     return empty;
 }
-
 /**
  * SDK hints via full AXML walker, with UTF-16 scan fallback for crafted/partial buffers.
  */
@@ -373,12 +387,14 @@ export function parseAxmlSdkHints(b: Buffer): {
         const scan = (label: string): number | null => {
             const needle = Buffer.from(label, 'utf16le');
             const idx = b.indexOf(needle);
-            if (idx < 0) return null;
+            if (idx < 0)
+                return null;
             const end = Math.min(b.length - 8, idx + 96);
             for (let i = idx; i < end; i++) {
                 if (b[i] === 0x10 && i + 5 < b.length) {
                     const v = b.readInt32LE(i + 4);
-                    if (v >= 1 && v <= 36) return v;
+                    if (v >= 1 && v <= 36)
+                        return v;
                 }
             }
             return null;
@@ -400,7 +416,6 @@ export function parseAxmlSdkHints(b: Buffer): {
     }
     return { minSdk, targetSdk, evidence };
 }
-
 /** Minimal resources.arsc summary: packages and string samples. */
 export function parseArscSummary(b: Buffer): ArscSummary {
     const out: ArscSummary = {
@@ -425,20 +440,23 @@ export function parseArscSummary(b: Buffer): ArscSummary {
     }
     const packageCount = u32(b, 8);
     out.packageCount = packageCount > 256 ? null : packageCount;
-    if (out.packageCount != null) out.evidence.push(`packageCount=${out.packageCount}`);
+    if (out.packageCount != null)
+        out.evidence.push(`packageCount=${out.packageCount}`);
     // Global string pool often follows ResTable header (headerSize at +2)
     const headerSize = u16(b, 2);
     if (headerSize >= 12 && headerSize < b.length) {
         const global = parseStringPool(b, headerSize);
         out.typeStringsSample = global.filter(Boolean).slice(0, 20);
-        if (global.length) out.evidence.push(`globalStringPool=${global.length}`);
+        if (global.length)
+            out.evidence.push(`globalStringPool=${global.length}`);
     }
     // Scan for ResTable_package chunks
     let off = headerSize >= 12 ? headerSize : 12;
     // skip global string pool chunk
     if (off + 8 <= b.length && u16(b, off) === RES_STRING_POOL_TYPE) {
         const cs = u32(b, off + 4);
-        if (cs >= 8 && off + cs <= b.length) off += cs;
+        if (cs >= 8 && off + cs <= b.length)
+            off += cs;
     }
     let packages = 0;
     while (off + 8 <= b.length && packages < 16) {
@@ -454,9 +472,11 @@ export function parseArscSummary(b: Buffer): ArscSummary {
             // ResTable_package: id(u32) at +8, name[128] char16 at +12
             const nameBytes = b.subarray(off + 12, Math.min(off + 12 + 256, b.length));
             let end = 0;
-            while (end + 1 < nameBytes.length && !(nameBytes[end] === 0 && nameBytes[end + 1] === 0)) end += 2;
+            while (end + 1 < nameBytes.length && !(nameBytes[end] === 0 && nameBytes[end + 1] === 0))
+                end += 2;
             const name = nameBytes.toString('utf16le', 0, end).replace(/\0/g, '');
-            if (name) out.packageNames.push(name);
+            if (name)
+                out.packageNames.push(name);
             // typeStrings / keyStrings offsets at +208 / +212 relative? (API dependent)
             // Sample: look for nested string pools inside package
             for (let i = off + 288; i + 8 < off + cs && i + 8 < b.length; i += 4) {
@@ -474,11 +494,12 @@ export function parseArscSummary(b: Buffer): ArscSummary {
         }
         off += cs;
     }
-    if (out.packageNames.length) out.evidence.push(`packages=${out.packageNames.join(',')}`);
-    if (packages === 0) out.limitations.push('No ResTable_package chunks found');
+    if (out.packageNames.length)
+        out.evidence.push(`packages=${out.packageNames.join(',')}`);
+    if (packages === 0)
+        out.limitations.push('No ResTable_package chunks found');
     return out;
 }
-
 /** DEX header + class name listing (bounded). */
 export function parseDexClasses(b: Buffer, maxClasses = 500): DexClassListing {
     const out: DexClassListing = {
@@ -488,6 +509,8 @@ export function parseDexClasses(b: Buffer, maxClasses = 500): DexClassListing {
         fileSize: null,
         classCount: 0,
         classNames: [],
+        methodNamesSample: [],
+        methodCount: null,
         obfuscationIndicators: [],
         evidence: [],
         limitations: [],
@@ -504,9 +527,12 @@ export function parseDexClasses(b: Buffer, maxClasses = 500): DexClassListing {
     out.version = b.toString('ascii', 4, 8).replace(/\0/g, '');
     out.evidence.push(`dex version=${out.version}`);
     const endianTag = u32(b, 40);
-    if (endianTag === 0x12345678) out.endian = 'le';
-    else if (endianTag === 0x78563412) out.endian = 'be';
-    else out.limitations.push(`unusual endian_tag=0x${endianTag.toString(16)}`);
+    if (endianTag === 0x12345678)
+        out.endian = 'le';
+    else if (endianTag === 0x78563412)
+        out.endian = 'be';
+    else
+        out.limitations.push(`unusual endian_tag=0x${endianTag.toString(16)}`);
     // We only support little-endian layout (standard)
     if (out.endian === 'be') {
         out.limitations.push('Big-endian DEX not decoded');
@@ -521,16 +547,19 @@ export function parseDexClasses(b: Buffer, maxClasses = 500): DexClassListing {
     const classDefsOff = u32(b, 100);
     out.classCount = classDefsSize;
     out.evidence.push(`class_defs_size=${classDefsSize}`);
-    if (stringIdsSize > 2_000_000 || typeIdsSize > 2_000_000 || classDefsSize > 2_000_000) {
+    if (stringIdsSize > 2000000 || typeIdsSize > 2000000 || classDefsSize > 2000000) {
         out.limitations.push('DEX id tables exceed hostile-input caps');
         return out;
     }
     const readString = (idx: number): string | null => {
-        if (idx < 0 || idx >= stringIdsSize) return null;
+        if (idx < 0 || idx >= stringIdsSize)
+            return null;
         const idOff = stringIdsOff + idx * 4;
-        if (idOff + 4 > b.length) return null;
+        if (idOff + 4 > b.length)
+            return null;
         const dataOff = u32(b, idOff);
-        if (dataOff >= b.length) return null;
+        if (dataOff >= b.length)
+            return null;
         // MUTF-8: uleb128 utf16_size then bytes
         let p = dataOff;
         let utf16Size = 0;
@@ -538,12 +567,14 @@ export function parseDexClasses(b: Buffer, maxClasses = 500): DexClassListing {
         for (let n = 0; n < 5 && p < b.length; n++) {
             const by = b[p++]!;
             utf16Size |= (by & 0x7f) << shift;
-            if ((by & 0x80) === 0) break;
+            if ((by & 0x80) === 0)
+                break;
             shift += 7;
         }
         void utf16Size;
         const start = p;
-        while (p < b.length && b[p] !== 0) p++;
+        while (p < b.length && b[p] !== 0)
+            p++;
         try {
             return b.toString('utf8', start, p);
         }
@@ -552,16 +583,19 @@ export function parseDexClasses(b: Buffer, maxClasses = 500): DexClassListing {
         }
     };
     const typeName = (typeIdx: number): string | null => {
-        if (typeIdx < 0 || typeIdx >= typeIdsSize) return null;
+        if (typeIdx < 0 || typeIdx >= typeIdsSize)
+            return null;
         const off = typeIdsOff + typeIdx * 4;
-        if (off + 4 > b.length) return null;
+        if (off + 4 > b.length)
+            return null;
         return readString(u32(b, off));
     };
     const n = Math.min(classDefsSize, maxClasses);
     let shortNames = 0;
     for (let i = 0; i < n; i++) {
         const off = classDefsOff + i * 32; // class_def_item = 32 bytes
-        if (off + 4 > b.length) break;
+        if (off + 4 > b.length)
+            break;
         const classIdx = u32(b, off);
         const desc = typeName(classIdx);
         if (desc) {
@@ -572,7 +606,8 @@ export function parseDexClasses(b: Buffer, maxClasses = 500): DexClassListing {
             }
             out.classNames.push(name);
             const simple = name.includes('.') ? name.slice(name.lastIndexOf('.') + 1) : name;
-            if (simple.length <= 2 || /^[a-z]{1,3}$/.test(simple)) shortNames++;
+            if (simple.length <= 2 || /^[a-z]{1,3}$/.test(simple))
+                shortNames++;
         }
     }
     if (classDefsSize > maxClasses) {
@@ -584,12 +619,41 @@ export function parseDexClasses(b: Buffer, maxClasses = 500): DexClassListing {
     if (out.classNames.some(n => n.startsWith('a.') || n.startsWith('o.') || /^[a-z]\.[a-z]\./.test(n))) {
         out.obfuscationIndicators.push('obfuscator-style package prefixes');
     }
+    // method_ids: class_idx (u16), proto_idx (u16), name_idx (u32) — 8 bytes each
+    const methodIdsSize = u32(b, 88);
+    const methodIdsOff = u32(b, 92);
+    out.methodCount = methodIdsSize;
+    if (methodIdsSize <= 2000000 && methodIdsOff + 8 <= b.length) {
+        const mMax = Math.min(methodIdsSize, 200);
+        for (let i = 0; i < mMax; i++) {
+            const off = methodIdsOff + i * 8;
+            if (off + 8 > b.length)
+                break;
+            const classIdx = b.readUInt16LE(off);
+            const nameIdx = u32(b, off + 4);
+            const cls = typeName(classIdx);
+            const nm = readString(nameIdx);
+            if (cls && nm) {
+                let cname = cls;
+                if (cname.startsWith('L') && cname.endsWith(';')) {
+                    cname = cname.slice(1, -1).replace(/\//g, '.');
+                }
+                out.methodNamesSample.push(`${cname}.${nm}`);
+            }
+            else if (nm) {
+                out.methodNamesSample.push(nm);
+            }
+        }
+        if (methodIdsSize > mMax) {
+            out.limitations.push(`method list truncated to ${mMax} of ${methodIdsSize}`);
+        }
+        out.evidence.push(`method_ids_size=${methodIdsSize}`);
+    }
     if (out.obfuscationIndicators.length) {
         out.evidence.push(...out.obfuscationIndicators);
     }
     return out;
 }
-
 /**
  * Detect APK signature schemes from full APK bytes (ZIP + optional signing block).
  * v1: META-INF/*.RSA|DSA|EC (+ MANIFEST.MF).
@@ -652,10 +716,12 @@ export function detectApkSignatures(apk: Buffer, zipEntryNames?: string[]): ApkS
                         for (let i = 0; i + 4 <= region.length; i++) {
                             const id = region.readUInt32LE(i);
                             if (id === 0x7109871a || id === 0x1b93ad61) {
-                                if (!out.schemes.includes('v2')) out.schemes.push('v2');
+                                if (!out.schemes.includes('v2'))
+                                    out.schemes.push('v2');
                             }
                             if (id === 0xf05368c0) {
-                                if (!out.schemes.includes('v3')) out.schemes.push('v3');
+                                if (!out.schemes.includes('v3'))
+                                    out.schemes.push('v3');
                             }
                             if (id === 0x42726577) { // "Brew" padding often
                                 // ignore
@@ -671,6 +737,7 @@ export function detectApkSignatures(apk: Buffer, zipEntryNames?: string[]): ApkS
     }
     // Deduplicate schemes, prefer specific labels
     out.schemes = [...new Set(out.schemes)];
-    if (!out.schemes.length) out.limitations.push('No signing scheme detected');
+    if (!out.schemes.length)
+        out.limitations.push('No signing scheme detected');
     return out;
 }

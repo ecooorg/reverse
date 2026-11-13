@@ -10,9 +10,7 @@ import { operatingMode } from './benchmark-gate.js';
 import { wrapUntrusted } from './core-untrusted.js';
 import { requireLegacyGate } from './legacy-gate.js';
 import type { LegacyAuthorization } from './legacy-types.js';
-
 const execFileAsync = promisify(execFile);
-
 /** Injected adb runner for unit tests; product path uses real execFile. */
 export type AdbRunner = (serial: string, args: string[], opts?: {
     timeout?: number;
@@ -21,7 +19,6 @@ export type AdbRunner = (serial: string, args: string[], opts?: {
     stdout: string;
     stderr: string;
 }>;
-
 const defaultRunner: AdbRunner = async (serial, args, opts = {}) => {
     const result = await execFileAsync('adb', ['-s', serial, ...args], {
         timeout: opts.timeout ?? 20000,
@@ -31,14 +28,12 @@ const defaultRunner: AdbRunner = async (serial, args, opts = {}) => {
     });
     return { stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
 };
-
 function isValidSerial(serial: string | undefined | null): serial is string {
     return typeof serial === 'string'
         && serial.length > 0
         && serial.length <= 256
         && !serial.startsWith('-');
 }
-
 function refuseMode(serial: string | null): {
     status: 'refused';
     serial: string | null;
@@ -52,7 +47,6 @@ function refuseMode(serial: string | null): {
         ],
     };
 }
-
 function unsupportedSerial(): {
     status: 'unsupported';
     serial: null;
@@ -64,7 +58,6 @@ function unsupportedSerial(): {
         limitations: ['Set a valid REVERSE_ANDROID_SERIAL or serial option; no adb command was run.'],
     };
 }
-
 /**
  * Collect a bounded UI hierarchy (uiautomator dump) and a SHA-256 of a screencap.
  * The raw PNG is not returned — only the digest — so MCP payloads stay small and
@@ -111,7 +104,9 @@ export async function collectAndroidUiObservations(input: {
         hierarchyXml = `${dump.stdout}\n${dump.stderr}`.slice(0, 512 * 1024);
     }
     catch (error) {
-        const code = error && typeof error === 'object' && 'code' in error ? String((error as { code: unknown }).code) : 'unknown';
+        const code = error && typeof error === 'object' && 'code' in error ? String((error as {
+            code: unknown;
+        }).code) : 'unknown';
         limitations.push(`uiautomator dump failed or was unavailable (code=${code}).`);
     }
     try {
@@ -129,7 +124,9 @@ export async function collectAndroidUiObservations(input: {
         }
     }
     catch (error) {
-        const code = error && typeof error === 'object' && 'code' in error ? String((error as { code: unknown }).code) : 'unknown';
+        const code = error && typeof error === 'object' && 'code' in error ? String((error as {
+            code: unknown;
+        }).code) : 'unknown';
         limitations.push(`screencap failed or was unavailable (code=${code}).`);
     }
     const status = hierarchyXml !== null && screenshotSha256 !== null
@@ -156,7 +153,6 @@ export async function collectAndroidUiObservations(input: {
         ],
     };
 }
-
 export interface SeededMonkeyRun {
     runIndex: number;
     seed: number;
@@ -165,7 +161,6 @@ export interface SeededMonkeyRun {
     stderrTail: string;
     pmCleared: boolean;
 }
-
 /**
  * Replay a deterministic monkey scenario with a fixed seed for 1–3 runs.
  * Optionally runs `pm clear` before each run. Compares run outcomes for stability.
@@ -252,7 +247,9 @@ export async function replayAndroidSeededInput(input: {
             }
             catch (error) {
                 const code = error && typeof error === 'object' && 'code' in error
-                    ? String((error as { code: unknown }).code)
+                    ? String((error as {
+                        code: unknown;
+                    }).code)
                     : 'unknown';
                 limitations.push(`pm clear failed on run ${i + 1} (code=${code}).`);
             }
@@ -281,7 +278,9 @@ export async function replayAndroidSeededInput(input: {
         }
         catch (error) {
             const code = error && typeof error === 'object' && 'code' in error
-                ? String((error as { code: unknown }).code)
+                ? String((error as {
+                    code: unknown;
+                }).code)
                 : 'unknown';
             limitations.push(`monkey run ${i + 1} failed (code=${code}).`);
             runs.push({
@@ -320,14 +319,12 @@ export async function replayAndroidSeededInput(input: {
         ],
     };
 }
-
 export interface AndroidObservationSnapshot {
     hierarchyXml?: string | null;
     screenshotSha256?: string | null;
     monkeyExitCode?: number | null;
     monkeyStdoutTail?: string | null;
 }
-
 /**
  * Compare two observation snapshots. UI text and monkey outcome are compared;
  * screenshot digests may differ due to clocks/animations and are reported as
@@ -384,9 +381,9 @@ export function compareAndroidObservations(input: {
         ],
     };
 }
-
 function normalizeHierarchy(xml: string | null | undefined): string | null {
-    if (xml == null) return null;
+    if (xml == null)
+        return null;
     return xml
         .replace(/\r\n/g, '\n')
         .replace(/\s+NAF="true"/g, '')
@@ -394,7 +391,197 @@ function normalizeHierarchy(xml: string | null | undefined): string | null {
         .replace(/\s+/g, ' ')
         .trim();
 }
-
 function bothInjected(a: string, b: string): boolean {
     return /Events injected:\s*\d+/i.test(a) && /Events injected:\s*\d+/i.test(b);
+}
+/**
+ * Plan a Frida Java.perform session script for a package (does not execute Frida).
+ * Operators supply the script under CONTROLLED_EXECUTION via external Frida.
+ */
+export function planAndroidFridaSession(input: {
+    packageName: string;
+    hooks?: string[];
+}): {
+    allowed: boolean;
+    script: string | null;
+    limitations: string[];
+} {
+    const pkg = (input.packageName ?? '').trim();
+    if (!pkg || /[^\w.]/.test(pkg)) {
+        return {
+            allowed: false,
+            script: null,
+            limitations: ['packageName must be a Java-style identifier'],
+        };
+    }
+    const hooks = (input.hooks ?? ['Activity.onCreate', 'Activity.onResume']).slice(0, 20);
+    const lines = [
+        '// Generated by reverse — operator must run under CONTROLLED_EXECUTION',
+        `Java.perform(function () {`,
+        `  var pkg = ${JSON.stringify(pkg)};`,
+    ];
+    for (const h of hooks) {
+        const safe = h.replace(/[^\w.$]/g, '');
+        if (!safe)
+            continue;
+        lines.push(`  try {`);
+        lines.push(`    var C = Java.use(${JSON.stringify(safe.split('.')[0] === safe ? safe : safe)});`);
+        lines.push(`    // hook placeholder for ${safe}`);
+        lines.push(`  } catch (e) { /* class missing on this API level */ }`);
+    }
+    lines.push('});');
+    return {
+        allowed: true,
+        script: lines.join('\n'),
+        limitations: [
+            'Script is generated only; Frida attach/spawn is operator-driven under CONTROLLED_EXECUTION.',
+            'Call-frequency continuous profiles require an external Frida session and are not automated here.',
+        ],
+    };
+}
+/**
+ * Detect simpleperf / Perfetto availability on device (no long profiling run).
+ */
+export async function detectAndroidProfilers(input: {
+    authorization?: LegacyAuthorization | null;
+    sessionId?: string;
+    confirm: boolean;
+    serial?: string;
+    runner?: AdbRunner;
+}): Promise<{
+    status: 'completed' | 'unsupported' | 'refused';
+    serial: string | null;
+    simpleperf: boolean;
+    perfetto: boolean;
+    limitations: string[];
+}> {
+    await requireLegacyGate({
+        authorization: input.authorization,
+        sessionId: input.sessionId,
+        operation: 'detect_android_profilers',
+    });
+    const serial = input.serial ?? process.env.REVERSE_ANDROID_SERIAL ?? '';
+    if (operatingMode() !== 'CONTROLLED_EXECUTION' || input.confirm !== true) {
+        return { ...refuseMode(serial || null), simpleperf: false, perfetto: false };
+    }
+    if (!isValidSerial(serial)) {
+        return { ...unsupportedSerial(), simpleperf: false, perfetto: false };
+    }
+    const run = input.runner ?? defaultRunner;
+    let simpleperf = false;
+    let perfetto = false;
+    const limitations: string[] = [];
+    try {
+        const sp = await run(serial, ['shell', 'which', 'simpleperf'], { timeout: 8000 });
+        simpleperf = /simpleperf/.test(sp.stdout + sp.stderr);
+    }
+    catch {
+        limitations.push('simpleperf probe failed');
+    }
+    try {
+        const pf = await run(serial, ['shell', 'which', 'perfetto'], { timeout: 8000 });
+        perfetto = /perfetto/.test(pf.stdout + pf.stderr);
+    }
+    catch {
+        limitations.push('perfetto probe failed');
+    }
+    return {
+        status: 'completed',
+        serial,
+        simpleperf,
+        perfetto,
+        limitations: [
+            ...limitations,
+            'Detect-only: no profiling session is started. Operators run simpleperf/Perfetto under CONTROLLED_EXECUTION.',
+        ],
+    };
+}
+/**
+ * Bounded device file / database path listing for an app data tree (no content dump of large DBs).
+ */
+export async function collectAndroidFileObservations(input: {
+    authorization?: LegacyAuthorization | null;
+    sessionId?: string;
+    confirm: boolean;
+    serial?: string;
+    packageName: string;
+    runner?: AdbRunner;
+}): Promise<{
+    status: 'completed' | 'unsupported' | 'refused' | 'partial';
+    serial: string | null;
+    packageName: string | null;
+    paths: string[];
+    untrustedContent: Record<string, unknown> | null;
+    limitations: string[];
+}> {
+    await requireLegacyGate({
+        authorization: input.authorization,
+        sessionId: input.sessionId,
+        operation: 'collect_android_file_observations',
+    });
+    const serial = input.serial ?? process.env.REVERSE_ANDROID_SERIAL ?? '';
+    if (operatingMode() !== 'CONTROLLED_EXECUTION' || input.confirm !== true) {
+        return {
+            ...refuseMode(serial || null),
+            packageName: null,
+            paths: [],
+            untrustedContent: null,
+        };
+    }
+    if (!isValidSerial(serial)) {
+        return {
+            ...unsupportedSerial(),
+            packageName: null,
+            paths: [],
+            untrustedContent: null,
+        };
+    }
+    const pkg = (input.packageName ?? '').trim();
+    if (!pkg || /[^\w.]/.test(pkg) || pkg.length > 256) {
+        return {
+            status: 'unsupported',
+            serial,
+            packageName: null,
+            paths: [],
+            untrustedContent: null,
+            limitations: ['packageName must be a non-empty Java-style package identifier'],
+        };
+    }
+    const run = input.runner ?? defaultRunner;
+    const limitations: string[] = [];
+    let paths: string[] = [];
+    try {
+        // List shared_prefs and databases only — bounded depth
+        const shellArgs = ['shell', 'run-as', pkg, 'sh', '-c', 'ls shared_prefs 2>/dev/null; ls databases 2>/dev/null'];
+        const out = await run(serial, shellArgs, { timeout: 15000, maxBuffer: 256 * 1024 });
+        const text = `${out.stdout}\n${out.stderr}`;
+        paths = text
+            .split(/\r?\n/)
+            .map(s => s.trim())
+            .filter(s => s && !s.startsWith('ls:') && s.length < 256)
+            .slice(0, 200);
+    }
+    catch (error) {
+        const code = error && typeof error === 'object' && 'code' in error
+            ? String((error as {
+                code: unknown;
+            }).code)
+            : 'unknown';
+        limitations.push(`run-as listing failed (code=${code}); app may not be debuggable.`);
+    }
+    const wrapped = paths.length
+        ? wrapUntrusted({ serial, packageName: pkg, paths }).structured
+        : null;
+    return {
+        status: paths.length ? 'completed' : 'partial',
+        serial,
+        packageName: pkg,
+        paths: (wrapped?.paths as string[] | undefined) ?? paths,
+        untrustedContent: (wrapped?.untrustedContent as Record<string, unknown> | undefined) ?? null,
+        limitations: [
+            ...limitations,
+            'Path names only; database contents are not dumped.',
+            'Device output is untrusted target data.',
+        ],
+    };
 }
