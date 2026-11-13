@@ -8,7 +8,7 @@ This file is the single source of truth for **what is done, what is not done and
 
 1. [Status at a glance](#status-at-a-glance): the current version, the active patch and the next concrete step.
 2. [Delivery plan](#delivery-plan-foundation-al-and-product-patches-mq): the one ordered table of all patches A–Q, how progress is measured and what "done" means.
-3. [Active work: product patches M–Q](#active-work-product-patches-mq): the scope and delivery rules, the working checklist and work order of Patch M (**start work here**) and the detailed plans for [N, O, P and Q](#detailed-plans-for-patches-n-o-p-and-q), which are written in advance and not started.
+3. [Active work: product patches M–Q](#active-work-product-patches-mq): the scope and delivery rules, historical M–P checklists (closed) and the [Q plan](#detailed-plans-for-patches-n-o-p-and-q) (partial). New product work is maintenance or scoped Q residual deepening.
 4. [Carry-over debt register](#carry-over-debt-register): approved tasks that are still open although their patch is closed or that have no recorded closure, and the [debt closure schedule](#debt-closure-schedule) that fixes when each one must be closed (none may remain open past Q).
 5. Reference material, in this order: [completed foundation A–L](#completed-foundation-patches-al) (historical records, do not re-open), [approved audit backlog](#approved-audit-backlog-audit-1-approved-2026-11-09) (every finding and recommendation with its status), [coverage table](#coverage-of-the-roadmap), [release history](#release-history) and the original [core readiness criteria](#core-development-order-and-completion-criteria).
 
@@ -24,7 +24,7 @@ State as of **2.0.6** (audit-2.0.5 remediation: Q recorded as **partial**; gates
 
 | Question | Answer |
 |---|---|
-| What is the product version? | **2.0.6** (**Patch Q closed** — unified compatibility) |
+| What is the product version? | **2.0.6** (Q **partial**; audit-2.0.5 remediation) |
 | What is finished? | Foundation A–L; product **M** (Windows), **N** (Linux), **O** (Mac), **P** (Android). **Q partial**: unified report envelope + newer-gen inventory + MCP/CLI surface; residual Q checklist is signed-off limitation until deepened. |
 | What is being built? | Product patches **A–Q complete**. Post-2.0 work is maintenance only. |
 | What has not started? | None of the roadmap product patches A–Q remain open. Residual items are explicit CAPABILITIES limitations. |
@@ -417,7 +417,7 @@ Patch M has the full working checklist and work order above. Patches N, O, P and
 **Verification.** Capability suite and unit tests cover the delivered surface. Manual `os: all` green run ID to be recorded by the maintainer after this release tag lands.
 
 
-### Patch P working plan — Legacy Android software (target release 1.5, **in progress**)
+### Patch P working plan — Legacy Android software (closed **1.5.22**)
 
 **Outcome.** Reverse can take an old Android application (roughly Android 1.0 to 5.1, API levels 1 to 22, Dalvik and early ART, 2008 to about 2015) and (a) identify its build, runtime and native components, (b) name the concrete causes it fails on a current device, (c) run it on an emulator or device of a suitable API level under controlled conditions, (d) capture and replay deterministic scenarios, (e) validate a repaired, retargeted or rebuilt version against the original, and (f) rank migration options. The Android foundations from E, F, G, H and J are reused, not rewritten.
 
