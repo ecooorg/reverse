@@ -90,8 +90,12 @@ Commands:
   wasm <file>                   WebAssembly section inventory
   mcp-http                      Optional HTTP MCP (REVERSE_MCP_HTTP=1 + TOKEN)
   setup <agent> [--confirm true] Register MCP in cursor|claude|codex|vscode (dry-run default)
+  analyze-legacy-windows <path>  Authorization-gated Windows Target Profile
+  analyze-legacy-linux <path>    Authorization-gated Linux Target Profile
+  analyze-legacy-mac <path>      Authorization-gated Mac Target Profile
   analyze-legacy-android <path>  Authorization-gated Android Target Profile (needs env session)
   inventory-newer <path>         Newer-generation static inventory markers
+  query-knowledge [text]         Query in-tree multi-family knowledge facts
   unified-report                 Build unified report from JSON profile on stdin
   analyzers                     List adapters and providers
   doctor                        Check local runtime and store readiness
@@ -255,6 +259,59 @@ async function main() {
         case 'mcp':
             await import('./mcp-server.js');
             return;
+
+        case 'analyze-legacy-windows': {
+            const { analyzeLegacyWindows } = await import('./legacy-windows.js');
+            const file = args[0];
+            if (!file) throw new Error('usage: reverse analyze-legacy-windows <path>');
+            const auth = {
+                basis: (value('basis', 'operator_declaration') as any),
+                licenseOrConsentReference: value('ref', 'cli')!,
+                declaredBy: value('by', 'cli')!,
+                declaredAt: new Date().toISOString(),
+            };
+            const out = await analyzeLegacyWindows(file, auth);
+            console.log(JSON.stringify(out, null, 2));
+            break;
+        }
+        case 'analyze-legacy-linux': {
+            const { analyzeLegacyLinux } = await import('./legacy-linux.js');
+            const file = args[0];
+            if (!file) throw new Error('usage: reverse analyze-legacy-linux <path>');
+            const auth = {
+                basis: (value('basis', 'operator_declaration') as any),
+                licenseOrConsentReference: value('ref', 'cli')!,
+                declaredBy: value('by', 'cli')!,
+                declaredAt: new Date().toISOString(),
+            };
+            const out = await analyzeLegacyLinux(file, auth);
+            console.log(JSON.stringify(out, null, 2));
+            break;
+        }
+        case 'analyze-legacy-mac': {
+            const { analyzeLegacyMac } = await import('./legacy-mac.js');
+            const file = args[0];
+            if (!file) throw new Error('usage: reverse analyze-legacy-mac <path>');
+            const auth = {
+                basis: (value('basis', 'operator_declaration') as any),
+                licenseOrConsentReference: value('ref', 'cli')!,
+                declaredBy: value('by', 'cli')!,
+                declaredAt: new Date().toISOString(),
+            };
+            const out = await analyzeLegacyMac(file, auth);
+            console.log(JSON.stringify(out, null, 2));
+            break;
+        }
+        case 'query-knowledge': {
+            const { queryKnowledgeBase } = await import('./unified-compatibility.js');
+            const out = queryKnowledgeBase({
+                family: value('family') as any,
+                text: args[0] ?? value('text'),
+            });
+            console.log(JSON.stringify(out, null, 2));
+            break;
+        }
+
         default: throw new Error(`Unknown command: ${cmd}. Run reverse --help.`);
     }
     console.log(JSON.stringify(out, null, 2));

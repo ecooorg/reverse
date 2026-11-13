@@ -62,6 +62,34 @@ async function which(bin: string): Promise<string | null> {
     return null;
 }
 /** Probe which isolation mechanism this host can offer. */
+
+async function probeUnshareWorks(bin: string): Promise<boolean> {
+    try {
+        const r = spawn(bin, ['-U', '-r', 'true'], { stdio: 'ignore' });
+        const code = await new Promise<number | null>(resolve => {
+            const t = setTimeout(() => {
+                try {
+                    r.kill('SIGKILL');
+                }
+                catch { /* ignore */ }
+                resolve(null);
+            }, 1500);
+            r.on('exit', (c) => {
+                clearTimeout(t);
+                resolve(c);
+            });
+            r.on('error', () => {
+                clearTimeout(t);
+                resolve(null);
+            });
+        });
+        return code === 0;
+    }
+    catch {
+        return false;
+    }
+}
+
 export async function detectSandboxMechanism(): Promise<SandboxMechanism> {
     if (process.platform === 'linux') {
         const bwrap = await which('bwrap');
@@ -74,7 +102,7 @@ export async function detectSandboxMechanism(): Promise<SandboxMechanism> {
             };
         }
         const unshare = await which('unshare');
-        if (unshare) {
+        if (unshare && await probeUnshareWorks(unshare)) {
             return {
                 id: 'unshare',
                 networkIsolated: true,
@@ -182,30 +210,42 @@ export async function runInSandbox(req: SandboxRequest): Promise<SandboxRunResul
                 ...(req.env ?? {})
             },
             stdio: ['ignore', 'pipe', 'pipe'],
-            detached: false
+            detached: true
         });
         let stdout = '';
         let stderr = '';
+        let stdoutTruncated = false;
+        let stderrTruncated = false;
+        const STDOUT_CAP = 256000;
+        const STDERR_CAP = 128000;
         child.stdout?.on('data', (c: Buffer) => {
             stdout += c.toString('utf8');
-            if (stdout.length > 256000)
-                stdout = stdout.slice(0, 256000);
+            if (stdout.length > STDOUT_CAP) {
+                stdout = stdout.slice(0, STDOUT_CAP);
+                stdoutTruncated = true;
+            }
         });
         child.stderr?.on('data', (c: Buffer) => {
             stderr += c.toString('utf8');
-            if (stderr.length > 128000)
-                stderr = stderr.slice(0, 128000);
+            if (stderr.length > STDERR_CAP) {
+                stderr = stderr.slice(0, STDERR_CAP);
+                stderrTruncated = true;
+            }
         });
         let timedOut = false;
         const timer = setTimeout(() => {
             timedOut = true;
             try {
                 if (child.pid) {
+                    // Prefer process-group kill when the child is group leader (detached: true).
                     try {
                         process.kill(-child.pid, 'SIGKILL');
                     }
                     catch {
-                        child.kill('SIGKILL');
+                        try {
+                            child.kill('SIGKILL');
+                        }
+                        catch { /* already dead */ }
                     }
                 }
             }
@@ -229,6 +269,8 @@ export async function runInSandbox(req: SandboxRequest): Promise<SandboxRunResul
             signal: exit.signal,
             stdout,
             stderr,
+            stdoutTruncated,
+            stderrTruncated,
             durationMs: Date.now() - started,
             scratchDir: scratch,
             mechanism,
