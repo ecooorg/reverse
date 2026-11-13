@@ -112,6 +112,8 @@ function createPathEngine(spec: PathEngineSpec): ExecutionEnvironment {
                     signal: null,
                     stdout: '',
                     stderr: `${name} is not installed`,
+                    stdoutTruncated: false,
+                    stderrTruncated: false,
                     durationMs: 0,
                     scratchDir: '',
                     mechanism: {
@@ -224,6 +226,8 @@ export function createChrootEnvironment(): ExecutionEnvironment {
                     signal: null,
                     stdout: '',
                     stderr: 'chroot-rootfs unavailable',
+                    stdoutTruncated: false,
+                    stderrTruncated: false,
                     durationMs: 0,
                     timedOut: false,
                     mechanism: { id: 'none', detail: 'unavailable', networkIsolated: false, scratchIsolated: false },
