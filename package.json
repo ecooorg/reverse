@@ -51,7 +51,7 @@
     "@types/node": "^26.6.6",
     "fast-check": "^4.10.2",
     "jscpd": "^5.4.3",
-    "knip": "^6.45.1",
+    "knip": "^6.46.1",
     "tsx": "^4.19.3",
     "typescript": "^7.0.2",
     "typescript-api": "npm:typescript@~5.9.3"
